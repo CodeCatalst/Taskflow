@@ -62,8 +62,9 @@ Added comprehensive "Tasks by Team" statistics across Dashboard, Analytics pages
 - Positioned after User Performance chart
 
 **Data Processing:**
-- Added `teamDistribution` to `analyticsData` state in `processAnalyticsData()`
+- Added `getTeamTaskCounts()` helper function (reuses existing teams state)
 - Recalculates on every filter change
+- **Always includes ALL teams** from the database
 - Sorts by task count (descending)
 - **Filters Applied:** Yes - respects all analytics filters (status, priority, team, user, date range)
 

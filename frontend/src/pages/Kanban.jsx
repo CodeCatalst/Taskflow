@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
-import { Plus, X, Edit2, Trash2, Clock, Users } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, Clock, Users, UserCheck } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const Kanban = () => {
@@ -18,6 +18,7 @@ const Kanban = () => {
   const [filters, setFilters] = useState({
     team: '',
     assigned_to: '',
+    showMyTasksOnly: false,
   });
   const [formData, setFormData] = useState({
     title: '',
@@ -232,7 +233,20 @@ const Kanban = () => {
   };
 
   const getTasksByStatus = (status) => {
-    return tasks.filter(task => task.status === status);
+    let filtered = tasks.filter(task => task.status === status);
+
+    // Filter to show only tasks assigned to current user
+    if (filters.showMyTasksOnly) {
+      filtered = filtered.filter((t) => {
+        if (!t.assigned_to) return false;
+        const assignedIds = Array.isArray(t.assigned_to) 
+          ? t.assigned_to.map(u => typeof u === 'object' ? u._id : u)
+          : [typeof t.assigned_to === 'object' ? t.assigned_to._id : t.assigned_to];
+        return assignedIds.includes(user?.id);
+      });
+    }
+
+    return filtered;
   };
 
   const getPriorityColor = (priority) => {
@@ -268,29 +282,43 @@ const Kanban = () => {
   return (
     <div className="min-h-screen flex" data-testid="kanban-page">
       <Navbar />
-      <div className={`flex-1 p-8 ${currentTheme.background} overflow-auto`}>
+      <div className={`flex-1 p-8 ${currentTheme.background}`}>
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className={`text-3xl font-bold ${currentTheme.text}`}>Kanban Board</h1>
               <p className={`${currentTheme.textSecondary} mt-2`}>Visual task management with drag & drop</p>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className={`btn ${currentColorScheme.primary} text-white ${currentColorScheme.primaryHover} flex items-center space-x-2`}
-              data-testid="create-task-btn"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Create Task</span>
-            </button>
+            <div className="flex items-center space-x-4">
+              {/* My Tasks Toggle */}
+              <button
+                onClick={() => setFilters({ ...filters, showMyTasksOnly: !filters.showMyTasksOnly })}
+                className={`btn flex items-center space-x-2 ${
+                  filters.showMyTasksOnly
+                    ? `${currentColorScheme.primary} text-white`
+                    : `${currentTheme.surface} ${currentTheme.text} border ${currentTheme.border}`
+                }`}
+              >
+                <UserCheck className="w-5 h-5" />
+                <span>{filters.showMyTasksOnly ? 'My Tasks Only' : 'All Tasks'}</span>
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className={`btn ${currentColorScheme.primary} text-white ${currentColorScheme.primaryHover} flex items-center space-x-2`}
+                data-testid="create-task-btn"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Create Task</span>
+              </button>
+            </div>
           </div>
 
           {/* Kanban Board */}
-          <div className="flex space-x-6 overflow-x-auto pb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {columns.map((column) => (
               <div
                 key={column.id}
-                className="flex-shrink-0 w-80"
+                className="flex flex-col"
               >
                 <div className={`${currentTheme.surface} rounded-lg p-4 mb-4 border-t-4 ${column.borderColor} shadow-sm`}>
                   <h3 className={`font-semibold ${currentTheme.text} flex items-center justify-between`}>
@@ -305,7 +333,7 @@ const Kanban = () => {
                 </div>
 
                 <div 
-                  className={`space-y-3 min-h-[600px] p-4 rounded-lg transition-all border-2 ${
+                  className={`space-y-3 min-h-[500px] flex-1 p-4 rounded-lg transition-all border-2 ${
                     dragOverColumn === column.id 
                       ? `${column.color} ${column.borderColor} border-dashed shadow-lg` 
                       : `border-transparent ${currentTheme.surfaceSecondary}`

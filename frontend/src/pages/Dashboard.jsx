@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Navbar from '../components/Navbar';
@@ -59,16 +59,17 @@ const Dashboard = () => {
   const [reportPeriod, setReportPeriod] = useState('all'); // 'daily', 'weekly', 'monthly', 'all'
   const [showReportOptions, setShowReportOptions] = useState(false);
 
-  useEffect(() => {
-    fetchDashboardData();
-    fetchTeams();
+  // Memoized functions must be defined before useEffect hooks that use them
+  const fetchTeams = useCallback(async () => {
+    try {
+      const response = await api.get('/teams');
+      setTeams(response.data.teams || []);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+    }
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-  }, [allTasks, filters]);
-
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...allTasks];
 
     // Date range filter
@@ -118,78 +119,9 @@ const Dashboard = () => {
 
     setFilteredTasks(filtered);
     updateDetailedStats(filtered);
-  };
+  }, [allTasks, filters]);
 
-  const updateDetailedStats = (tasks) => {
-    // Status breakdown
-    const statusBreakdown = {
-      todo: tasks.filter(t => t.status === 'todo').length,
-      in_progress: tasks.filter(t => t.status === 'in_progress').length,
-      review: tasks.filter(t => t.status === 'review').length,
-      done: tasks.filter(t => t.status === 'done').length,
-      archived: tasks.filter(t => t.status === 'archived').length,
-    };
-
-    // Priority breakdown
-    const priorityBreakdown = {
-      urgent: tasks.filter(t => t.priority === 'urgent').length,
-      high: tasks.filter(t => t.priority === 'high').length,
-      medium: tasks.filter(t => t.priority === 'medium').length,
-      low: tasks.filter(t => t.priority === 'low').length,
-    };
-
-    // Completion rate
-    const totalCompleted = statusBreakdown.done;
-    const totalTasks = tasks.length;
-    const completionRate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
-
-    setDetailedStats({
-      statusBreakdown,
-      priorityBreakdown,
-      completionRate,
-      totalCompleted,
-      totalTasks,
-    });
-  };
-
-  const fetchTeams = async () => {
-    try {
-      const response = await api.get('/teams');
-      setTeams(response.data.teams || []);
-    } catch (error) {
-      console.error('Error fetching teams:', error);
-    }
-  };
-
-  const getTeamTaskCounts = () => {
-    // Count tasks per team
-    const taskCounts = filteredTasks.reduce((acc, task) => {
-      const teamId = task.team_id?._id || 'unassigned';
-      acc[teamId] = (acc[teamId] || 0) + 1;
-      return acc;
-    }, {});
-
-    // Create array with all teams (including those with 0 tasks)
-    const teamStats = teams.map(team => ({
-      id: team._id,
-      name: team.name,
-      count: taskCounts[team._id] || 0,
-    }));
-
-    // Add unassigned tasks if any
-    if (taskCounts['unassigned']) {
-      teamStats.push({
-        id: 'unassigned',
-        name: 'Unassigned',
-        count: taskCounts['unassigned'],
-      });
-    }
-
-    // Sort by count descending
-    return teamStats.sort((a, b) => b.count - a.count);
-  };
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       const tasksResponse = await api.get('/tasks');
       const tasks = tasksResponse.data.tasks || [];
@@ -327,6 +259,78 @@ const Dashboard = () => {
       console.error('Error fetching dashboard data:', error);
       setLoading(false);
     }
+  }, [user.id]);
+
+  // useEffect hooks
+  useEffect(() => {
+    fetchDashboardData();
+    fetchTeams();
+  }, [fetchDashboardData, fetchTeams]);
+
+  useEffect(() => {
+    if (allTasks.length > 0) {
+      applyFilters();
+    }
+  }, [allTasks, filters, applyFilters]);
+
+  const updateDetailedStats = (tasks) => {
+    // Status breakdown
+    const statusBreakdown = {
+      todo: tasks.filter(t => t.status === 'todo').length,
+      in_progress: tasks.filter(t => t.status === 'in_progress').length,
+      review: tasks.filter(t => t.status === 'review').length,
+      done: tasks.filter(t => t.status === 'done').length,
+      archived: tasks.filter(t => t.status === 'archived').length,
+    };
+
+    // Priority breakdown
+    const priorityBreakdown = {
+      urgent: tasks.filter(t => t.priority === 'urgent').length,
+      high: tasks.filter(t => t.priority === 'high').length,
+      medium: tasks.filter(t => t.priority === 'medium').length,
+      low: tasks.filter(t => t.priority === 'low').length,
+    };
+
+    // Completion rate
+    const totalCompleted = statusBreakdown.done;
+    const totalTasks = tasks.length;
+    const completionRate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
+
+    setDetailedStats({
+      statusBreakdown,
+      priorityBreakdown,
+      completionRate,
+      totalCompleted,
+      totalTasks,
+    });
+  };
+
+  const getTeamTaskCounts = () => {
+    // Count tasks per team
+    const taskCounts = filteredTasks.reduce((acc, task) => {
+      const teamId = task.team_id?._id || 'unassigned';
+      acc[teamId] = (acc[teamId] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Create array with all teams (including those with 0 tasks)
+    const teamStats = teams.map(team => ({
+      id: team._id,
+      name: team.name,
+      count: taskCounts[team._id] || 0,
+    }));
+
+    // Add unassigned tasks if any
+    if (taskCounts['unassigned']) {
+      teamStats.push({
+        id: 'unassigned',
+        name: 'Unassigned',
+        count: taskCounts['unassigned'],
+      });
+    }
+
+    // Sort by count descending
+    return teamStats.sort((a, b) => b.count - a.count);
   };
 
   const getStatusColor = (status) => {

@@ -94,12 +94,12 @@ const Tasks = () => {
         const assignedIds = Array.isArray(t.assigned_to) 
           ? t.assigned_to.map(u => typeof u === 'object' ? u._id : u)
           : [typeof t.assigned_to === 'object' ? t.assigned_to._id : t.assigned_to];
-        return assignedIds.includes(user?._id);
+        return assignedIds.includes(user?.id);
       });
     }
 
     setFilteredTasks(filtered);
-  }, [tasks, filters, user?._id]);
+  }, [tasks, filters, user?.id]);
 
   const fetchTasks = async () => {
     try {
