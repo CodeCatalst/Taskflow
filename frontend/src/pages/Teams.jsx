@@ -177,7 +177,12 @@ const Teams = () => {
       <div className={`min-h-screen ${currentTheme.background}`}>
         <Navbar />
         <div className="flex items-center justify-center h-screen">
-          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${currentColorScheme.primary}`}></div>
+          <div className="flex flex-col items-center gap-6">
+            <div className="loading-bar-container">
+              <div className={`loading-bar ${currentColorScheme.primary}`}></div>
+            </div>
+            <p className={`${currentTheme.text} font-medium`}>Loading teams...</p>
+          </div>
         </div>
       </div>
     );

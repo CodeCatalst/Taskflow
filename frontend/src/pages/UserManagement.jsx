@@ -228,8 +228,10 @@ export default function UserManagement() {
         {/* Users Table */}
         {loading ? (
           <div className="text-center py-12">
-            <div className={`inline-block animate-spin rounded-full h-12 w-12 border-b-2 ${currentColorScheme.primary}`}></div>
-            <p className={`mt-4 ${currentTheme.textSecondary}`}>Loading users...</p>
+            <div className="flex flex-col items-center gap-6">
+              <div className={`animate-spin-fast rounded-full h-16 w-16 border-4 border-gray-200 ${currentColorScheme.primary} border-t-4`}></div>
+              <p className={`mt-2 ${currentTheme.textSecondary} font-medium`}>Loading users...</p>
+            </div>
           </div>
         ) : (
           <div className={`${currentTheme.surface} shadow-md rounded-lg overflow-hidden`}>

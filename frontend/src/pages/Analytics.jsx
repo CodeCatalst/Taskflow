@@ -427,7 +427,13 @@ const Analytics = () => {
         <div className="flex">
           <Navbar />
           <div className="flex-1 flex items-center justify-center">
-            <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${currentColorScheme.primary}`}></div>
+            <div className="flex flex-col items-center gap-6">
+              <div className="relative">
+                <div className={`animate-pulse-scale rounded-full h-16 w-16 ${currentColorScheme.primary}`}></div>
+                <div className={`absolute inset-0 animate-spin-fast rounded-full h-16 w-16 border-4 border-transparent ${currentColorScheme.primary} border-t-white`}></div>
+              </div>
+              <p className={`${currentTheme.text} font-medium`}>Loading analytics...</p>
+            </div>
           </div>
         </div>
       </div>

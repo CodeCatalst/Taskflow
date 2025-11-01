@@ -445,7 +445,14 @@ const Dashboard = () => {
         <div className="flex">
           <Navbar />
           <div className="flex-1 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="flex flex-col items-center gap-6">
+              <div className="loading-dots">
+                <div className="loading-dot bg-blue-600"></div>
+                <div className="loading-dot bg-blue-600"></div>
+                <div className="loading-dot bg-blue-600"></div>
+              </div>
+              <p className="text-gray-600 font-medium">Loading dashboard...</p>
+            </div>
           </div>
         </div>
       </div>

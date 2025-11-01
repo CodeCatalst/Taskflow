@@ -310,7 +310,18 @@ const Kanban = () => {
       <div className={`min-h-screen ${currentTheme.background}`}>
         <Navbar />
         <div className="flex items-center justify-center h-screen">
-          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${currentColorScheme.primary}`}></div>
+          <div className="flex flex-col items-center gap-6">
+            <div className="flex gap-3">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className={`w-4 h-12 ${currentColorScheme.primary} rounded-full animate-pulse`}
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                ></div>
+              ))}
+            </div>
+            <p className={`${currentTheme.text} font-medium`}>Loading Kanban board...</p>
+          </div>
         </div>
       </div>
     );

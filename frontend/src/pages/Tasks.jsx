@@ -371,7 +371,15 @@ const Tasks = () => {
       <div className={`min-h-screen ${currentTheme.background}`}>
         <Navbar />
         <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative">
+              <div className="animate-spin-fast rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="animate-pulse h-8 w-8 bg-blue-600 rounded-full opacity-30"></div>
+              </div>
+            </div>
+            <p className={`${currentTheme.text} font-medium`}>Loading tasks...</p>
+          </div>
         </div>
       </div>
     );
