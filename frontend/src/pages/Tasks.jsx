@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSearchParams } from 'react-router-dom';
@@ -75,6 +75,32 @@ const Tasks = () => {
     applyFilters();
   }, [tasks, filters]);
 
+  // Memoize filtered tasks to prevent unnecessary recalculations
+  const applyFilters = useCallback(() => {
+    let filtered = [...tasks];
+
+    if (filters.status) {
+      filtered = filtered.filter((t) => t.status === filters.status);
+    }
+
+    if (filters.priority) {
+      filtered = filtered.filter((t) => t.priority === filters.priority);
+    }
+
+    // Filter to show only tasks assigned to current user
+    if (filters.showMyTasksOnly) {
+      filtered = filtered.filter((t) => {
+        if (!t.assigned_to) return false;
+        const assignedIds = Array.isArray(t.assigned_to) 
+          ? t.assigned_to.map(u => typeof u === 'object' ? u._id : u)
+          : [typeof t.assigned_to === 'object' ? t.assigned_to._id : t.assigned_to];
+        return assignedIds.includes(user?._id);
+      });
+    }
+
+    setFilteredTasks(filtered);
+  }, [tasks, filters, user?._id]);
+
   const fetchTasks = async () => {
     try {
       const response = await api.get('/tasks');
@@ -104,31 +130,6 @@ const Tasks = () => {
     }
   };
 
-  const applyFilters = () => {
-    let filtered = [...tasks];
-
-    if (filters.status) {
-      filtered = filtered.filter((t) => t.status === filters.status);
-    }
-
-    if (filters.priority) {
-      filtered = filtered.filter((t) => t.priority === filters.priority);
-    }
-
-    // Filter to show only tasks assigned to current user
-    if (filters.showMyTasksOnly) {
-      filtered = filtered.filter((t) => {
-        if (!t.assigned_to) return false;
-        const assignedIds = Array.isArray(t.assigned_to) 
-          ? t.assigned_to.map(u => typeof u === 'object' ? u._id : u)
-          : [typeof t.assigned_to === 'object' ? t.assigned_to._id : t.assigned_to];
-        return assignedIds.includes(user?._id);
-      });
-    }
-
-    setFilteredTasks(filtered);
-  };
-
   const handleCreateTask = async (e) => {
     e.preventDefault();
     try {
@@ -151,20 +152,31 @@ const Tasks = () => {
   };
 
   const handleUpdateTask = async (taskId, updates) => {
+    // Optimistic update - update UI immediately
+    setTasks((prev) =>
+      prev.map((t) => (t._id === taskId ? { ...t, ...updates } : t))
+    );
+
     try {
-      await api.patch(`/tasks/${taskId}`, updates);
-      fetchTasks();
+      const response = await api.patch(`/tasks/${taskId}`, updates);
+      const updatedTask = response.data.task;
+      
+      // Update with server response
+      setTasks((prev) =>
+        prev.map((t) => (t._id === taskId ? updatedTask : t))
+      );
+
       if (selectedTask?._id === taskId) {
-        const response = await api.get(`/tasks/${taskId}`);
-        setSelectedTask(response.data.task);
+        setSelectedTask(updatedTask);
       }
       if (editingTask?._id === taskId) {
-        const response = await api.get(`/tasks/${taskId}`);
-        setEditingTask(response.data.task);
+        setEditingTask(updatedTask);
       }
     } catch (error) {
       console.error('Error updating task:', error);
       alert(error.response?.data?.message || 'Failed to update task');
+      // Revert on error
+      fetchTasks();
     }
   };
 
@@ -276,6 +288,28 @@ const Tasks = () => {
       review: 'bg-yellow-100 text-yellow-800',
       done: 'bg-green-100 text-green-800',
       archived: 'bg-red-100 text-red-800',
+    };
+    return colors[status] || colors.todo;
+  };
+
+  const getStatusBorderColor = (status) => {
+    const colors = {
+      todo: 'border-gray-400',
+      in_progress: 'border-blue-400',
+      review: 'border-yellow-400',
+      done: 'border-green-400',
+      archived: 'border-red-400',
+    };
+    return colors[status] || colors.todo;
+  };
+
+  const getStatusAccentColor = (status) => {
+    const colors = {
+      todo: 'bg-gray-500',
+      in_progress: 'bg-blue-500',
+      review: 'bg-yellow-500',
+      done: 'bg-green-500',
+      archived: 'bg-red-500',
     };
     return colors[status] || colors.todo;
   };
@@ -394,12 +428,15 @@ const Tasks = () => {
           {filteredTasks.map((task) => (
             <div
               key={task._id}
-              className={`${currentTheme.surface} rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer`}
+              className={`${currentTheme.surface} rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer border-l-4 ${getStatusBorderColor(task.status)}`}
               onClick={() => viewTaskDetails(task)}
               data-testid="task-card"
             >
               <div className="flex justify-between items-start mb-4">
-                <h3 className={`font-semibold text-lg ${currentTheme.text} flex-1`}>{task.title}</h3>
+                <div className="flex items-center space-x-2 flex-1">
+                  <div className={`w-2 h-2 rounded-full ${getStatusAccentColor(task.status)} flex-shrink-0`}></div>
+                  <h3 className={`font-semibold text-lg ${currentTheme.text}`}>{task.title}</h3>
+                </div>
                 <div className="flex space-x-2">
                   {canEditTask(task) && (
                     <button

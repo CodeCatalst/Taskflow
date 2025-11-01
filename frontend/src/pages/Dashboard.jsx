@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
-import { Plus, Users, CheckSquare, TrendingUp, Clock, FileSpreadsheet, FileText, AlertTriangle, Calendar } from 'lucide-react';
+import { Plus, Users, CheckSquare, TrendingUp, Clock, FileSpreadsheet, FileText, AlertTriangle, Calendar, Filter, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { generateExcelReport } from '../utils/reportGenerator';
@@ -22,6 +22,22 @@ const Dashboard = () => {
   const [recentTasks, setRecentTasks] = useState([]);
   const [overdueTasks, setOverdueTasks] = useState([]);
   const [allTasks, setAllTasks] = useState([]);
+  const [filteredTasks, setFilteredTasks] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [filters, setFilters] = useState({
+    dateRange: 'all',
+    customStartDate: '',
+    customEndDate: '',
+    status: '',
+    priority: '',
+  });
+  const [detailedStats, setDetailedStats] = useState({
+    statusBreakdown: {},
+    priorityBreakdown: {},
+    completionRate: 0,
+    totalCompleted: 0,
+    totalTasks: 0,
+  });
   const [analyticsData, setAnalyticsData] = useState({
     totalTasks: 0,
     overdueTasks: 0,
@@ -29,6 +45,7 @@ const Dashboard = () => {
     inProgressTasks: 0,
     statusDistribution: [],
     priorityDistribution: [],
+    teamDistribution: [],
     overdueByPriority: [],
     completionTrend: [],
     assigneePerformance: [],
@@ -44,7 +61,133 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+    fetchTeams();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [allTasks, filters]);
+
+  const applyFilters = () => {
+    let filtered = [...allTasks];
+
+    // Date range filter
+    if (filters.dateRange !== 'all') {
+      const now = new Date();
+      let startDate;
+
+      switch (filters.dateRange) {
+        case 'today':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'custom':
+          if (filters.customStartDate && filters.customEndDate) {
+            startDate = new Date(filters.customStartDate);
+            const endDate = new Date(filters.customEndDate);
+            endDate.setHours(23, 59, 59, 999);
+            filtered = filtered.filter(task => {
+              const taskDate = new Date(task.created_at);
+              return taskDate >= startDate && taskDate <= endDate;
+            });
+          }
+          break;
+        default:
+          break;
+      }
+
+      if (startDate && filters.dateRange !== 'custom') {
+        filtered = filtered.filter(task => new Date(task.created_at) >= startDate);
+      }
+    }
+
+    // Status filter
+    if (filters.status) {
+      filtered = filtered.filter(task => task.status === filters.status);
+    }
+
+    // Priority filter
+    if (filters.priority) {
+      filtered = filtered.filter(task => task.priority === filters.priority);
+    }
+
+    setFilteredTasks(filtered);
+    updateDetailedStats(filtered);
+  };
+
+  const updateDetailedStats = (tasks) => {
+    // Status breakdown
+    const statusBreakdown = {
+      todo: tasks.filter(t => t.status === 'todo').length,
+      in_progress: tasks.filter(t => t.status === 'in_progress').length,
+      review: tasks.filter(t => t.status === 'review').length,
+      done: tasks.filter(t => t.status === 'done').length,
+      archived: tasks.filter(t => t.status === 'archived').length,
+    };
+
+    // Priority breakdown
+    const priorityBreakdown = {
+      urgent: tasks.filter(t => t.priority === 'urgent').length,
+      high: tasks.filter(t => t.priority === 'high').length,
+      medium: tasks.filter(t => t.priority === 'medium').length,
+      low: tasks.filter(t => t.priority === 'low').length,
+    };
+
+    // Completion rate
+    const totalCompleted = statusBreakdown.done;
+    const totalTasks = tasks.length;
+    const completionRate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
+
+    setDetailedStats({
+      statusBreakdown,
+      priorityBreakdown,
+      completionRate,
+      totalCompleted,
+      totalTasks,
+    });
+  };
+
+  const fetchTeams = async () => {
+    try {
+      const response = await api.get('/teams');
+      setTeams(response.data.teams || []);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+    }
+  };
+
+  const getTeamTaskCounts = () => {
+    // Count tasks per team
+    const taskCounts = filteredTasks.reduce((acc, task) => {
+      const teamId = task.team_id?._id || 'unassigned';
+      acc[teamId] = (acc[teamId] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Create array with all teams (including those with 0 tasks)
+    const teamStats = teams.map(team => ({
+      id: team._id,
+      name: team.name,
+      count: taskCounts[team._id] || 0,
+    }));
+
+    // Add unassigned tasks if any
+    if (taskCounts['unassigned']) {
+      teamStats.push({
+        id: 'unassigned',
+        name: 'Unassigned',
+        count: taskCounts['unassigned'],
+      });
+    }
+
+    // Sort by count descending
+    return teamStats.sort((a, b) => b.count - a.count);
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -151,6 +294,20 @@ const Dashboard = () => {
         completionRate: stat.total > 0 ? Math.round((stat.completed / stat.total) * 100) : 0,
       }));
 
+      // Calculate team distribution
+      const teamCounts = tasks.reduce((acc, task) => {
+        const teamName = task.team_id?.name || 'Unassigned';
+        acc[teamName] = (acc[teamName] || 0) + 1;
+        return acc;
+      }, {});
+
+      const teamDistribution = Object.entries(teamCounts)
+        .map(([team, count]) => ({
+          name: team,
+          value: count,
+        }))
+        .sort((a, b) => b.value - a.value);
+
       setAnalyticsData({
         totalTasks: tasks.length,
         overdueTasks: overdue.length,
@@ -158,6 +315,7 @@ const Dashboard = () => {
         inProgressTasks: inProgress.length,
         statusDistribution,
         priorityDistribution,
+        teamDistribution,
         overdueByPriority: [],
         completionTrend: progressOverTime,
         assigneePerformance,
@@ -178,6 +336,28 @@ const Dashboard = () => {
       review: 'bg-yellow-100 text-yellow-800',
       done: 'bg-green-100 text-green-800',
       archived: 'bg-red-100 text-red-800',
+    };
+    return colors[status] || colors.todo;
+  };
+
+  const getStatusBorderColor = (status) => {
+    const colors = {
+      todo: 'border-gray-400',
+      in_progress: 'border-blue-400',
+      review: 'border-yellow-400',
+      done: 'border-green-400',
+      archived: 'border-red-400',
+    };
+    return colors[status] || colors.todo;
+  };
+
+  const getStatusAccentColor = (status) => {
+    const colors = {
+      todo: 'bg-gray-500',
+      in_progress: 'bg-blue-500',
+      review: 'bg-yellow-500',
+      done: 'bg-green-500',
+      archived: 'bg-red-500',
     };
     return colors[status] || colors.todo;
   };
@@ -388,6 +568,247 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Filters Section */}
+          <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 mb-8 transition-colors`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <Filter className={`w-5 h-5 ${currentTheme.textSecondary}`} />
+                <h2 className={`text-xl font-semibold ${currentTheme.text}`}>Filters</h2>
+              </div>
+              <button
+                onClick={() => setFilters({
+                  dateRange: 'all',
+                  customStartDate: '',
+                  customEndDate: '',
+                  status: '',
+                  priority: '',
+                })}
+                className="btn bg-gray-600 text-white hover:bg-gray-700 text-sm px-4 py-2 flex items-center space-x-1"
+              >
+                <X className="w-4 h-4" />
+                <span>Reset</span>
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div>
+                <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>Date Range</label>
+                <select
+                  value={filters.dateRange}
+                  onChange={(e) => setFilters({...filters, dateRange: e.target.value})}
+                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">Last 7 Days</option>
+                  <option value="month">This Month</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>Status</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => setFilters({...filters, status: e.target.value})}
+                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="todo">To Do</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="review">Review</option>
+                  <option value="done">Done</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>Priority</label>
+                <select
+                  value={filters.priority}
+                  onChange={(e) => setFilters({...filters, priority: e.target.value})}
+                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
+                >
+                  <option value="">All Priorities</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+            </div>
+
+            {filters.dateRange === 'custom' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>Start Date</label>
+                  <input
+                    type="date"
+                    value={filters.customStartDate}
+                    onChange={(e) => setFilters({...filters, customStartDate: e.target.value})}
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>End Date</label>
+                  <input
+                    type="date"
+                    value={filters.customEndDate}
+                    onChange={(e) => setFilters({...filters, customEndDate: e.target.value})}
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Detailed Statistics Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {/* Task Status Breakdown */}
+            <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 transition-colors`}>
+              <h3 className={`text-lg font-semibold ${currentTheme.text} mb-4`}>Task Status</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+                    <span className={currentTheme.text}>To Do</span>
+                  </div>
+                  <span className={`text-2xl font-bold ${currentTheme.text}`}>{detailedStats.statusBreakdown.todo || 0}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span className={currentTheme.text}>In Progress</span>
+                  </div>
+                  <span className={`text-2xl font-bold ${currentTheme.text}`}>{detailedStats.statusBreakdown.in_progress || 0}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <span className={currentTheme.text}>Review</span>
+                  </div>
+                  <span className={`text-2xl font-bold ${currentTheme.text}`}>{detailedStats.statusBreakdown.review || 0}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span className={currentTheme.text}>Completed</span>
+                  </div>
+                  <span className={`text-2xl font-bold ${currentTheme.text}`}>{detailedStats.statusBreakdown.done || 0}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Priority Levels Breakdown */}
+            <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 transition-colors`}>
+              <h3 className={`text-lg font-semibold ${currentTheme.text} mb-4`}>Priority Levels</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <span className={currentTheme.text}>Urgent</span>
+                  </div>
+                  <span className={`text-2xl font-bold ${currentTheme.text}`}>{detailedStats.priorityBreakdown.urgent || 0}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                    <span className={currentTheme.text}>High</span>
+                  </div>
+                  <span className={`text-2xl font-bold ${currentTheme.text}`}>{detailedStats.priorityBreakdown.high || 0}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <span className={currentTheme.text}>Medium</span>
+                  </div>
+                  <span className={`text-2xl font-bold ${currentTheme.text}`}>{detailedStats.priorityBreakdown.medium || 0}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span className={currentTheme.text}>Low</span>
+                  </div>
+                  <span className={`text-2xl font-bold ${currentTheme.text}`}>{detailedStats.priorityBreakdown.low || 0}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Completion Rate Card */}
+            <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 transition-colors flex flex-col justify-center items-center text-center`}>
+              <h3 className={`text-lg font-semibold ${currentTheme.text} mb-4`}>Completion Rate</h3>
+              <div className="relative inline-flex items-center justify-center mb-4">
+                <svg className="w-32 h-32 transform -rotate-90">
+                  <circle
+                    className="text-gray-200 dark:text-gray-700"
+                    strokeWidth="8"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r="56"
+                    cx="64"
+                    cy="64"
+                  />
+                  <circle
+                    className="text-green-500"
+                    strokeWidth="8"
+                    strokeDasharray={`${2 * Math.PI * 56}`}
+                    strokeDashoffset={`${2 * Math.PI * 56 * (1 - detailedStats.completionRate / 100)}`}
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r="56"
+                    cx="64"
+                    cy="64"
+                  />
+                </svg>
+                <span className={`absolute text-3xl font-bold ${currentTheme.text}`}>
+                  {detailedStats.completionRate}%
+                </span>
+              </div>
+              <p className={`text-sm ${currentTheme.textSecondary}`}>
+                <span className="font-semibold text-green-600">{detailedStats.totalCompleted}</span> of{' '}
+                <span className="font-semibold">{detailedStats.totalTasks}</span> tasks completed
+              </p>
+            </div>
+          </div>
+
+          {/* Tasks by Team - Numerical Stats */}
+          <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 mb-8 transition-colors`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Tasks by Team</h3>
+              <span className={`text-sm ${currentTheme.textSecondary}`}>
+                {teams.length} {teams.length === 1 ? 'Team' : 'Teams'}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {getTeamTaskCounts().map((team) => (
+                <div 
+                  key={team.id} 
+                  className={`flex items-center justify-between p-3 rounded-lg transition-all ${
+                    team.count > 0 
+                      ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800' 
+                      : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2 flex-1 min-w-0">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${team.count > 0 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                    <span className={`${currentTheme.text} text-sm font-medium truncate`} title={team.name}>
+                      {team.name}
+                    </span>
+                  </div>
+                  <span className={`text-xl font-bold ml-2 flex-shrink-0 ${team.count > 0 ? 'text-green-600 dark:text-green-400' : currentTheme.textMuted}`}>
+                    {team.count}
+                  </span>
+                </div>
+              ))}
+              {teams.length === 0 && (
+                <div className="col-span-full text-center py-8">
+                  <p className={currentTheme.textSecondary}>No teams found</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             {/* Task Status Distribution */}
@@ -426,6 +847,30 @@ const Dashboard = () => {
                   <Bar dataKey="value" fill="#8884d8" />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+
+            {/* Tasks by Team */}
+            <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 transition-colors`}>
+              <h3 className={`text-lg font-semibold mb-4 ${currentTheme.text}`}>Tasks by Team</h3>
+              {analyticsData.teamDistribution && analyticsData.teamDistribution.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={analyticsData.teamDistribution}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={100}
+                      interval={0}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#10b981" name="Tasks" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className={`text-center py-8 ${currentTheme.textSecondary}`}>No team data available</p>
+              )}
             </div>
           </div>
 
@@ -491,10 +936,11 @@ const Dashboard = () => {
                 recentTasks.map((task) => {
                   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
                   return (
-                    <div key={task._id} className={`p-6 ${currentTheme.hover} transition-colors ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400' : ''}`} data-testid="task-item">
+                    <div key={task._id} className={`p-6 ${currentTheme.hover} transition-colors border-l-4 ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-red-400' : getStatusBorderColor(task.status)}`} data-testid="task-item">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
+                            <div className={`w-2 h-2 rounded-full ${getStatusAccentColor(task.status)} flex-shrink-0`}></div>
                             <h3 className={`font-semibold ${currentTheme.text}`}>{task.title}</h3>
                             {isOverdue && <AlertTriangle className="w-4 h-4 text-red-500" />}
                           </div>

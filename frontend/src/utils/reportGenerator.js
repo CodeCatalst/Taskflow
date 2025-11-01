@@ -79,6 +79,24 @@ export const generateExcelReport = (tasks, analyticsData, filters) => {
   ];
   XLSX.utils.book_append_sheet(workbook, teamSheet, 'Team Performance');
 
+  // Sheet 4.5: Tasks by Team (Simple Count)
+  if (analyticsData.teamDistribution && analyticsData.teamDistribution.length > 0) {
+    const teamDistData = analyticsData.teamDistribution.map((item, index) => ({
+      'Rank': index + 1,
+      'Team Name': item.name,
+      'Total Tasks': item.value,
+      'Percentage': ((item.value / analyticsData.totalTasks) * 100).toFixed(2) + '%',
+    }));
+    const teamDistSheet = XLSX.utils.json_to_sheet(teamDistData);
+    teamDistSheet['!cols'] = [
+      { wch: 8 },   // Rank
+      { wch: 30 },  // Team Name
+      { wch: 15 },  // Total Tasks
+      { wch: 15 },  // Percentage
+    ];
+    XLSX.utils.book_append_sheet(workbook, teamDistSheet, 'Tasks by Team');
+  }
+
   // Sheet 5: User Performance
   const userPerformanceData = analyticsData.assigneePerformance.map(user => ({
     'User Name': user.name,
@@ -345,6 +363,48 @@ export const generatePDFReport = (tasks, analyticsData, filters, user) => {
       theme: 'striped',
       headStyles: { fillColor: [59, 130, 246], fontStyle: 'bold' },
       margin: { left: 15, right: 15 },
+    });
+
+    yPosition = doc.lastAutoTable.finalY + 15;
+  }
+
+  // Tasks by Team (Simple Count)
+  if (analyticsData.teamDistribution && analyticsData.teamDistribution.length > 0) {
+    if (yPosition > 250) {
+      doc.addPage();
+      yPosition = 20;
+    }
+
+    doc.setFillColor(16, 185, 129); // Green
+    doc.rect(15, yPosition, pageWidth - 30, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('Tasks by Team', pageWidth / 2, yPosition + 5.5, { align: 'center' });
+    
+    yPosition += 13;
+    doc.setTextColor(0, 0, 0);
+
+    const teamDistData = analyticsData.teamDistribution.map((item, index) => [
+      (index + 1).toString(),
+      item.name,
+      item.value.toString(),
+      totalTasks > 0 ? ((item.value / totalTasks) * 100).toFixed(2) + '%' : '0%',
+    ]);
+
+    autoTable(doc, {
+      startY: yPosition,
+      head: [['Rank', 'Team Name', 'Total Tasks', 'Percentage']],
+      body: teamDistData,
+      theme: 'striped',
+      headStyles: { fillColor: [16, 185, 129], fontStyle: 'bold' },
+      margin: { left: 15, right: 15 },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 20 },
+        1: { cellWidth: 80 },
+        2: { halign: 'center', cellWidth: 30 },
+        3: { halign: 'center', cellWidth: 30 },
+      },
     });
   }
 

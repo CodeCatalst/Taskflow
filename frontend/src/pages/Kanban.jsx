@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -31,12 +31,13 @@ const Kanban = () => {
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [selectedTeamMembers, setSelectedTeamMembers] = useState([]);
+  const [dragOverColumn, setDragOverColumn] = useState(null);
 
   const columns = [
-    { id: 'todo', title: 'To Do', color: 'bg-gray-100' },
-    { id: 'in_progress', title: 'In Progress', color: 'bg-blue-100' },
-    { id: 'review', title: 'Review', color: 'bg-yellow-100' },
-    { id: 'done', title: 'Done', color: 'bg-green-100' },
+    { id: 'todo', title: 'To Do', color: 'bg-gray-100', borderColor: 'border-gray-400', accentColor: 'bg-gray-500' },
+    { id: 'in_progress', title: 'In Progress', color: 'bg-blue-100', borderColor: 'border-blue-400', accentColor: 'bg-blue-500' },
+    { id: 'review', title: 'Review', color: 'bg-yellow-100', borderColor: 'border-yellow-400', accentColor: 'bg-yellow-500' },
+    { id: 'done', title: 'Done', color: 'bg-green-100', borderColor: 'border-green-400', accentColor: 'bg-green-500' },
   ];
 
   useEffect(() => {
@@ -124,12 +125,24 @@ const Kanban = () => {
   };
 
   const handleUpdateTask = async (taskId, updates) => {
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t) => (t._id === taskId ? { ...t, ...updates } : t))
+    );
+
     try {
-      await api.patch(`/tasks/${taskId}`, updates);
-      fetchTasks();
+      const response = await api.patch(`/tasks/${taskId}`, updates);
+      const updatedTask = response.data.task;
+      
+      // Update with server response
+      setTasks((prev) =>
+        prev.map((t) => (t._id === taskId ? updatedTask : t))
+      );
     } catch (error) {
       console.error('Error updating task:', error);
       alert(error.response?.data?.message || 'Failed to update task');
+      // Revert on error
+      fetchTasks();
     }
   };
 
@@ -148,6 +161,14 @@ const Kanban = () => {
   const handleDragStart = (e, task) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = 'move';
+    // Add a slight delay to allow the drag image to be created
+    e.currentTarget.style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e) => {
+    e.currentTarget.style.opacity = '1';
+    setDraggedTask(null);
+    setDragOverColumn(null);
   };
 
   const handleDragOver = (e) => {
@@ -155,15 +176,35 @@ const Kanban = () => {
     e.dataTransfer.dropEffect = 'move';
   };
 
+  const handleDragEnter = (e, columnId) => {
+    e.preventDefault();
+    setDragOverColumn(columnId);
+  };
+
+  const handleDragLeave = (e) => {
+    // Only clear if we're actually leaving the column (not entering a child element)
+    if (e.currentTarget === e.target) {
+      setDragOverColumn(null);
+    }
+  };
+
   const handleDrop = async (e, newStatus) => {
     e.preventDefault();
-    if (!draggedTask || draggedTask.status === newStatus) return;
+    e.stopPropagation();
+    
+    setDragOverColumn(null);
+    
+    if (!draggedTask || draggedTask.status === newStatus) {
+      setDraggedTask(null);
+      return;
+    }
 
     try {
       await handleUpdateTask(draggedTask._id, { status: newStatus });
       setDraggedTask(null);
     } catch (error) {
       console.error('Error updating task status:', error);
+      setDraggedTask(null);
     }
   };
 
@@ -250,29 +291,46 @@ const Kanban = () => {
               <div
                 key={column.id}
                 className="flex-shrink-0 w-80"
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, column.id)}
               >
-                <div className={`${currentTheme.surface} rounded-lg p-4 mb-4`}>
+                <div className={`${currentTheme.surface} rounded-lg p-4 mb-4 border-t-4 ${column.borderColor} shadow-sm`}>
                   <h3 className={`font-semibold ${currentTheme.text} flex items-center justify-between`}>
-                    {column.title}
+                    <span className="flex items-center space-x-2">
+                      <div className={`w-3 h-3 rounded-full ${column.accentColor}`}></div>
+                      <span>{column.title}</span>
+                    </span>
                     <span className={`text-sm px-2 py-1 rounded-full ${currentTheme.surfaceSecondary} ${currentTheme.textSecondary}`}>
                       {getTasksByStatus(column.id).length}
                     </span>
                   </h3>
                 </div>
 
-                <div className="space-y-3 min-h-[600px]">
+                <div 
+                  className={`space-y-3 min-h-[600px] p-4 rounded-lg transition-all border-2 ${
+                    dragOverColumn === column.id 
+                      ? `${column.color} ${column.borderColor} border-dashed shadow-lg` 
+                      : `border-transparent ${currentTheme.surfaceSecondary}`
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragEnter={(e) => handleDragEnter(e, column.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, column.id)}
+                >
                   {getTasksByStatus(column.id).map((task) => (
                     <div
                       key={task._id}
                       draggable
                       onDragStart={(e) => handleDragStart(e, task)}
-                      className={`${currentTheme.surface} rounded-lg shadow-sm border p-4 cursor-move hover:shadow-md transition-shadow ${currentTheme.border}`}
+                      onDragEnd={handleDragEnd}
+                      className={`${currentTheme.surface} rounded-lg shadow-sm border-l-4 ${column.borderColor} p-4 cursor-move hover:shadow-lg transition-all ${currentTheme.border} ${
+                        draggedTask?._id === task._id ? 'opacity-50' : 'opacity-100'
+                      }`}
                       data-testid="kanban-task-card"
                     >
                       <div className="flex justify-between items-start mb-3">
-                        <h4 className={`font-medium ${currentTheme.text} flex-1`}>{task.title}</h4>
+                        <div className="flex items-center space-x-2 flex-1">
+                          <div className={`w-2 h-2 rounded-full ${column.accentColor} flex-shrink-0`}></div>
+                          <h4 className={`font-medium ${currentTheme.text}`}>{task.title}</h4>
+                        </div>
                         <div className="flex space-x-1">
                           {canEditTask(task) && (
                             <button
@@ -340,9 +398,13 @@ const Kanban = () => {
                   ))}
 
                   {getTasksByStatus(column.id).length === 0 && (
-                    <div className={`text-center py-8 ${currentTheme.textMuted}`}>
+                    <div className={`text-center py-12 ${currentTheme.textMuted}`}>
                       <div className="text-4xl mb-2">📋</div>
-                      <p className="text-sm">No tasks in {column.title.toLowerCase()}</p>
+                      <p className="text-sm">
+                        {dragOverColumn === column.id 
+                          ? 'Drop here to move task' 
+                          : `No tasks in ${column.title.toLowerCase()}`}
+                      </p>
                     </div>
                   )}
                 </div>

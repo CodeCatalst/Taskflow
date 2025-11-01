@@ -53,15 +53,24 @@ export const generateComprehensivePDFReport = (tasks, analyticsData, filters, us
     const summaryData = generateSummaryData(filteredAnalytics, reportType);
     autoTable(doc, {
       startY: yPosition,
-      head: [['Metric', 'Value', 'Status']],
+      head: [['Metric', 'Value', 'Details']],
       body: summaryData,
       theme: 'grid',
-      headStyles: { fillColor: [59, 130, 246], fontStyle: 'bold', fontSize: 11 },
-      styles: { fontSize: 10, cellPadding: 4 },
+      headStyles: { 
+        fillColor: [59, 130, 246], 
+        fontStyle: 'bold', 
+        fontSize: 11,
+        halign: 'center'
+      },
+      styles: { 
+        fontSize: 10, 
+        cellPadding: 5,
+        valign: 'middle'
+      },
       columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 70 },
-        1: { halign: 'center', cellWidth: 40 },
-        2: { halign: 'center', cellWidth: 70 }
+        0: { fontStyle: 'bold', cellWidth: 60, halign: 'left' },
+        1: { halign: 'center', cellWidth: 30, fontStyle: 'bold', fontSize: 12 },
+        2: { halign: 'center', cellWidth: 60 }
       },
       margin: { left: 15, right: 15 },
     });
@@ -157,19 +166,70 @@ export const generateComprehensivePDFReport = (tasks, analyticsData, filters, us
         head: [['Team', 'Total', 'Done', 'Progress', 'Overdue', 'Rate', 'Rating']],
         body: teamData,
         theme: 'grid',
-        headStyles: { fillColor: [16, 185, 129], fontStyle: 'bold', fontSize: 9 },
-        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { 
+          fillColor: [16, 185, 129], 
+          fontStyle: 'bold', 
+          fontSize: 10,
+          halign: 'center'
+        },
+        styles: { 
+          fontSize: 9, 
+          cellPadding: 4,
+          valign: 'middle'
+        },
         columnStyles: {
-          0: { cellWidth: 50 },  // Team
+          0: { cellWidth: 52, fontStyle: 'bold' },  // Team
           1: { cellWidth: 20, halign: 'center' },  // Total
-          2: { cellWidth: 20, halign: 'center' },  // Done
-          3: { cellWidth: 23, halign: 'center' },  // Progress
-          4: { cellWidth: 22, halign: 'center' },  // Overdue
-          5: { cellWidth: 20, halign: 'center' },  // Rate
+          2: { cellWidth: 20, halign: 'center', textColor: [16, 185, 129] },  // Done
+          3: { cellWidth: 23, halign: 'center', textColor: [59, 130, 246] },  // Progress
+          4: { cellWidth: 22, halign: 'center', textColor: [239, 68, 68] },  // Overdue
+          5: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },  // Rate
           6: { fontStyle: 'bold', halign: 'center', cellWidth: 25 }  // Rating
         },
         margin: { left: 15, right: 15 },
       });
+
+      // Add Tasks by Team count on the same page
+      yPosition = doc.lastAutoTable.finalY + 20;
+
+      if (yPosition > 220 || !filteredAnalytics.teamDistribution) {
+        // Move to next section if no space or no data
+      } else if (filteredAnalytics.teamDistribution && filteredAnalytics.teamDistribution.length > 0) {
+        addSectionHeader(doc, 'Tasks by Team Distribution', yPosition);
+        yPosition += 15;
+
+        const teamDistData = filteredAnalytics.teamDistribution.map((item, index) => [
+          (index + 1).toString(),
+          item.name,
+          item.value.toString(),
+          filteredAnalytics.totalTasks > 0 ? ((item.value / filteredAnalytics.totalTasks) * 100).toFixed(1) + '%' : '0%',
+        ]);
+
+        autoTable(doc, {
+          startY: yPosition,
+          head: [['Rank', 'Team Name', 'Tasks', 'Share']],
+          body: teamDistData,
+          theme: 'striped',
+          headStyles: { 
+            fillColor: [16, 185, 129], 
+            fontStyle: 'bold', 
+            fontSize: 10,
+            halign: 'center'
+          },
+          styles: { 
+            fontSize: 9, 
+            cellPadding: 4,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },  // Rank
+            1: { cellWidth: 90, fontStyle: 'bold' },  // Team Name
+            2: { cellWidth: 25, halign: 'center' },  // Tasks
+            3: { cellWidth: 25, halign: 'center', fontStyle: 'bold' }  // Share
+          },
+          margin: { left: 15, right: 15 },
+        });
+      }
     }
     
     // ========== PAGE 5: USER PERFORMANCE ==========
@@ -195,15 +255,24 @@ export const generateComprehensivePDFReport = (tasks, analyticsData, filters, us
         head: [['User', 'Total', 'Done', 'Overdue', 'Pending', 'Rate', 'Rating']],
         body: userData,
         theme: 'striped',
-        headStyles: { fillColor: [139, 92, 246], fontStyle: 'bold', fontSize: 9 },
-        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { 
+          fillColor: [139, 92, 246], 
+          fontStyle: 'bold', 
+          fontSize: 10,
+          halign: 'center'
+        },
+        styles: { 
+          fontSize: 9, 
+          cellPadding: 4,
+          valign: 'middle'
+        },
         columnStyles: {
-          0: { cellWidth: 50 },  // User
+          0: { cellWidth: 52, fontStyle: 'bold' },  // User
           1: { cellWidth: 20, halign: 'center' },  // Total
-          2: { cellWidth: 20, halign: 'center' },  // Done
-          3: { cellWidth: 22, halign: 'center' },  // Overdue
+          2: { cellWidth: 20, halign: 'center', textColor: [16, 185, 129] },  // Done
+          3: { cellWidth: 22, halign: 'center', textColor: [239, 68, 68] },  // Overdue
           4: { cellWidth: 22, halign: 'center' },  // Pending
-          5: { cellWidth: 20, halign: 'center' },  // Rate
+          5: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },  // Rate
           6: { fontStyle: 'bold', halign: 'center', cellWidth: 26 }  // Rating
         },
         margin: { left: 15, right: 15 },
@@ -223,15 +292,15 @@ export const generateComprehensivePDFReport = (tasks, analyticsData, filters, us
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(16);
       doc.setFont(undefined, 'bold');
-      doc.text('🔴 CRITICAL: Overdue Tasks', pageWidth / 2, yPosition + 3, { align: 'center' });
+      doc.text('CRITICAL: Overdue Tasks', pageWidth / 2, yPosition + 3, { align: 'center' });
       yPosition += 20;
       doc.setTextColor(0, 0, 0);
       
       const overdueData = overdueTasks.slice(0, 30).map(task => [
-        task.title.substring(0, 35) + (task.title.length > 35 ? '...' : ''),
+        task.title.substring(0, 40) + (task.title.length > 40 ? '...' : ''),
         formatPriority(task.priority),
         task.assigned_to && task.assigned_to.length > 0
-          ? task.assigned_to[0].full_name.substring(0, 15)
+          ? task.assigned_to[0].full_name.substring(0, 18)
           : 'Unassigned',
         formatDate(task.due_date),
         Math.abs(calculateDaysUntilDue(task.due_date)).toString() + ' days',
@@ -239,17 +308,26 @@ export const generateComprehensivePDFReport = (tasks, analyticsData, filters, us
 
       autoTable(doc, {
         startY: yPosition,
-        head: [['Task', 'Priority', 'Assigned', 'Due Date', 'Overdue By']],
+        head: [['Task', 'Priority', 'Assigned To', 'Due Date', 'Days Overdue']],
         body: overdueData,
         theme: 'grid',
-        headStyles: { fillColor: [239, 68, 68], fontStyle: 'bold', fontSize: 9 },
-        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { 
+          fillColor: [239, 68, 68], 
+          fontStyle: 'bold', 
+          fontSize: 10,
+          halign: 'center'
+        },
+        styles: { 
+          fontSize: 9, 
+          cellPadding: 4,
+          valign: 'middle'
+        },
         columnStyles: {
           0: { cellWidth: 70 },  // Task
           1: { halign: 'center', fontStyle: 'bold', cellWidth: 25 },  // Priority
-          2: { cellWidth: 35 },  // Assigned
-          3: { halign: 'center', cellWidth: 30 },  // Due Date
-          4: { halign: 'center', textColor: [239, 68, 68], fontStyle: 'bold', cellWidth: 30 }  // Overdue By
+          2: { cellWidth: 35, halign: 'left' },  // Assigned
+          3: { halign: 'center', cellWidth: 28 },  // Due Date
+          4: { halign: 'center', textColor: [239, 68, 68], fontStyle: 'bold', cellWidth: 32 }  // Days Overdue
         },
         margin: { left: 15, right: 15 },
       });
@@ -274,29 +352,38 @@ export const generateComprehensivePDFReport = (tasks, analyticsData, filters, us
     
     const taskData = filteredTasks.slice(0, 50).map((task, index) => [
       (index + 1).toString(),
-      task.title.substring(0, 30) + (task.title.length > 30 ? '...' : ''),
-      formatStatus(task.status).substring(0, 8),
+      task.title.substring(0, 35) + (task.title.length > 35 ? '...' : ''),
+      formatStatus(task.status),
       formatPriority(task.priority),
       task.assigned_to && task.assigned_to.length > 0
-        ? task.assigned_to[0].full_name.substring(0, 12)
+        ? task.assigned_to[0].full_name.substring(0, 16)
         : 'Unassigned',
       task.due_date ? formatDate(task.due_date) : 'No date',
     ]);
 
     autoTable(doc, {
       startY: yPosition,
-      head: [['#', 'Task', 'Status', 'Priority', 'Assignee', 'Due Date']],
+      head: [['#', 'Task Title', 'Status', 'Priority', 'Assignee', 'Due Date']],
       body: taskData,
       theme: 'grid',
-      headStyles: { fillColor: [59, 130, 246], fontStyle: 'bold', fontSize: 9 },
-      styles: { fontSize: 8 },
+      headStyles: { 
+        fillColor: [59, 130, 246], 
+        fontStyle: 'bold', 
+        fontSize: 10,
+        halign: 'center'
+      },
+      styles: { 
+        fontSize: 9,
+        cellPadding: 4,
+        valign: 'middle'
+      },
       columnStyles: {
-        0: { cellWidth: 10, halign: 'center' },
-        1: { cellWidth: 60 },
-        2: { cellWidth: 20, halign: 'center' },
-        3: { cellWidth: 18, halign: 'center' },
-        4: { cellWidth: 30 },
-        5: { cellWidth: 25, halign: 'center' }
+        0: { cellWidth: 10, halign: 'center', fontStyle: 'bold' },
+        1: { cellWidth: 62 },
+        2: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
+        3: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },
+        4: { cellWidth: 32, halign: 'left' },
+        5: { cellWidth: 26, halign: 'center' }
       },
       margin: { left: 15, right: 15 },
     });
@@ -551,12 +638,12 @@ function generateSummaryData(analytics, reportType) {
     : '0.0';
   
   return [
-    ['Total Tasks', analytics.totalTasks.toString(), '📊 Tracked'],
-    ['Completed Tasks', analytics.completedTasks.toString(), `✅ ${completionRate}%`],
-    ['In Progress', analytics.inProgressTasks.toString(), `⏳ ${inProgressRate}%`],
-    ['Overdue Tasks', analytics.overdueTasks.toString(), `❌ ${overdueRate}%`],
+    ['Total Tasks', analytics.totalTasks.toString(), 'Tracked'],
+    ['Completed Tasks', analytics.completedTasks.toString(), completionRate + '%'],
+    ['In Progress', analytics.inProgressTasks.toString(), inProgressRate + '%'],
+    ['Overdue Tasks', analytics.overdueTasks.toString(), overdueRate + '%'],
     ['Completion Rate', completionRate + '%', getCompletionStatus(parseFloat(completionRate))],
-    ['Report Period', getReportPeriodLabel(reportType), '📅 Timeframe'],
+    ['Report Period', getReportPeriodLabel(reportType), 'Timeframe'],
   ];
 }
 
@@ -642,6 +729,20 @@ function recalculateAnalytics(tasks) {
     completionRate: stat.total > 0 ? Math.round((stat.completed / stat.total) * 100) : 0,
   }));
   
+  // Team distribution
+  const teamCounts = tasks.reduce((acc, task) => {
+    const teamName = task.team_id?.name || 'Unassigned';
+    acc[teamName] = (acc[teamName] || 0) + 1;
+    return acc;
+  }, {});
+
+  const teamDistribution = Object.entries(teamCounts)
+    .map(([team, count]) => ({
+      name: team,
+      value: count,
+    }))
+    .sort((a, b) => b.value - a.value);
+  
   return {
     totalTasks: tasks.length,
     overdueTasks: overdueTasks.length,
@@ -649,6 +750,7 @@ function recalculateAnalytics(tasks) {
     inProgressTasks: inProgressTasks.length,
     statusDistribution,
     priorityDistribution,
+    teamDistribution,
     assigneePerformance,
   };
 }
@@ -695,39 +797,39 @@ function getReportPeriodLabel(reportType) {
 
 function getStatusIndicator(status) {
   const indicators = {
-    'TODO': '⏺️ Pending',
-    'IN PROGRESS': '▶️ Active',
-    'IN_PROGRESS': '▶️ Active',
-    'REVIEW': '👁️ Review',
-    'DONE': '✅ Complete',
-    'ARCHIVED': '📦 Archived'
+    'TODO': 'Pending',
+    'IN PROGRESS': 'Active',
+    'IN_PROGRESS': 'Active',
+    'REVIEW': 'In Review',
+    'DONE': 'Complete',
+    'ARCHIVED': 'Archived'
   };
-  return indicators[status] || '⏺️ Pending';
+  return indicators[status] || 'Pending';
 }
 
 function getPriorityIndicator(priority) {
   const indicators = {
-    'LOW': '🟢 Low',
-    'MEDIUM': '🟡 Medium',
-    'HIGH': '🟠 High',
-    'URGENT': '🔴 Urgent'
+    'LOW': 'Low Priority',
+    'MEDIUM': 'Medium Priority',
+    'HIGH': 'High Priority',
+    'URGENT': 'Urgent'
   };
-  return indicators[priority] || '🟡 Medium';
+  return indicators[priority] || 'Medium Priority';
 }
 
 function getCompletionStatus(rate) {
-  if (rate >= 80) return '🌟 Excellent';
-  if (rate >= 60) return '✅ Good';
-  if (rate >= 40) return '⚠️ Fair';
-  return '❌ Needs Attention';
+  if (rate >= 80) return 'Excellent';
+  if (rate >= 60) return 'Good';
+  if (rate >= 40) return 'Fair';
+  return 'Needs Attention';
 }
 
 function getPerformanceRating(rate) {
   const rateNum = typeof rate === 'string' ? parseFloat(rate) : rate;
-  if (rateNum >= 80) return '⭐⭐⭐';
-  if (rateNum >= 60) return '⭐⭐';
-  if (rateNum >= 40) return '⭐';
-  return '⚠️';
+  if (rateNum >= 80) return '***';
+  if (rateNum >= 60) return '**';
+  if (rateNum >= 40) return '*';
+  return 'Low';
 }
 
 function calculateTeamPerformance(tasks) {

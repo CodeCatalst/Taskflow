@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
@@ -35,6 +35,7 @@ const Analytics = () => {
     inProgressTasks: 0,
     statusDistribution: [],
     priorityDistribution: [],
+    teamDistribution: [],
     overdueByPriority: [],
     completionTrend: [],
     assigneePerformance: [],
@@ -65,7 +66,6 @@ const Analytics = () => {
       const response = await api.get('/tasks');
       const allTasks = response.data.tasks;
       setTasks(allTasks);
-      processAnalyticsData(allTasks);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -91,7 +91,7 @@ const Analytics = () => {
     }
   };
 
-  const processAnalyticsData = (taskList) => {
+  const processAnalyticsData = useCallback((taskList) => {
     const now = new Date();
     const overdueTasks = taskList.filter(task =>
       task.due_date && new Date(task.due_date) < now && task.status !== 'done'
@@ -201,6 +201,20 @@ const Analytics = () => {
       completionRate: stat.total > 0 ? Math.round((stat.completed / stat.total) * 100) : 0,
     }));
 
+    // Team distribution
+    const teamCounts = taskList.reduce((acc, task) => {
+      const teamName = task.team_id?.name || 'Unassigned';
+      acc[teamName] = (acc[teamName] || 0) + 1;
+      return acc;
+    }, {});
+
+    const teamDistribution = Object.entries(teamCounts)
+      .map(([team, count]) => ({
+        name: team,
+        value: count,
+      }))
+      .sort((a, b) => b.value - a.value);
+
     setAnalyticsData({
       totalTasks: taskList.length,
       overdueTasks: overdueTasks.length,
@@ -208,11 +222,12 @@ const Analytics = () => {
       inProgressTasks: inProgressTasks.length,
       statusDistribution,
       priorityDistribution,
+      teamDistribution,
       overdueByPriority: overduePriorityData,
       completionTrend,
       assigneePerformance,
     });
-  };
+  }, []);
 
   const applyFilters = () => {
     let filtered = [...tasks];
@@ -277,6 +292,34 @@ const Analytics = () => {
     }
 
     setFilteredTasks(filtered);
+  };
+
+  const getTeamTaskCounts = () => {
+    // Count tasks per team
+    const taskCounts = filteredTasks.reduce((acc, task) => {
+      const teamId = task.team_id?._id || 'unassigned';
+      acc[teamId] = (acc[teamId] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Create array with all teams (including those with 0 tasks)
+    const teamStats = teams.map(team => ({
+      id: team._id,
+      name: team.name,
+      count: taskCounts[team._id] || 0,
+    }));
+
+    // Add unassigned tasks if any
+    if (taskCounts['unassigned']) {
+      teamStats.push({
+        id: 'unassigned',
+        name: 'Unassigned',
+        count: taskCounts['unassigned'],
+      });
+    }
+
+    // Sort by count descending
+    return teamStats.sort((a, b) => b.count - a.count);
   };
 
   const getStatusChartColor = (status) => {
@@ -601,6 +644,43 @@ const Analytics = () => {
             </div>
           </div>
 
+          {/* Tasks by Team - Numerical Stats */}
+          <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 mb-8`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Tasks by Team</h3>
+              <span className={`text-sm ${currentTheme.textSecondary}`}>
+                {teams.length} {teams.length === 1 ? 'Team' : 'Teams'}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {getTeamTaskCounts().map((team) => (
+                <div 
+                  key={team.id} 
+                  className={`flex items-center justify-between p-3 rounded-lg transition-all ${
+                    team.count > 0 
+                      ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800' 
+                      : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2 flex-1 min-w-0">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${team.count > 0 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                    <span className={`${currentTheme.text} text-sm font-medium truncate`} title={team.name}>
+                      {team.name}
+                    </span>
+                  </div>
+                  <span className={`text-xl font-bold ml-2 flex-shrink-0 ${team.count > 0 ? 'text-green-600 dark:text-green-400' : currentTheme.textMuted}`}>
+                    {team.count}
+                  </span>
+                </div>
+              ))}
+              {teams.length === 0 && (
+                <div className="col-span-full text-center py-8">
+                  <p className={currentTheme.textSecondary}>No teams found</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Filtered Tasks Table - Shows prominently BEFORE charts */}
           <div className={`${currentTheme.surface} rounded-lg shadow-md mb-8`}>
             <div className={`p-6 border-b ${currentTheme.border}`}>
@@ -750,6 +830,34 @@ const Analytics = () => {
                 <Bar dataKey="overdue" fill="#ef4444" name="Overdue" />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+
+          {/* Tasks by Team */}
+          <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 mb-8`}>
+            <h3 className={`text-lg font-semibold mb-4 ${currentTheme.text}`}>Tasks by Team</h3>
+            {analyticsData.teamDistribution && analyticsData.teamDistribution.length > 0 ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={analyticsData.teamDistribution} layout="horizontal">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={120}
+                    interval={0}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#10b981" name="Tasks">
+                    {analyticsData.teamDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={`hsl(${index * 40}, 70%, 50%)`} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className={`text-center py-8 ${currentTheme.textSecondary}`}>No team data available</p>
+            )}
           </div>
         </div>
       </div>
