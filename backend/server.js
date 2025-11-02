@@ -82,6 +82,32 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'CTMS Backend is running' });
 });
 
+// Email configuration test endpoint
+app.get('/api/test-email-config', (req, res) => {
+  const config = {
+    EMAIL_HOST: process.env.EMAIL_HOST || 'NOT SET',
+    EMAIL_PORT: process.env.EMAIL_PORT || 'NOT SET',
+    EMAIL_SECURE: process.env.EMAIL_SECURE || 'NOT SET',
+    EMAIL_USER: process.env.EMAIL_USER || 'NOT SET',
+    EMAIL_PASSWORD: process.env.EMAIL_PASSWORD ? '***SET***' : 'NOT SET',
+    NODE_ENV: process.env.NODE_ENV || 'development'
+  };
+  
+  const allSet = config.EMAIL_HOST !== 'NOT SET' && 
+                 config.EMAIL_USER !== 'NOT SET' && 
+                 config.EMAIL_PASSWORD !== 'NOT SET';
+  
+  res.json({
+    success: allSet,
+    configured: allSet,
+    message: allSet 
+      ? 'Email service is properly configured' 
+      : 'Email configuration is incomplete - check environment variables',
+    config: config,
+    missing: Object.keys(config).filter(key => config[key] === 'NOT SET')
+  });
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });

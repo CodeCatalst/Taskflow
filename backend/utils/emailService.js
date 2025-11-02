@@ -11,7 +11,55 @@ const createTransporter = () => {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD,
     },
+    // Add connection pooling for better performance
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    // Reduce timeout for faster failure detection
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 30000, // 30 seconds
   });
+};
+
+// Helper to send email asynchronously (fire-and-forget)
+// This doesn't block the API response
+const sendEmailAsync = (transporter, mailOptions) => {
+  // Validate environment variables before attempting to send
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.error('❌ Email configuration missing! Required: EMAIL_HOST, EMAIL_USER, EMAIL_PASSWORD');
+    console.error('   EMAIL_HOST:', process.env.EMAIL_HOST || 'NOT SET');
+    console.error('   EMAIL_USER:', process.env.EMAIL_USER || 'NOT SET');
+    console.error('   EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '***SET***' : 'NOT SET');
+    return { success: false, status: 'error', message: 'Email service not configured' };
+  }
+
+  console.log('📧 Queueing email to:', mailOptions.to);
+  console.log('   Environment:', process.env.NODE_ENV || 'development');
+  console.log('   Email Config:', {
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT || 587,
+    from: mailOptions.from.address
+  });
+
+  // Send email in background without blocking
+  transporter.sendMail(mailOptions)
+    .then(info => {
+      console.log('✅ Email sent successfully:', info.messageId, 'to:', mailOptions.to);
+    })
+    .catch(error => {
+      console.error('❌ Error sending email to:', mailOptions.to);
+      console.error('   Error:', error.message);
+      console.error('   Code:', error.code);
+      console.error('   Command:', error.command);
+      // Log full error in development for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('   Full Error:', error);
+      }
+    });
+  
+  // Return immediately without waiting
+  return { success: true, status: 'queued', message: 'Email is being sent in background' };
 };
 
 // HTML Email Template for New User Credentials
@@ -449,11 +497,14 @@ ${appUrl}
       `.trim()
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Credential email sent successfully:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    // Send email asynchronously (fire-and-forget for faster response)
+    sendEmailAsync(transporter, mailOptions);
+    
+    // Return immediately without waiting for email to be sent
+    console.log('📧 Credential email queued for:', email);
+    return { success: true, status: 'queued', message: 'Email is being sent' };
   } catch (error) {
-    console.error('❌ Error sending credential email:', error);
+    console.error('❌ Error preparing credential email:', error);
     return { success: false, error: error.message };
   }
 };
@@ -629,11 +680,12 @@ TaskFlow Team
       `.trim()
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Password reset email sent successfully:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    // Send email asynchronously without blocking
+    sendEmailAsync(transporter, mailOptions);
+    console.log('📧 Password reset email queued for:', email);
+    return { success: true, status: 'queued', message: 'Password reset email is being sent' };
   } catch (error) {
-    console.error('❌ Error sending password reset email:', error);
+    console.error('❌ Error queuing password reset email:', error);
     return { success: false, error: error.message };
   }
 };
@@ -849,11 +901,12 @@ TaskFlow Team
       `.trim()
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Overdue reminder email sent to ${email}:`, info.messageId);
-    return { success: true, messageId: info.messageId };
+    // Send email asynchronously without blocking
+    sendEmailAsync(transporter, mailOptions);
+    console.log(`📧 Overdue reminder email queued for: ${email}`);
+    return { success: true, status: 'queued', message: 'Overdue reminder email is being sent' };
   } catch (error) {
-    console.error(`❌ Error sending overdue reminder email to ${email}:`, error);
+    console.error(`❌ Error queuing overdue reminder email to ${email}:`, error);
     return { success: false, error: error.message };
   }
 };
@@ -1075,11 +1128,12 @@ TaskFlow Team
       attachments: attachments
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Weekly report email sent to ${email}:`, info.messageId);
-    return { success: true, messageId: info.messageId };
+    // Send email asynchronously without blocking
+    sendEmailAsync(transporter, mailOptions);
+    console.log(`📧 Weekly report email queued for: ${email}`);
+    return { success: true, status: 'queued', message: 'Weekly report email is being sent' };
   } catch (error) {
-    console.error(`❌ Error sending weekly report email to ${email}:`, error);
+    console.error(`❌ Error queuing weekly report email to ${email}:`, error);
     return { success: false, error: error.message };
   }
 };
