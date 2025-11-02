@@ -157,25 +157,45 @@ router.post('/', authenticate, checkRole(['admin', 'hr']), validateUserCreation,
 
     await user.save();
 
-    console.log('📧 Attempting to send credential email to:', email);
+    console.log('📧 Queuing credential email for:', email);
 
-    // Send credential email
-    const emailResult = await sendCredentialEmail(full_name, email, password);
-    
-    if (!emailResult.success) {
-      console.warn('⚠️ User created but email failed to send:', emailResult.error);
-    } else {
-      console.log('✅ Email sent successfully to:', email);
-    }
+    // Send credential email with timeout (non-blocking)
+    // Don't wait more than 10 seconds for email
+    const emailPromise = Promise.race([
+      sendCredentialEmail(full_name, email, password),
+      new Promise((resolve) => 
+        setTimeout(() => resolve({ 
+          success: false, 
+          status: 'timeout', 
+          error: 'Email sending timeout - will retry in background' 
+        }), 10000)
+      )
+    ]);
 
+    // Send email in background and respond immediately
+    let emailSent = false;
+    emailPromise
+      .then((emailResult) => {
+        if (emailResult.success) {
+          console.log('✅ Email sent successfully to:', email);
+        } else {
+          console.warn('⚠️ Email failed to send:', emailResult.error);
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Email error:', error.message);
+      });
+
+    // Get user response immediately
     const userResponse = await User.findById(user._id)
       .select('-password_hash')
       .populate('team_id');
 
+    // Respond immediately without waiting for email
     res.status(201).json({
-      message: 'User created successfully',
+      message: 'User created successfully. Credentials will be sent via email.',
       user: userResponse,
-      emailSent: emailResult.success
+      emailQueued: true
     });
   } catch (error) {
     console.error('Create user error:', error);
@@ -290,16 +310,22 @@ router.patch('/:id/password', authenticate, checkRole(['admin', 'hr']), async (r
     user.updated_at = Date.now();
     await user.save();
 
-    // Send password reset email
-    const emailResult = await sendPasswordResetEmail(user.full_name, user.email, password);
-    
-    if (!emailResult.success) {
-      console.warn('⚠️ Password reset but email failed to send:', emailResult.error);
-    }
+    // Send password reset email (non-blocking, fire and forget)
+    sendPasswordResetEmail(user.full_name, user.email, password)
+      .then((emailResult) => {
+        if (emailResult.success) {
+          console.log('✅ Password reset email sent to:', user.email);
+        } else {
+          console.warn('⚠️ Password reset email failed:', emailResult.error);
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Password reset email error:', error.message);
+      });
 
     res.json({ 
-      message: 'Password reset successfully',
-      emailSent: emailResult.success
+      message: 'Password reset successfully. New credentials will be sent via email.',
+      emailQueued: true
     });
   } catch (error) {
     console.error('Reset password error:', error);

@@ -122,10 +122,13 @@ const sendEmailSync = async (transporter, mailOptions) => {
   console.log('📧 Sending email synchronously to:', mailOptions.to);
   
   try {
-    // First, verify connection to SMTP server
-    console.log('🔍 Verifying SMTP connection...');
-    await transporter.verify();
-    console.log('✅ SMTP connection verified successfully');
+    // Skip verify in production to avoid hanging
+    // Only verify in development/testing
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Verifying SMTP connection (dev mode)...');
+      await transporter.verify();
+      console.log('✅ SMTP connection verified successfully');
+    }
     
     // Now send the email
     console.log('📤 Sending email...');
