@@ -83,12 +83,22 @@ const Dashboard = () => {
     }
   }, [user?.role]);
 
-  // PWA Install Handler
+  // PWA Install Handler with persistent state
   useEffect(() => {
-    // Check if app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    // Check if app was previously installed (localStorage flag)
+    const wasInstalled = localStorage.getItem('pwa-installed') === 'true';
+    
+    // Check if app is currently running in standalone mode
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                        window.navigator.standalone === true || // iOS Safari
+                        document.referrer.includes('android-app://'); // Android TWA
+    
+    if (wasInstalled || isStandalone) {
       setIsInstalled(true);
-      console.log('✅ App is running in standalone mode (already installed)');
+      setShowInstallBanner(false);
+      // Ensure the flag is set
+      localStorage.setItem('pwa-installed', 'true');
+      console.log('✅ App is already installed (standalone mode or previous installation detected)');
       return;
     }
 
@@ -99,8 +109,10 @@ const Dashboard = () => {
       e.preventDefault();
       // Stash the event so it can be triggered later
       setDeferredPrompt(e);
-      // Show install banner
-      setShowInstallBanner(true);
+      // Only show install banner if not already installed
+      if (!localStorage.getItem('pwa-installed')) {
+        setShowInstallBanner(true);
+      }
     };
 
     // Listen for successful installation
@@ -109,6 +121,8 @@ const Dashboard = () => {
       setIsInstalled(true);
       setShowInstallBanner(false);
       setDeferredPrompt(null);
+      // Persist installation state
+      localStorage.setItem('pwa-installed', 'true');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -117,7 +131,8 @@ const Dashboard = () => {
     // Debug: Check current state
     console.log('PWA Install Handler initialized');
     console.log('Browser:', navigator.userAgent);
-    console.log('Display mode:', window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser');
+    console.log('Display mode:', isStandalone ? 'standalone' : 'browser');
+    console.log('Was previously installed:', wasInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -127,7 +142,14 @@ const Dashboard = () => {
 
   const handleInstallClick = async () => {
     console.log('Install button clicked');
+    console.log('isInstalled:', isInstalled);
     console.log('deferredPrompt available:', !!deferredPrompt);
+    
+    // Check if already installed
+    if (isInstalled || localStorage.getItem('pwa-installed') === 'true') {
+      alert('✅ TaskFlow is Already Installed!\n\nThe app has been installed on your device.\n\nYou can:\n• Find it on your home screen/desktop\n• Launch it like a native app\n• Access it offline\n\n🎉 You\'re all set!');
+      return;
+    }
     
     if (!deferredPrompt) {
       // If no install prompt available, show comprehensive instructions
@@ -147,16 +169,14 @@ const Dashboard = () => {
           `3. Tap "Add" in the top right to confirm\n\n` +
           `The TaskFlow icon will appear on your home screen!`;
       } else if (isChrome || isEdge) {
-        instructions = `⚠️ PWA Installation Not Ready\n\n` +
-          `The app cannot be installed yet because:\n\n` +
-          `• PWA icons need to be generated\n` +
-          `• Service worker may not be fully registered\n` +
-          `• Site needs to be on HTTPS in production\n\n` +
-          `For Chrome/Edge installation:\n` +
-          `1. Look for the install icon (⊕) in the address bar\n` +
-          `2. Click it to install TaskFlow\n` +
-          `3. Or open Menu → Install TaskFlow\n\n` +
-          `⚙️ Admin: Generate icons first (see PWA_ICON_SETUP.md)`;
+        instructions = `💻 Install TaskFlow on Chrome/Edge:\n\n` +
+          `Option 1:\n` +
+          `• Look for the install icon (⊕) in the address bar\n` +
+          `• Click it to install TaskFlow\n\n` +
+          `Option 2:\n` +
+          `• Open browser Menu (⋮)\n` +
+          `• Click "Install TaskFlow" or "Install app"\n\n` +
+          `Note: If you don't see these options, the PWA might not be fully ready yet.`;
       } else {
         instructions = `⚠️ Browser Not Supported\n\n` +
           `Your browser doesn't support PWA installation.\n\n` +
@@ -183,6 +203,9 @@ const Dashboard = () => {
 
       if (outcome === 'accepted') {
         console.log('✅ User accepted the install prompt');
+        // Mark as installed
+        setIsInstalled(true);
+        localStorage.setItem('pwa-installed', 'true');
         // Show success message
         setTimeout(() => {
           alert('🎉 TaskFlow has been installed!\n\nYou can now access it from your home screen or desktop.\n\nLook for the TaskFlow icon on your device.');

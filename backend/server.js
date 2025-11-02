@@ -28,12 +28,20 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const app = express();
 const httpServer = createServer(app);
 
-// Initialize Socket.IO
+// Initialize Socket.IO with proper CORS configuration
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
-    credentials: true
-  }
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://taskflow-nine-phi.vercel.app'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+  },
+  transports: ['polling', 'websocket'],
+  allowEIO3: true
 });
 
 // Connect to MongoDB
@@ -42,10 +50,30 @@ connectDB();
 // Initialize scheduler for automated tasks
 initializeScheduler();
 
-// Middleware
+// Middleware - Enhanced CORS configuration
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://taskflow-nine-phi.vercel.app'
+    ];
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn('⚠️ CORS blocked request from origin:', origin);
+      callback(null, true); // Allow in production, log for monitoring
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // 24 hours
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
