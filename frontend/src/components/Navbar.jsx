@@ -184,16 +184,16 @@ const Navbar = () => {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    className={`w-full flex items-center ${isCollapsed ? 'px-2 py-3 justify-center' : 'px-4 py-3'} text-sm font-medium rounded-lg transition-all duration-200 ${
                       isActive(item.href)
                         ? `${currentColorScheme.primaryLight} ${currentColorScheme.primaryText} border-r-4 ${primaryBorderClass}`
                         : `${currentTheme.textSecondary} ${currentTheme.hover} hover:${currentTheme.text}`
-                    } ${isCollapsed ? 'justify-center px-2' : ''}`}
+                    }`}
                     data-testid={`nav-${item.name.toLowerCase()}`}
                     onClick={() => setIsMobileMenuOpen(false)}
                     title={isCollapsed ? item.name : ''}
                   >
-                    <Icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'} transition-colors ${
+                    <Icon className={`${isCollapsed ? 'w-6 h-6 flex-shrink-0' : 'w-5 h-5 mr-3 flex-shrink-0'} transition-colors ${
                       isActive(item.href) ? currentColorScheme.primaryText : currentTheme.textMuted
                     }`} />
                     {!isCollapsed && <span>{item.name}</span>}
@@ -299,29 +299,82 @@ const Navbar = () => {
               </button>
             )}
 
-            {/* Collapsed Logout Icon */}
+            {/* Collapsed Icons */}
             {isCollapsed && (
               <>
                 {/* Collapsed User Avatar */}
-                <div className="mb-2 flex justify-center">
+                <div className="mb-3 flex justify-center">
                   <div className={`relative group`}>
                     <div className={`absolute inset-0 rounded-full ${currentColorScheme.primary} opacity-20 blur-sm group-hover:opacity-40 transition-opacity`}></div>
                     <div 
-                      className={`relative w-9 h-9 rounded-full ${currentColorScheme.primaryLight} flex items-center justify-center border-2 ${primaryBorderClass} shadow-md cursor-pointer hover:shadow-lg transition-all`}
+                      className={`relative w-11 h-11 rounded-full ${currentColorScheme.primaryLight} flex items-center justify-center border-2 ${primaryBorderClass} shadow-md cursor-pointer hover:shadow-lg transition-all`}
                       title={`${user?.full_name} - ${user?.role?.replace('_', ' ')}`}
                     >
-                      <User className={`w-4 h-4 ${currentColorScheme.primaryText}`} />
+                      <User className={`w-6 h-6 ${currentColorScheme.primaryText}`} />
                     </div>
                   </div>
                 </div>
                 
+                {/* Collapsed Notifications */}
+                <div className="relative mb-3 flex justify-center">
+                  <button
+                    onClick={() => {
+                      setShowNotifications(!showNotifications);
+                      if (!showNotifications) markAsRead();
+                    }}
+                    className={`relative w-11 h-11 flex items-center justify-center ${currentTheme.textSecondary} ${currentTheme.hover} rounded-lg transition-all hover:shadow-md border ${currentTheme.border}`}
+                    data-testid="notification-button-collapsed"
+                    title="Notifications"
+                  >
+                    <Bell className="w-6 h-6" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] rounded-full min-w-[16px] h-[16px] flex items-center justify-center font-bold px-1 shadow-md animate-pulse" data-testid="notification-count-collapsed">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+                  
+                  {/* Collapsed Notifications Dropdown */}
+                  {showNotifications && (
+                    <div className={`absolute bottom-full left-full ml-2 mb-0 w-80 ${currentTheme.surface} rounded-xl shadow-2xl border-2 ${currentTheme.border} z-50 overflow-hidden`} data-testid="notification-dropdown-collapsed">
+                      <div className={`p-4 border-b ${currentTheme.border} ${currentColorScheme.primaryLight}`}>
+                        <h3 className={`font-bold ${currentTheme.text}`}>Notifications</h3>
+                      </div>
+                      <div className="max-h-96 overflow-y-auto smooth-scroll">
+                        {notifications.length > 0 ? (
+                          notifications.map((notif) => (
+                            <div
+                              key={notif._id}
+                              className={`p-4 border-b ${currentTheme.hover} ${
+                                !notif.read_at ? currentColorScheme.primaryLight : ''
+                              }`}
+                              data-testid="notification-item"
+                            >
+                              <p className={`text-sm font-medium ${currentTheme.text}`}>{notif.type.replace('_', ' ')}</p>
+                              <p className={`text-xs ${currentTheme.textSecondary} mt-1`}>
+                                {notif.payload.task_title || notif.payload.message}
+                              </p>
+                              <p className={`text-xs ${currentTheme.textMuted} mt-1`}>
+                                {new Date(notif.created_at).toLocaleString()}
+                              </p>
+                            </div>
+                          ))
+                        ) : (
+                          <div className={`p-4 text-center ${currentTheme.textMuted}`}>No notifications</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Collapsed Logout */}
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center justify-center px-2 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  className="w-11 h-11 mx-auto flex items-center justify-center text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all hover:shadow-md border border-red-200 dark:border-red-800/30"
                   data-testid="logout-button-collapsed"
                   title="Logout"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-6 h-6" />
                 </button>
               </>
             )}
