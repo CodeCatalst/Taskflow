@@ -606,18 +606,23 @@ ${appUrl}
 
     // Send email without blocking - return immediately
     console.log('📧 Sending credential email to:', email);
+    console.log('   This happens in background - API responds immediately');
     
-    // Send email in background
+    // Send email in background with better error handling
     transporter.sendMail(mailOptions)
       .then(info => {
-        console.log('✅ Credential email sent successfully to:', email);
+        console.log('✅✅✅ Credential email DELIVERED successfully! ✅✅✅');
+        console.log('   To:', email);
         console.log('   Message ID:', info.messageId);
         console.log('   Response:', info.response);
+        console.log('   Status: Email sent to Gmail and accepted');
       })
       .catch(error => {
-        console.error('❌ Failed to send credential email to:', email);
+        console.error('❌❌❌ Credential email FAILED ❌❌❌');
+        console.error('   To:', email);
         console.error('   Error:', error.message);
         console.error('   Code:', error.code);
+        console.error('   Note: User was still created successfully');
       });
     
     // Return immediately without waiting
