@@ -523,11 +523,11 @@ const Analytics = () => {
           </div>
 
           {/* Filters */}
-          <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 mb-8`}>
-            <div className="flex items-center justify-between mb-4">
+          <div className={`${currentTheme.surface} rounded-lg shadow-md p-4 sm:p-6 mb-8`}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div className="flex items-center space-x-2">
-                <Filter className={`w-5 h-5 ${currentTheme.textSecondary}`} />
-                <h2 className={`text-xl font-semibold ${currentTheme.text}`}>Filters</h2>
+                <Filter className={`w-4 h-4 sm:w-5 sm:h-5 ${currentTheme.textSecondary}`} />
+                <h2 className={`text-lg sm:text-xl font-semibold ${currentTheme.text}`}>Filters</h2>
               </div>
               <button
                 onClick={() => setFilters({
@@ -539,18 +539,18 @@ const Analytics = () => {
                   customStartDate: '',
                   customEndDate: '',
                 })}
-                className="btn bg-gray-600 text-white hover:bg-gray-700 text-sm px-4 py-2"
+                className="btn bg-gray-600 text-white hover:bg-gray-700 text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 w-full sm:w-auto"
               >
                 Reset Filters
               </button>
             </div>
-            <div className={`grid grid-cols-1 md:grid-cols-2 ${user?.role === 'member' ? 'lg:grid-cols-2' : 'lg:grid-cols-5'} gap-4`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${user?.role === 'member' ? 'lg:grid-cols-2' : 'lg:grid-cols-3 xl:grid-cols-5'} gap-3 sm:gap-4`}>
               <div>
-                <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>Status</label>
+                <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1`}>Status</label>
                 <select
                   value={filters.status}
                   onChange={(e) => setFilters({...filters, status: e.target.value})}
-                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
+                  className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
                 >
                   <option value="">All Statuses</option>
                   <option value="todo">To Do</option>
@@ -562,11 +562,11 @@ const Analytics = () => {
               </div>
 
               <div>
-                <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>Priority</label>
+                <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1`}>Priority</label>
                 <select
                   value={filters.priority}
                   onChange={(e) => setFilters({...filters, priority: e.target.value})}
-                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
+                  className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
                 >
                   <option value="">All Priorities</option>
                   <option value="low">Low</option>
@@ -580,11 +580,11 @@ const Analytics = () => {
               {user?.role !== 'member' && (
                 <>
                   <div>
-                    <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>Date Range</label>
+                    <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1`}>Date Range</label>
                     <select
                       value={filters.dateRange}
                       onChange={(e) => setFilters({...filters, dateRange: e.target.value})}
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
+                      className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
                     >
                       <option value="all">All Time</option>
                       <option value="today">Today</option>
@@ -595,11 +595,11 @@ const Analytics = () => {
                   </div>
 
                   <div>
-                    <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>Team</label>
+                    <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1`}>Team</label>
                     <select
                       value={filters.team}
                       onChange={(e) => setFilters({...filters, team: e.target.value})}
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
+                      className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
                     >
                       <option value="">All Teams</option>
                       {teams.map(team => (
@@ -609,11 +609,11 @@ const Analytics = () => {
                   </div>
 
                   <div>
-                    <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>User</label>
+                    <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1`}>User</label>
                     <select
                       value={filters.user}
                       onChange={(e) => setFilters({...filters, user: e.target.value})}
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
+                      className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
                     >
                       <option value="">All Users</option>
                       <option value="unassigned">Unassigned</option>
@@ -627,23 +627,23 @@ const Analytics = () => {
             </div>
 
             {filters.dateRange === 'custom' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                  <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1`}>Start Date</label>
                   <input
                     type="date"
                     value={filters.customStartDate}
                     onChange={(e) => setFilters({...filters, customStartDate: e.target.value})}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                  <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1`}>End Date</label>
                   <input
                     type="date"
                     value={filters.customEndDate}
                     onChange={(e) => setFilters({...filters, customEndDate: e.target.value})}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500`}
                   />
                 </div>
               </div>
@@ -651,58 +651,58 @@ const Analytics = () => {
           </div>
 
           {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className={`${currentTheme.surface} rounded-lg shadow-md p-6`}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <div className={`${currentTheme.surface} rounded-lg shadow-md p-4 sm:p-6`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className={`${currentTheme.textSecondary} text-sm`}>Total Tasks</p>
-                  <p className={`text-3xl font-bold ${currentTheme.text} mt-2`}>{analyticsData.totalTasks}</p>
+                  <p className={`${currentTheme.textSecondary} text-xs sm:text-sm`}>Total Tasks</p>
+                  <p className={`text-2xl sm:text-3xl font-bold ${currentTheme.text} mt-2`}>{analyticsData.totalTasks}</p>
                 </div>
-                <BarChart3 className={`w-12 h-12 ${currentColorScheme.primaryText}`} />
+                <BarChart3 className={`w-10 h-10 sm:w-12 sm:h-12 ${currentColorScheme.primaryText}`} />
               </div>
             </div>
 
-            <div className={`${currentTheme.surface} rounded-lg shadow-md p-6`}>
+            <div className={`${currentTheme.surface} rounded-lg shadow-md p-4 sm:p-6`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className={`${currentTheme.textSecondary} text-sm`}>Overdue Tasks</p>
-                  <p className="text-3xl font-bold text-red-600 mt-2">{analyticsData.overdueTasks}</p>
+                  <p className={`${currentTheme.textSecondary} text-xs sm:text-sm`}>Overdue Tasks</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-red-600 mt-2">{analyticsData.overdueTasks}</p>
                 </div>
-                <AlertTriangle className="w-12 h-12 text-red-500" />
+                <AlertTriangle className="w-10 h-10 sm:w-12 sm:h-12 text-red-500" />
               </div>
             </div>
 
-            <div className={`${currentTheme.surface} rounded-lg shadow-md p-6`}>
+            <div className={`${currentTheme.surface} rounded-lg shadow-md p-4 sm:p-6`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className={`${currentTheme.textSecondary} text-sm`}>Completed Tasks</p>
-                  <p className="text-3xl font-bold text-green-600 mt-2">{analyticsData.completedTasks}</p>
+                  <p className={`${currentTheme.textSecondary} text-xs sm:text-sm`}>Completed Tasks</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-green-600 mt-2">{analyticsData.completedTasks}</p>
                 </div>
-                <TrendingUp className="w-12 h-12 text-green-500" />
+                <TrendingUp className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />
               </div>
             </div>
 
-            <div className={`${currentTheme.surface} rounded-lg shadow-md p-6`}>
+            <div className={`${currentTheme.surface} rounded-lg shadow-md p-4 sm:p-6`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className={`${currentTheme.textSecondary} text-sm`}>In Progress</p>
-                  <p className="text-3xl font-bold text-yellow-600 mt-2">{analyticsData.inProgressTasks}</p>
+                  <p className={`${currentTheme.textSecondary} text-xs sm:text-sm`}>In Progress</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-yellow-600 mt-2">{analyticsData.inProgressTasks}</p>
                 </div>
-                <Calendar className="w-12 h-12 text-yellow-500" />
+                <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-500" />
               </div>
             </div>
           </div>
 
           {/* Tasks by Team - Numerical Stats - Only for admin and hr */}
           {['admin', 'hr'].includes(user?.role) && (
-            <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 mb-8`}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Tasks by Team</h3>
-                <span className={`text-sm ${currentTheme.textSecondary}`}>
+            <div className={`${currentTheme.surface} rounded-lg shadow-md p-4 sm:p-6 mb-8`}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                <h3 className={`text-base sm:text-lg font-semibold ${currentTheme.text}`}>Tasks by Team</h3>
+                <span className={`text-xs sm:text-sm ${currentTheme.textSecondary}`}>
                   {teams.length} {teams.length === 1 ? 'Team' : 'Teams'}
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                 {getTeamTaskCounts().map((team) => (
                   <div 
                     key={team.id} 
@@ -733,57 +733,57 @@ const Analytics = () => {
           )}
 
           {/* Filtered Tasks Table - Shows prominently BEFORE charts */}
-          <div className={`${currentTheme.surface} rounded-lg shadow-md mb-8`}>
-            <div className={`p-6 border-b ${currentTheme.border}`}>
-              <h2 className={`text-xl font-semibold ${currentTheme.text}`}>
+          <div className={`${currentTheme.surface} rounded-lg shadow-md mb-8 overflow-hidden`}>
+            <div className={`p-4 sm:p-6 border-b ${currentTheme.border}`}>
+              <h2 className={`text-base sm:text-xl font-semibold ${currentTheme.text}`}>
                 {filters.status || filters.priority || filters.team || filters.user || filters.dateRange !== 'all' 
                   ? `Filtered Tasks (${filteredTasks.length})` 
                   : `All Tasks (${filteredTasks.length})`}
               </h2>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[600px]">
                 <thead className={`${currentTheme.surfaceSecondary}`}>
                   <tr>
-                    <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Task</th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Status</th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Priority</th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Assigned To</th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Due Date</th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Overdue</th>
+                    <th className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Task</th>
+                    <th className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Status</th>
+                    <th className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Priority</th>
+                    <th className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider hidden md:table-cell`}>Assigned To</th>
+                    <th className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Due Date</th>
+                    <th className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Overdue</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y ${currentTheme.border}`}>
                   {filteredTasks.map((task) => {
                     const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
                     return (
-                      <tr key={task._id} className={isOverdue ? 'bg-red-50' : ''}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-sm font-medium ${currentTheme.text}`}>{task.title}</div>
-                          <div className={`text-sm ${currentTheme.textMuted} truncate max-w-xs`}>{task.description}</div>
+                      <tr key={task._id} className={isOverdue ? 'bg-red-50 dark:bg-red-900/10' : ''}>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <div className={`text-xs sm:text-sm font-medium ${currentTheme.text}`}>{task.title}</div>
+                          <div className={`text-xs ${currentTheme.textMuted} truncate max-w-[150px] sm:max-w-xs`}>{task.description}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusChartColor(task.status) === '#6b7280' ? 'bg-gray-100 text-gray-800' : getStatusChartColor(task.status) === '#3b82f6' ? 'bg-blue-100 text-blue-800' : getStatusChartColor(task.status) === '#f59e0b' ? 'bg-yellow-100 text-yellow-800' : getStatusChartColor(task.status) === '#10b981' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-full ${getStatusChartColor(task.status) === '#6b7280' ? 'bg-gray-100 text-gray-800' : getStatusChartColor(task.status) === '#3b82f6' ? 'bg-blue-100 text-blue-800' : getStatusChartColor(task.status) === '#f59e0b' ? 'bg-yellow-100 text-yellow-800' : getStatusChartColor(task.status) === '#10b981' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                             {task.status.replace('_', ' ')}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full`} style={{ backgroundColor: getPriorityColor(task.priority) + '20', color: getPriorityColor(task.priority) }}>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-full`} style={{ backgroundColor: getPriorityColor(task.priority) + '20', color: getPriorityColor(task.priority) }}>
                             {task.priority}
                           </span>
                         </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentTheme.textSecondary}`}>
+                        <td className={`px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm ${currentTheme.textSecondary} hidden md:table-cell`}>
                           {task.assigned_to && task.assigned_to.length > 0
                             ? task.assigned_to.map(user => user.full_name).join(', ')
                             : 'Unassigned'
                           }
                         </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentTheme.textSecondary}`}>
+                        <td className={`px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm ${currentTheme.textSecondary}`}>
                           {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                           {isOverdue && (
-                            <AlertTriangle className="w-5 h-5 text-red-500" />
+                            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
                           )}
                         </td>
                       </tr>
@@ -797,11 +797,11 @@ const Analytics = () => {
           {/* Charts - Hidden for members, minimal for team leads */}
           {user?.role !== 'member' && (
             <>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 mb-8">
                 {/* Status Distribution */}
-                <div className={`${currentTheme.surface} rounded-lg shadow-md p-6`}>
-                  <h3 className={`text-lg font-semibold mb-4 ${currentTheme.text}`}>Task Status Distribution</h3>
-                  <ResponsiveContainer width="100%" height={300}>
+                <div className={`${currentTheme.surface} rounded-lg shadow-md p-4 sm:p-6`}>
+                  <h3 className={`text-base sm:text-lg font-semibold mb-4 ${currentTheme.text}`}>Task Status Distribution</h3>
+                  <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
                     <RechartsPieChart>
                       <Pie
                         data={analyticsData.statusDistribution}
@@ -809,7 +809,7 @@ const Analytics = () => {
                         cy="50%"
                         labelLine={false}
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
+                        outerRadius={window.innerWidth < 640 ? 60 : 80}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -823,13 +823,13 @@ const Analytics = () => {
                 </div>
 
                 {/* Priority Distribution */}
-                <div className={`${currentTheme.surface} rounded-lg shadow-md p-6`}>
-                  <h3 className={`text-lg font-semibold mb-4 ${currentTheme.text}`}>Task Priority Distribution</h3>
-                  <ResponsiveContainer width="100%" height={300}>
+                <div className={`${currentTheme.surface} rounded-lg shadow-md p-4 sm:p-6`}>
+                  <h3 className={`text-base sm:text-lg font-semibold mb-4 ${currentTheme.text}`}>Task Priority Distribution</h3>
+                  <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
                     <BarChart data={analyticsData.priorityDistribution}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
+                      <XAxis dataKey="name" tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }} />
+                      <YAxis tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }} />
                       <Tooltip />
                       <Bar dataKey="value" fill="#8884d8" />
                     </BarChart>
@@ -841,15 +841,15 @@ const Analytics = () => {
               {['admin', 'hr'].includes(user?.role) && (
                 <>
                   {/* Overdue Tasks Analysis */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 mb-8">
                     {/* Overdue by Priority */}
-                    <div className={`${currentTheme.surface} rounded-lg shadow-md p-6`}>
-                      <h3 className="text-lg font-semibold mb-4 text-red-600">Overdue Tasks by Priority</h3>
-                      <ResponsiveContainer width="100%" height={300}>
+                    <div className={`${currentTheme.surface} rounded-lg shadow-md p-4 sm:p-6`}>
+                      <h3 className="text-base sm:text-lg font-semibold mb-4 text-red-600">Overdue Tasks by Priority</h3>
+                      <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
                         <BarChart data={analyticsData.overdueByPriority}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
+                          <XAxis dataKey="name" tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }} />
+                          <YAxis tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }} />
                           <Tooltip />
                           <Bar dataKey="value" fill="#ef4444" />
                         </BarChart>
@@ -857,13 +857,13 @@ const Analytics = () => {
                     </div>
 
                     {/* Completion Trend */}
-                    <div className={`${currentTheme.surface} rounded-lg shadow-md p-6`}>
-                      <h3 className={`text-lg font-semibold mb-4 ${currentTheme.text}`}>Task Completion Trend (30 Days)</h3>
-                      <ResponsiveContainer width="100%" height={300}>
+                    <div className={`${currentTheme.surface} rounded-lg shadow-md p-4 sm:p-6`}>
+                      <h3 className={`text-base sm:text-lg font-semibold mb-4 ${currentTheme.text}`}>Task Completion Trend (30 Days)</h3>
+                      <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
                         <AreaChart data={analyticsData.completionTrend}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="date" />
-                          <YAxis />
+                          <XAxis dataKey="date" tick={{ fontSize: window.innerWidth < 640 ? 9 : 12 }} />
+                          <YAxis tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }} />
                           <Tooltip />
                           <Area type="monotone" dataKey="created" stackId="1" stroke="#8884d8" fill="#8884d8" />
                           <Area type="monotone" dataKey="completed" stackId="2" stroke="#82ca9d" fill="#82ca9d" />
@@ -873,13 +873,13 @@ const Analytics = () => {
                   </div>
 
                   {/* User Performance */}
-                  <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 mb-8`}>
-                    <h3 className={`text-lg font-semibold mb-4 ${currentTheme.text}`}>User Performance</h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                  <div className={`${currentTheme.surface} rounded-lg shadow-md p-4 sm:p-6 mb-8`}>
+                    <h3 className={`text-base sm:text-lg font-semibold mb-4 ${currentTheme.text}`}>User Performance</h3>
+                    <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
                       <BarChart data={analyticsData.assigneePerformance}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
+                        <XAxis dataKey="name" tick={{ fontSize: window.innerWidth < 640 ? 9 : 12 }} angle={window.innerWidth < 640 ? -45 : 0} textAnchor={window.innerWidth < 640 ? "end" : "middle"} height={window.innerWidth < 640 ? 80 : 60} />
+                        <YAxis tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }} />
                         <Tooltip />
                         <Bar dataKey="total" fill="#8884d8" name="Total Tasks" />
                         <Bar dataKey="completed" fill="#10b981" name="Completed" />
@@ -889,20 +889,21 @@ const Analytics = () => {
                   </div>
 
                   {/* Tasks by Team */}
-                  <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 mb-8`}>
-                    <h3 className={`text-lg font-semibold mb-4 ${currentTheme.text}`}>Tasks by Team</h3>
+                  <div className={`${currentTheme.surface} rounded-lg shadow-md p-4 sm:p-6 mb-8`}>
+                    <h3 className={`text-base sm:text-lg font-semibold mb-4 ${currentTheme.text}`}>Tasks by Team</h3>
                     {analyticsData.teamDistribution && analyticsData.teamDistribution.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={400}>
+                      <ResponsiveContainer width="100%" height={300} className="sm:h-[400px]">
                         <BarChart data={analyticsData.teamDistribution} layout="horizontal">
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis 
                             dataKey="name" 
-                            angle={-45}
+                            angle={window.innerWidth < 640 ? -45 : -45}
                             textAnchor="end"
-                            height={120}
+                            height={window.innerWidth < 640 ? 100 : 120}
                             interval={0}
+                            tick={{ fontSize: window.innerWidth < 640 ? 9 : 11 }}
                           />
-                          <YAxis />
+                          <YAxis tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }} />
                           <Tooltip />
                           <Bar dataKey="value" fill="#10b981" name="Tasks">
                             {analyticsData.teamDistribution.map((entry, index) => (

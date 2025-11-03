@@ -11,7 +11,7 @@ const Kanban = () => {
   const { currentTheme, currentColorScheme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [draggedTask, setDraggedTask] = useState(null);
@@ -19,6 +19,11 @@ const Kanban = () => {
     team: '',
     assigned_to: '',
     showMyTasksOnly: false,
+    status: '',
+    priority: '',
+    dueDateFrom: '',
+    dueDateTo: '',
+    search: '',
   });
   const [formData, setFormData] = useState({
     title: '',
@@ -261,28 +266,46 @@ const Kanban = () => {
 
   const getTasksByStatus = (status) => {
     let filtered = tasks.filter(task => task.status === status);
-
-    // Filter to show only tasks assigned to current user
+    if (filters.team) {
+      filtered = filtered.filter((t) => t.team_id && (t.team_id._id === filters.team || t.team_id === filters.team));
+    }
+    if (filters.assigned_to) {
+      filtered = filtered.filter((t) => t.assigned_to && t.assigned_to.some(u => (u._id || u) === filters.assigned_to));
+    }
+    if (filters.priority) {
+      filtered = filtered.filter((t) => t.priority === filters.priority);
+    }
+    if (filters.dueDateFrom) {
+      filtered = filtered.filter((t) => t.due_date && new Date(t.due_date) >= new Date(filters.dueDateFrom));
+    }
+    if (filters.dueDateTo) {
+      filtered = filtered.filter((t) => t.due_date && new Date(t.due_date) <= new Date(filters.dueDateTo));
+    }
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      filtered = filtered.filter((t) =>
+        t.title.toLowerCase().includes(q) ||
+        (t.description && t.description.toLowerCase().includes(q))
+      );
+    }
     if (filters.showMyTasksOnly) {
       filtered = filtered.filter((t) => {
         if (!t.assigned_to) return false;
         const assignedIds = Array.isArray(t.assigned_to) 
           ? t.assigned_to.map(u => typeof u === 'object' ? u._id : u)
           : [typeof t.assigned_to === 'object' ? t.assigned_to._id : t.assigned_to];
-        
         const isAssignedToUser = assignedIds.includes(user?.id);
-        
-        // For members, also check if task belongs to their team
         if (user?.role === 'member') {
           const belongsToUserTeam = user.team_id && t.team_id && 
             (t.team_id._id === user.team_id || t.team_id === user.team_id);
           return isAssignedToUser && belongsToUserTeam;
         }
-        
         return isAssignedToUser;
       });
     }
-
+    if (filters.status) {
+      filtered = filtered.filter((t) => t.status === filters.status);
+    }
     return filtered;
   };
 
@@ -332,32 +355,107 @@ const Kanban = () => {
       <Navbar />
       <div className={`flex-1 p-4 sm:p-6 lg:p-8 ${currentTheme.background}`}>
           {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className={`text-3xl font-bold ${currentTheme.text}`}>Kanban Board</h1>
-              <p className={`${currentTheme.textSecondary} mt-2`}>Visual task management with drag & drop</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              {/* My Tasks Toggle */}
-              <button
-                onClick={() => setFilters({ ...filters, showMyTasksOnly: !filters.showMyTasksOnly })}
-                className={`btn flex items-center space-x-2 ${
-                  filters.showMyTasksOnly
-                    ? `${currentColorScheme.primary} text-white`
-                    : `${currentTheme.surface} ${currentTheme.text} border ${currentTheme.border}`
-                }`}
-              >
-                <UserCheck className="w-5 h-5" />
-                <span>{filters.showMyTasksOnly ? 'My Tasks Only' : 'All Tasks'}</span>
-              </button>
+          <div className="mb-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+              <div>
+                <h1 className={`text-3xl font-bold ${currentTheme.text}`}>Kanban Board</h1>
+                <p className={`${currentTheme.textSecondary} mt-2`}>Visual task management with drag & drop</p>
+              </div>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className={`btn ${currentColorScheme.primary} text-white ${currentColorScheme.primaryHover} flex items-center space-x-2`}
+                className={`btn ${currentColorScheme.primary} text-white ${currentColorScheme.primaryHover} flex items-center justify-center space-x-2 w-full sm:w-auto`}
                 data-testid="create-task-btn"
               >
                 <Plus className="w-5 h-5" />
                 <span>Create Task</span>
               </button>
+            </div>
+
+            {/* Responsive Filters */}
+            <div className={`${currentTheme.surface} rounded-lg shadow-md p-4`}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {/* My Tasks Toggle */}
+                <button
+                  onClick={() => setFilters({ ...filters, showMyTasksOnly: !filters.showMyTasksOnly })}
+                  className={`btn flex items-center justify-center space-x-2 ${
+                    filters.showMyTasksOnly
+                      ? `${currentColorScheme.primary} text-white`
+                      : `${currentTheme.surface} ${currentTheme.text} border ${currentTheme.border}`
+                  }`}
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span className="text-sm">{filters.showMyTasksOnly ? 'My Tasks Only' : 'All Tasks'}</span>
+                </button>
+                
+                {/* Advanced Filters for HR/Admin */}
+                {['admin', 'hr'].includes(user?.role) && (
+                  <>
+                    <select
+                      value={filters.team}
+                      onChange={(e) => setFilters({ ...filters, team: e.target.value })}
+                      className="input text-sm"
+                    >
+                      <option value="">All Teams</option>
+                      {teams.map((team) => (
+                        <option key={team._id} value={team._id}>{team.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={filters.assigned_to}
+                      onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })}
+                      className="input text-sm"
+                    >
+                      <option value="">All Users</option>
+                      {users.map((u) => (
+                        <option key={u._id} value={u._id}>{u.full_name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={filters.status}
+                      onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                      className="input text-sm"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="todo">To Do</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="review">Review</option>
+                      <option value="done">Done</option>
+                    </select>
+                    <select
+                      value={filters.priority}
+                      onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+                      className="input text-sm"
+                    >
+                      <option value="">All Priorities</option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                    <input
+                      type="date"
+                      value={filters.dueDateFrom}
+                      onChange={(e) => setFilters({ ...filters, dueDateFrom: e.target.value })}
+                      className="input text-sm"
+                      placeholder="Due Date From"
+                    />
+                    <input
+                      type="date"
+                      value={filters.dueDateTo}
+                      onChange={(e) => setFilters({ ...filters, dueDateTo: e.target.value })}
+                      className="input text-sm"
+                      placeholder="Due Date To"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search tasks..."
+                      value={filters.search}
+                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                      className="input text-sm sm:col-span-2 lg:col-span-1"
+                    />
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -435,10 +533,46 @@ const Kanban = () => {
 
                       <p className={`text-sm ${currentTheme.textSecondary} mb-3 line-clamp-2`}>{task.description}</p>
 
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center justify-between mb-3 gap-2">
                         <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(task.priority)}`}>
-                          {task.priority}
+                          <select
+                            value={task.priority}
+                            onChange={async (e) => {
+                              const newPriority = e.target.value;
+                              try {
+                                await handleUpdateTask(task._id, { priority: newPriority });
+                              } catch (err) {
+                                alert('Failed to update priority');
+                              }
+                            }}
+                            className="input text-xs px-1 py-0 rounded-full"
+                            style={{ minWidth: 70 }}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                          </select>
                         </span>
+                        <input
+                          type="date"
+                          value={task.due_date ? task.due_date.slice(0, 10) : ''}
+                          onChange={async (e) => {
+                            const newDate = e.target.value;
+                            try {
+                              await handleUpdateTask(task._id, { due_date: newDate });
+                            } catch (err) {
+                              alert('Failed to update due date');
+                            }
+                          }}
+                          className="input text-xs px-1 py-0 rounded-full"
+                          style={{ minWidth: 110 }}
+                          onClick={e => e.stopPropagation()}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between mb-3">
                         {task.due_date && (
                           <div className={`flex items-center text-xs ${currentTheme.textMuted}`}>
                             <Clock className="w-3 h-3 mr-1" />
@@ -470,6 +604,35 @@ const Kanban = () => {
                           🏢 {task.team_id.name}
                         </div>
                       )}
+
+                      {/* Inline status update dropdown */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <select
+                          value={task.status}
+                          onChange={async (e) => {
+                            const newStatus = e.target.value;
+                            try {
+                              await handleUpdateTask(task._id, { status: newStatus });
+                            } catch (err) {
+                              alert('Failed to update status');
+                            }
+                          }}
+                          className={`input text-xs px-2 py-1 rounded-full font-semibold border-2 ${
+                            task.status === 'todo' ? 'bg-gray-100 border-gray-400 text-gray-800' :
+                            task.status === 'in_progress' ? 'bg-blue-100 border-blue-400 text-blue-800' :
+                            task.status === 'review' ? 'bg-yellow-100 border-yellow-400 text-yellow-800' :
+                            task.status === 'done' ? 'bg-green-100 border-green-400 text-green-800' :
+                            'bg-gray-200 border-gray-300 text-gray-700'
+                          } transition-colors`}
+                          style={{ minWidth: 110 }}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <option value="todo" className="bg-gray-100 text-gray-800">To Do</option>
+                          <option value="in_progress" className="bg-blue-100 text-blue-800">In Progress</option>
+                          <option value="review" className="bg-yellow-100 text-yellow-800">Review</option>
+                          <option value="done" className="bg-green-100 text-green-800">Done</option>
+                        </select>
+                      </div>
                     </div>
                   ))}
 

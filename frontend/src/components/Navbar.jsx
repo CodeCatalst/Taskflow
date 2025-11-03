@@ -1,7 +1,7 @@
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Bell, LogOut, User, LayoutDashboard, CheckSquare, Users, UserCog, Kanban, Menu, X, ChevronLeft, ChevronRight, BarChart3, Settings } from 'lucide-react';
+import { Bell, LogOut, User, LayoutDashboard, CheckSquare, Users, UserCog, Kanban, Menu, X, ChevronLeft, ChevronRight, BarChart3, Settings, Calendar as CalendarIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 
@@ -79,6 +79,12 @@ const Navbar = () => {
       roles: ['admin', 'hr', 'team_lead', 'member'],
     },
     {
+      name: 'Calendar',
+      href: '/calendar',
+      icon: CalendarIcon,
+      roles: ['admin', 'hr', 'team_lead', 'member'],
+    },
+    {
       name: 'Analytics',
       href: '/analytics',
       icon: BarChart3,
@@ -102,6 +108,7 @@ const Navbar = () => {
       icon: Settings,
       roles: ['admin', 'hr', 'team_lead', 'member'],
     },
+    
   ];
 
   const isActive = (href) => {

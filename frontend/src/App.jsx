@@ -11,6 +11,7 @@ import Teams from './pages/Teams';
 import UserManagement from './pages/UserManagement';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import Calendar from './pages/Calendar';
 
 function App() {
   return (
@@ -80,6 +81,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/calendar"
+              element={
+                <ProtectedRoute>
+                  <Calendar />
                 </ProtectedRoute>
               }
             />
