@@ -20,6 +20,8 @@ const Teams = () => {
     lead_id: '',
   });
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedUserIds, setSelectedUserIds] = useState([]); // For multi-select
+  const [isMultiSelect, setIsMultiSelect] = useState(false); // Toggle multi-select mode
   const [draggedTeam, setDraggedTeam] = useState(null);
 
   useEffect(() => {
@@ -76,16 +78,57 @@ const Teams = () => {
 
   const handleAddMember = async (e) => {
     e.preventDefault();
+    
     try {
-      await api.post(`/teams/${selectedTeam._id}/members`, {
-        userId: selectedUserId,
-      });
+      if (isMultiSelect && selectedUserIds.length > 0) {
+        // Bulk add members
+        const response = await api.post(`/teams/${selectedTeam._id}/members/bulk`, {
+          userIds: selectedUserIds,
+        });
+        
+        const { results } = response.data;
+        let message = `Added ${results.added.length} member(s)`;
+        if (results.skipped.length > 0) {
+          message += `, skipped ${results.skipped.length} (already members)`;
+        }
+        if (results.failed.length > 0) {
+          message += `, failed ${results.failed.length}`;
+        }
+        
+        alert(message);
+      } else if (selectedUserId) {
+        // Single add member
+        await api.post(`/teams/${selectedTeam._id}/members`, {
+          userId: selectedUserId,
+        });
+      }
+      
       setShowAddMemberModal(false);
       setSelectedUserId('');
+      setSelectedUserIds([]);
+      setIsMultiSelect(false);
       fetchTeams();
     } catch (error) {
       console.error('Error adding member:', error);
       alert(error.response?.data?.message || 'Failed to add member');
+    }
+  };
+
+  const toggleUserSelection = (userId) => {
+    setSelectedUserIds(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    const availableUsers = users.filter((u) => !selectedTeam?.members?.some((m) => m._id === u._id));
+    
+    if (selectedUserIds.length === availableUsers.length) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(availableUsers.map(u => u._id));
     }
   };
 
@@ -454,11 +497,16 @@ const Teams = () => {
       {/* Add Member Modal */}
       {showAddMemberModal && selectedTeam && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="add-member-modal">
-          <div className={`${currentTheme.surface} rounded-lg p-8 max-w-md w-full mx-4`}>
+          <div className={`${currentTheme.surface} rounded-lg p-8 max-w-2xl w-full mx-4`}>
             <div className="flex justify-between items-center mb-6">
               <h2 className={`text-2xl font-bold ${currentTheme.text}`}>Add Member to {selectedTeam.name}</h2>
               <button
-                onClick={() => setShowAddMemberModal(false)}
+                onClick={() => {
+                  setShowAddMemberModal(false);
+                  setIsMultiSelect(false);
+                  setSelectedUserIds([]);
+                  setSelectedUserId('');
+                }}
                 className={`${currentTheme.textMuted} hover:${currentTheme.text}`}
               >
                 <X className="w-6 h-6" />
@@ -466,38 +514,121 @@ const Teams = () => {
             </div>
 
             <form onSubmit={handleAddMember} className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                  Select User *
-                </label>
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  className="input"
-                  required
-                  data-testid="select-user-input"
+              {/* Toggle Multi-Select Mode */}
+              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <span className={`text-sm font-medium ${currentTheme.text}`}>
+                  {isMultiSelect ? 'Multi-Select Mode' : 'Single Select Mode'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMultiSelect(!isMultiSelect);
+                    setSelectedUserId('');
+                    setSelectedUserIds([]);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                    isMultiSelect 
+                      ? 'bg-green-600 text-white hover:bg-green-700' 
+                      : 'bg-gray-600 text-white hover:bg-gray-700'
+                  }`}
                 >
-                  <option value="">Select a user</option>
-                  {users
-                    .filter((u) => !selectedTeam.members?.some((m) => m._id === u._id))
-                    .map((u) => (
-                      <option key={u._id} value={u._id}>
-                        {u.full_name} ({u.role})
-                      </option>
-                    ))}
-                </select>
+                  {isMultiSelect ? 'Switch to Single Select' : 'Switch to Multi-Select'}
+                </button>
               </div>
+
+              {isMultiSelect ? (
+                /* Multi-Select UI */
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className={`block text-sm font-medium ${currentTheme.text}`}>
+                      Select Users ({selectedUserIds.length} selected)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={toggleSelectAll}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      {selectedUserIds.length === users.filter((u) => !selectedTeam.members?.some((m) => m._id === u._id)).length
+                        ? 'Deselect All'
+                        : 'Select All'}
+                    </button>
+                  </div>
+                  <div className={`border ${currentTheme.border} rounded-lg max-h-96 overflow-y-auto`}>
+                    {users
+                      .filter((u) => !selectedTeam.members?.some((m) => m._id === u._id))
+                      .map((u) => (
+                        <label
+                          key={u._id}
+                          className={`flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer border-b ${currentTheme.border} last:border-b-0`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedUserIds.includes(u._id)}
+                            onChange={() => toggleUserSelection(u._id)}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 mr-3"
+                          />
+                          <div className="flex-1">
+                            <div className={`font-medium ${currentTheme.text}`}>{u.full_name}</div>
+                            <div className={`text-sm ${currentTheme.textSecondary}`}>
+                              {u.email} • <span className="capitalize">{u.role}</span>
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    {users.filter((u) => !selectedTeam.members?.some((m) => m._id === u._id)).length === 0 && (
+                      <div className={`p-6 text-center ${currentTheme.textMuted}`}>
+                        No available users to add
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Single Select UI */
+                <div>
+                  <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
+                    Select User *
+                  </label>
+                  <select
+                    value={selectedUserId}
+                    onChange={(e) => setSelectedUserId(e.target.value)}
+                    className="input"
+                    required
+                    data-testid="select-user-input"
+                  >
+                    <option value="">Select a user</option>
+                    {users
+                      .filter((u) => !selectedTeam.members?.some((m) => m._id === u._id))
+                      .map((u) => (
+                        <option key={u._id} value={u._id}>
+                          {u.full_name} ({u.role})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
 
               <div className="flex justify-end space-x-4 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowAddMemberModal(false)}
+                  onClick={() => {
+                    setShowAddMemberModal(false);
+                    setIsMultiSelect(false);
+                    setSelectedUserIds([]);
+                    setSelectedUserId('');
+                  }}
                   className="btn btn-secondary"
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" data-testid="submit-add-member">
-                  Add Member
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  data-testid="submit-add-member"
+                  disabled={isMultiSelect ? selectedUserIds.length === 0 : !selectedUserId}
+                >
+                  {isMultiSelect 
+                    ? `Add ${selectedUserIds.length} Member${selectedUserIds.length !== 1 ? 's' : ''}`
+                    : 'Add Member'}
                 </button>
               </div>
             </form>

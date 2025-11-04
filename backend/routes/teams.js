@@ -287,6 +287,69 @@ router.post('/:id/members', authenticate, checkRole(['admin', 'hr']), async (req
   }
 });
 
+// Add multiple members to team (Admin & HR only)
+router.post('/:id/members/bulk', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+  try {
+    const { userIds } = req.body;
+    const teamId = req.params.id;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ message: 'User IDs array is required' });
+    }
+
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    const results = {
+      added: [],
+      skipped: [],
+      failed: []
+    };
+
+    for (const userId of userIds) {
+      try {
+        const user = await User.findById(userId);
+        if (!user) {
+          results.failed.push({ userId, reason: 'User not found' });
+          continue;
+        }
+
+        // Check if already a member
+        if (team.members.includes(userId)) {
+          results.skipped.push({ userId, name: user.full_name, reason: 'Already a member' });
+          continue;
+        }
+
+        // Add to team
+        team.members.push(userId);
+        
+        // Update user's team_id
+        await User.findByIdAndUpdate(userId, { team_id: teamId });
+
+        results.added.push({ userId, name: user.full_name });
+      } catch (error) {
+        results.failed.push({ userId, reason: error.message });
+      }
+    }
+
+    await team.save();
+
+    const updatedTeam = await Team.findById(teamId)
+      .populate('hr_id lead_id members');
+
+    res.json({ 
+      message: `Added ${results.added.length} member(s) to team`,
+      results,
+      team: updatedTeam 
+    });
+  } catch (error) {
+    console.error('Bulk add members error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Remove member from team (Admin & HR only)
 // This route MUST come before DELETE /:id to avoid route conflict
 router.delete('/:id/members/:userId', authenticate, checkRole(['admin', 'hr']), async (req, res) => {

@@ -526,7 +526,7 @@ export const sendCredentialEmail = async (fullName, email, password) => {
     // Use Vercel URL in production, fallback to CLIENT_URL or localhost
     const appUrl = process.env.NODE_ENV === 'production' 
       ? 'https://taskflow-nine-phi.vercel.app'
-      : (process.env.CLIENT_URL || 'http://localhost:3000');
+      : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
 
     const mailOptions = {
       from: {
