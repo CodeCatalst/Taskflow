@@ -55,14 +55,16 @@ router.post('/', authenticate, async (req, res) => {
       if (notifications.length > 0) {
         await Notification.insertMany(notifications);
 
-        // Emit socket events
+        // Emit socket events for both notification and task assignment
         if (req.app.get('io')) {
           assigned_to
             .filter(userId => userId.toString() !== req.user._id.toString())
             .forEach(userId => {
+              // Emit notification event to specific user
               req.app.get('io').to(userId.toString()).emit('notification:new', {
                 type: 'task_assigned',
-                message: `New task assigned: ${task.title}`
+                message: `New task assigned: ${task.title}`,
+                task: task
               });
             });
         }
@@ -93,9 +95,21 @@ router.post('/', authenticate, async (req, res) => {
       }
     });
 
-    // Emit socket event for task creation
+    // Emit socket events for task creation (to all users) and task assignment (to specific users)
     if (req.app.get('io')) {
       req.app.get('io').emit('task:created', populatedTask);
+      
+      // Also emit task:assigned event to assigned users specifically
+      if (assigned_to && assigned_to.length > 0) {
+        assigned_to
+          .filter(userId => userId.toString() !== req.user._id.toString())
+          .forEach(userId => {
+            req.app.get('io').to(userId.toString()).emit('task:assigned', {
+              task: populatedTask,
+              assigned_by: req.user.full_name
+            });
+          });
+      }
     }
 
     res.status(201).json({ message: 'Task created', task: populatedTask });
@@ -210,18 +224,35 @@ router.patch('/:id', authenticate, async (req, res) => {
 
     // Create notification for status change
     if (status && status !== oldStatus && task.assigned_to && task.assigned_to.length > 0) {
-      const notifications = task.assigned_to.map(userId => ({
-        user_id: userId,
-        type: 'status_changed',
-        payload: {
-          task_id: task._id,
-          task_title: task.title,
-          old_status: oldStatus,
-          new_status: status
-        }
-      }));
+      const notifications = task.assigned_to
+        .filter(userId => userId.toString() !== req.user._id.toString())
+        .map(userId => ({
+          user_id: userId,
+          type: 'status_changed',
+          payload: {
+            task_id: task._id,
+            task_title: task.title,
+            old_status: oldStatus,
+            new_status: status
+          }
+        }));
 
-      await Notification.insertMany(notifications);
+      if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+        
+        // Emit socket notification for status change
+        if (req.app.get('io')) {
+          task.assigned_to
+            .filter(userId => userId.toString() !== req.user._id.toString())
+            .forEach(userId => {
+              req.app.get('io').to(userId.toString()).emit('notification:new', {
+                type: 'status_changed',
+                message: `Task "${task.title}" status changed to ${status}`,
+                task: { _id: task._id, title: task.title, status, old_status: oldStatus }
+              });
+            });
+        }
+      }
     }
 
     // Create notification for reassignment
@@ -249,6 +280,21 @@ router.patch('/:id', authenticate, async (req, res) => {
         }));
 
         await Notification.insertMany(notifications);
+        
+        // Emit socket notification for new assignments
+        if (req.app.get('io')) {
+          newlyAssigned.forEach(userId => {
+            req.app.get('io').to(userId).emit('notification:new', {
+              type: 'task_assigned',
+              message: `New task assigned: ${task.title}`,
+              task: { _id: task._id, title: task.title }
+            });
+            req.app.get('io').to(userId).emit('task:assigned', {
+              task: task,
+              assigned_by: req.user.full_name
+            });
+          });
+        }
       }
     }
 
