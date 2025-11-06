@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
+import useRealtimeSync from '../hooks/useRealtimeSync';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Plus, Filter, Calendar as CalendarIcon } from 'lucide-react';
 
@@ -30,6 +31,19 @@ const Calendar = () => {
   useEffect(() => {
     transformTasksToEvents();
   }, [tasks, filters]);
+
+  // Real-time synchronization
+  useRealtimeSync({
+    onTaskCreated: () => {
+      fetchTasks();
+    },
+    onTaskUpdated: () => {
+      fetchTasks();
+    },
+    onTaskDeleted: () => {
+      fetchTasks();
+    },
+  });
 
   const fetchTasks = async () => {
     try {

@@ -305,6 +305,7 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr', 'team_lead']), asy
     }
 
     const taskTitle = task.title;
+    const taskId = req.params.id;
     await Task.findByIdAndDelete(req.params.id);
 
     // Log task deletion
@@ -319,6 +320,11 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr', 'team_lead']), asy
       action: 'Deleted task',
       description: `${req.user.full_name} deleted task "${taskTitle}"`
     });
+
+    // Emit socket event for task deletion
+    if (req.app.get('io')) {
+      req.app.get('io').emit('task:deleted', { _id: taskId, title: taskTitle });
+    }
 
     res.json({ message: 'Task deleted' });
   } catch (error) {

@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Navbar from '../components/Navbar';
 import NotificationPrompt from '../components/NotificationPrompt';
+import useRealtimeSync from '../hooks/useRealtimeSync';
 import api from '../api/axios';
 import { Plus, Users, CheckSquare, TrendingUp, Clock, FileSpreadsheet, FileText, AlertTriangle, Calendar, Filter, X, Download, Smartphone, X as CloseIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -429,6 +430,28 @@ const Dashboard = () => {
       applyFilters();
     }
   }, [allTasks, filters, applyFilters]);
+
+  // Real-time synchronization
+  useRealtimeSync({
+    onTaskCreated: () => {
+      fetchDashboardData();
+    },
+    onTaskUpdated: () => {
+      fetchDashboardData();
+    },
+    onTaskDeleted: () => {
+      fetchDashboardData();
+    },
+    onTeamCreated: () => {
+      fetchTeams();
+    },
+    onTeamUpdated: () => {
+      fetchTeams();
+    },
+    onTeamDeleted: () => {
+      fetchTeams();
+    },
+  });
 
   const updateDetailedStats = (tasks) => {
     // Status breakdown

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
+import useRealtimeSync from '../hooks/useRealtimeSync';
 import { Plus, X, Users, UserPlus, UserMinus, Trash2, Pin, GripVertical } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -33,6 +34,22 @@ const Teams = () => {
       }
     }
   }, [user?.id, user?.role]);
+
+  // Real-time synchronization
+  useRealtimeSync({
+    onTeamCreated: () => {
+      if (user?.id) fetchTeams();
+    },
+    onTeamUpdated: () => {
+      if (user?.id) fetchTeams();
+    },
+    onTeamDeleted: () => {
+      if (user?.id) fetchTeams();
+    },
+    onUserUpdated: () => {
+      if (['admin', 'hr'].includes(user?.role)) fetchUsers();
+    },
+  });
 
   const fetchTeams = async () => {
     try {

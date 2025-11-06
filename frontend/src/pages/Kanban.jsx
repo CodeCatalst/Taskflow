@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
+import useRealtimeSync from '../hooks/useRealtimeSync';
 import { Plus, X, Edit2, Trash2, Clock, Users, UserCheck } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -78,6 +79,22 @@ const Kanban = () => {
       };
     }
   }, [socket]);
+
+  // Real-time synchronization
+  useRealtimeSync({
+    onTaskCreated: () => {
+      fetchTasks();
+    },
+    onTaskUpdated: () => {
+      fetchTasks();
+    },
+    onTaskDeleted: () => {
+      fetchTasks();
+    },
+    onStatusChanged: () => {
+      fetchTasks();
+    },
+  });
 
   const fetchTasks = async () => {
     try {

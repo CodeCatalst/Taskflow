@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
+import useRealtimeSync from '../hooks/useRealtimeSync';
 import { Filter, Calendar, AlertTriangle, TrendingUp, BarChart3, PieChart, Download, FileSpreadsheet, FileText, Calendar as CalendarIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PieChart as RechartsPieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
@@ -63,6 +64,19 @@ const Analytics = () => {
       processAnalyticsData(filteredTasks);
     }
   }, [filteredTasks]);
+
+  // Real-time synchronization
+  useRealtimeSync({
+    onTaskCreated: () => {
+      fetchTasks();
+    },
+    onTaskUpdated: () => {
+      fetchTasks();
+    },
+    onTaskDeleted: () => {
+      fetchTasks();
+    },
+  });
 
   const fetchTasks = async () => {
     try {

@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import { useTheme } from '../context/ThemeContext';
+import useRealtimeSync from '../hooks/useRealtimeSync';
 import { Upload, Download, FileJson, FileSpreadsheet, X } from 'lucide-react';
 
 export default function UserManagement() {
@@ -38,6 +39,19 @@ export default function UserManagement() {
       fetchTeams();
     }
   }, [hasPermission]);
+
+  // Real-time synchronization
+  useRealtimeSync({
+    onUserCreated: () => {
+      if (hasPermission) fetchUsers();
+    },
+    onUserUpdated: () => {
+      if (hasPermission) fetchUsers();
+    },
+    onUserDeleted: () => {
+      if (hasPermission) fetchUsers();
+    },
+  });
 
   const fetchUsers = async () => {
     try {

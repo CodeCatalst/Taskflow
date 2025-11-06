@@ -65,6 +65,11 @@ router.post('/', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
       .populate('lead_id', 'full_name email')
       .populate('members', 'full_name email role');
 
+    // Emit socket event for team creation
+    if (req.app.get('io')) {
+      req.app.get('io').emit('team:created', populatedTeam);
+    }
+
     res.status(201).json({ message: 'Team created', team: populatedTeam });
   } catch (error) {
     console.error('Create team error:', error);
@@ -151,6 +156,11 @@ router.patch('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res) 
 
     if (!team) {
       return res.status(404).json({ message: 'Team not found' });
+    }
+
+    // Emit socket event for team update
+    if (req.app.get('io')) {
+      req.app.get('io').emit('team:updated', team);
     }
 
     res.json({ message: 'Team updated', team });
@@ -400,6 +410,11 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res)
 
     // Delete the team
     await Team.findByIdAndDelete(id);
+
+    // Emit socket event for team deletion
+    if (req.app.get('io')) {
+      req.app.get('io').emit('team:deleted', { _id: id, name: teamName });
+    }
 
     res.json({ 
       message: 'Team deleted successfully',

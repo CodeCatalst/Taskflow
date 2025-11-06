@@ -254,6 +254,11 @@ router.post('/', authenticate, checkRole(['admin', 'hr']), validateUserCreation,
       }
     });
 
+    // Emit socket event for user creation
+    if (req.app.get('io')) {
+      req.app.get('io').emit('user:created', userResponse);
+    }
+
     // Respond immediately without waiting for email
     res.status(201).json({
       message: 'User created successfully. Credentials will be sent via email.',
@@ -283,6 +288,11 @@ router.post('/bulk-delete', authenticate, checkRole(['admin']), async (req, res)
     }
 
     const result = await User.deleteMany({ _id: { $in: idsToDelete } });
+
+    // Emit socket event for bulk user deletion
+    if (req.app.get('io')) {
+      req.app.get('io').emit('users:bulk-deleted', { userIds: idsToDelete, count: result.deletedCount });
+    }
 
     res.json({ 
       message: `Successfully deleted ${result.deletedCount} user(s)`,
@@ -353,6 +363,11 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res) =>
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Emit socket event for user update
+    if (req.app.get('io')) {
+      req.app.get('io').emit('user:updated', user);
+    }
+
     res.json({ message: 'User updated successfully', user });
   } catch (error) {
     console.error('Update user error:', error);
@@ -374,6 +389,11 @@ router.delete('/:id', authenticate, checkRole(['admin']), async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Emit socket event for user deletion
+    if (req.app.get('io')) {
+      req.app.get('io').emit('user:deleted', { _id: user._id, email: user.email });
     }
 
     res.json({ message: 'User deleted successfully', user: { id: user._id, email: user.email } });

@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
+import useRealtimeSync from '../hooks/useRealtimeSync';
 import { Plus, X, Edit2, Trash2, MessageSquare, Clock, UserCheck } from 'lucide-react';
 
 const Tasks = () => {
@@ -79,6 +80,22 @@ const Tasks = () => {
   useEffect(() => {
     applyFilters();
   }, [tasks, filters]);
+
+  // Real-time synchronization
+  useRealtimeSync({
+    onTaskCreated: () => {
+      fetchTasks();
+    },
+    onTaskUpdated: () => {
+      fetchTasks();
+    },
+    onTaskDeleted: () => {
+      fetchTasks();
+    },
+    onCommentAdded: () => {
+      fetchTasks();
+    },
+  });
 
   // Memoize filtered tasks to prevent unnecessary recalculations
   const applyFilters = useCallback(() => {
