@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import ThemeToggle from '../components/ThemeToggle';
 import NotificationSettings from '../components/NotificationSettings';
+import SessionSettings from '../components/SessionSettings';
 import api from '../api/axios';
 import { User, Settings as SettingsIcon, Palette, Monitor, Lock, Eye, EyeOff, Bell } from 'lucide-react';
 
@@ -278,6 +279,11 @@ const Settings = () => {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Notifications</h2>
               </div>
               <NotificationSettings />
+            </div>
+
+            {/* Session Timeout Settings Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors">
+              <SessionSettings />
             </div>
 
             {/* Debug Information */}
