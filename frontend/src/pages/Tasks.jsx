@@ -231,12 +231,32 @@ const Tasks = () => {
   };
 
   const openEditModal = (task) => {
+    // Get the team members for the current team
+    const taskTeam = teams.find(t => t._id === (task.team_id?._id || task.team_id));
+    let members = taskTeam ? taskTeam.members : [];
+    
+    // Ensure team lead is always included in the assignable members
+    if (taskTeam && user?.role === 'team_lead') {
+      const teamLeadAlreadyIncluded = members.some(member => member._id === user?.id);
+      if (!teamLeadAlreadyIncluded && taskTeam.lead_id?._id === user?.id) {
+        members = [
+          ...members,
+          {
+            _id: user.id,
+            full_name: user.full_name || user.username || user.email,
+            role: user.role,
+            email: user.email
+          }
+        ];
+      }
+    }
+    
+    setSelectedTeamMembers(members);
     setEditingTask({
       ...task,
-      assigned_to: task.assigned_to ? (Array.isArray(task.assigned_to) ? task.assigned_to.map(u => u._id) : [task.assigned_to._id]) : [],
+      assigned_to: task.assigned_to ? (Array.isArray(task.assigned_to) ? task.assigned_to.map(u => u._id || u) : [task.assigned_to._id || task.assigned_to]) : [],
       team_id: task.team_id?._id || task.team_id || '',
     });
-    setSelectedTeamMembers(task.team_id?.members || []);
     setShowEditModal(true);
   };
 
@@ -286,7 +306,17 @@ const Tasks = () => {
     }
     
     setSelectedTeamMembers(members);
-    setEditingTask({ ...editingTask, team_id: teamId, assigned_to: [] });
+    
+    // Keep existing assignments if they're members of the new team, otherwise clear
+    const memberIds = members.map(m => m._id);
+    const currentAssigned = editingTask.assigned_to || [];
+    const validAssignments = currentAssigned.filter(id => memberIds.includes(id));
+    
+    setEditingTask({ 
+      ...editingTask, 
+      team_id: teamId, 
+      assigned_to: validAssignments 
+    });
   };
 
   const handleMemberToggle = (memberId) => {
@@ -818,7 +848,7 @@ const Tasks = () => {
                               onChange={() => handleMemberToggle(member._id)}
                               className="rounded"
                             />
-                            <span className="text-sm">
+                            <span className={`text-sm ${currentTheme.text}`}>
                               {member.full_name} ({member.role})
                               {member._id === user?.id && <span className="text-blue-600 font-medium"> (You)</span>}
                             </span>
@@ -1016,7 +1046,7 @@ const Tasks = () => {
                               }}
                               className="rounded"
                             />
-                            <span className="text-sm">
+                            <span className={`text-sm ${currentTheme.text}`}>
                               {member.full_name} ({member.role})
                               {member._id === user?.id && <span className="text-blue-600 font-medium"> (You)</span>}
                             </span>
