@@ -206,6 +206,7 @@ router.patch('/:id', authenticate, async (req, res) => {
     const { title, description, status, priority, assigned_to, due_date, progress } = req.body;
     
     const oldStatus = task.status;
+    const oldAssignedTo = task.assigned_to ? task.assigned_to.map(id => id.toString()) : [];
 
     if (title) task.title = title;
     if (description !== undefined) task.description = description;
@@ -215,8 +216,8 @@ router.patch('/:id', authenticate, async (req, res) => {
     if (progress !== undefined) task.progress = progress;
     
     // Only certain roles can reassign
-    if (assigned_to && ['admin', 'hr', 'team_lead'].includes(req.user.role)) {
-      task.assigned_to = assigned_to;
+    if (assigned_to !== undefined && ['admin', 'hr', 'team_lead'].includes(req.user.role)) {
+      task.assigned_to = Array.isArray(assigned_to) ? assigned_to : [];
     }
 
     task.updated_at = Date.now();
@@ -256,11 +257,10 @@ router.patch('/:id', authenticate, async (req, res) => {
     }
 
     // Create notification for reassignment
-    if (assigned_to && Array.isArray(assigned_to)) {
+    if (assigned_to !== undefined && Array.isArray(assigned_to) && ['admin', 'hr', 'team_lead'].includes(req.user.role)) {
       // Find newly assigned users (not previously assigned)
-      const oldAssignedIds = task.assigned_to ? task.assigned_to.map(id => id.toString()) : [];
       const newAssignedIds = assigned_to.map(id => id.toString());
-      const newlyAssigned = newAssignedIds.filter(id => !oldAssignedIds.includes(id) && id !== req.user._id.toString());
+      const newlyAssigned = newAssignedIds.filter(id => !oldAssignedTo.includes(id) && id !== req.user._id.toString());
 
       if (newlyAssigned.length > 0) {
         // Validate that all assigned users exist
