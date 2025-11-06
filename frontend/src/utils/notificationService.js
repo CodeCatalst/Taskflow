@@ -37,18 +37,26 @@ class NotificationService {
       this.permission = permission;
       
       if (permission === 'granted') {
-        // Show a welcome notification
-        this.showNotification('Notifications Enabled', {
-          body: 'You will now receive updates about your tasks',
+        console.log('✅ Notification permission granted');
+        
+        // Show a welcome notification to confirm it's working
+        await this.showNotification('🎉 Notifications Enabled!', {
+          body: 'You will now receive task updates and reminders.',
           icon: '/icons/pwa-192x192.png',
           badge: '/icons/pwa-64x64.png',
           tag: 'welcome',
+          requireInteraction: false,
+          vibrate: [200, 100, 200],
         });
+      } else if (permission === 'denied') {
+        console.warn('⚠️ Notification permission denied');
+      } else {
+        console.log('ℹ️ Notification permission dismissed');
       }
       
       return permission;
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
+      console.error('❌ Error requesting notification permission:', error);
       return 'error';
     }
   }

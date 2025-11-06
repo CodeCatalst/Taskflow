@@ -40,6 +40,12 @@ const NotificationSettings = () => {
 
   const testNotification = async () => {
     try {
+      // First verify permission
+      if (Notification.permission !== 'granted') {
+        alert('⚠️ Please enable notifications first by clicking "Enable Notifications" button.');
+        return;
+      }
+
       await notificationService.showNotification('🎉 Test Notification', {
         body: 'If you can see this, notifications are working perfectly!',
         icon: '/icons/pwa-192x192.png',
@@ -48,7 +54,14 @@ const NotificationSettings = () => {
         requireInteraction: false,
         vibrate: [200, 100, 200],
       });
-      alert('✅ Test notification sent! Check your desktop/device for the notification.');
+      
+      // Show success message with mobile-specific tips
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const message = isMobile 
+        ? '✅ Test notification sent!\n\n📱 On mobile:\n- Check your notification tray\n- Ensure Do Not Disturb is off\n- For iOS: Add to Home Screen first'
+        : '✅ Test notification sent! Check your desktop for the notification.';
+      
+      alert(message);
     } catch (error) {
       console.error('❌ Error showing test notification:', error);
       alert(`❌ Error showing notification:\n${error.message}\n\nCheck browser console for details.`);
@@ -182,6 +195,36 @@ const NotificationSettings = () => {
           </ul>
         </div>
       )}
+
+      {/* Mobile-specific information */}
+      <div className={`mt-4 p-3 sm:p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800`}>
+        <p className={`text-xs sm:text-sm font-medium ${currentTheme.text} mb-2`}>
+          📱 Mobile Device Tips
+        </p>
+        <ul className={`list-disc list-inside text-xs sm:text-sm ${currentTheme.textSecondary} space-y-1`}>
+          <li><strong>iOS:</strong> Add TaskFlow to Home Screen for notifications to work</li>
+          <li><strong>Android:</strong> Ensure notifications are allowed in browser settings</li>
+          <li><strong>All devices:</strong> Check that Do Not Disturb mode is off</li>
+          <li><strong>HTTPS required:</strong> Notifications only work on secure connections</li>
+        </ul>
+      </div>
+
+      {/* Debug Information */}
+      <div className={`mt-4 p-3 rounded-lg ${currentTheme.surfaceSecondary}`}>
+        <details>
+          <summary className={`text-xs sm:text-sm font-medium ${currentTheme.text} cursor-pointer`}>
+            🔧 Technical Details (for debugging)
+          </summary>
+          <div className={`mt-3 text-xs ${currentTheme.textSecondary} space-y-1 font-mono`}>
+            <div>Browser: {navigator.userAgent.match(/Chrome|Safari|Firefox|Edge/)?.[0] || 'Unknown'}</div>
+            <div>Mobile: {/Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'Yes' : 'No'}</div>
+            <div>HTTPS: {window.location.protocol === 'https:' ? '✅ Yes' : '❌ No (required!)'}</div>
+            <div>Service Worker: {'serviceWorker' in navigator ? '✅ Supported' : '❌ Not supported'}</div>
+            <div>SW Active: {navigator.serviceWorker?.controller ? '✅ Yes' : '⚠️ No'}</div>
+            <div>Permission API: {'permissions' in navigator ? '✅ Available' : '❌ Not available'}</div>
+          </div>
+        </details>
+      </div>
     </div>
   );
 };

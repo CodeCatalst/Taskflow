@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Navbar from '../components/Navbar';
+import NotificationPrompt from '../components/NotificationPrompt';
 import api from '../api/axios';
 import { Plus, Users, CheckSquare, TrendingUp, Clock, FileSpreadsheet, FileText, AlertTriangle, Calendar, Filter, X, Download, Smartphone, X as CloseIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -592,6 +593,9 @@ const Dashboard = () => {
             <h1 className={`text-3xl font-bold ${currentTheme.text} transition-colors`}>Welcome back, {user?.full_name}!</h1>
             <p className={`${currentTheme.textSecondary} mt-2 transition-colors`}>Here's what's happening with your tasks today.</p>
           </div>
+
+          {/* Notification Prompt */}
+          <NotificationPrompt />
 
           {/* PWA Install Banner */}
           {showInstallBanner && !isInstalled && (

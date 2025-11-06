@@ -141,7 +141,9 @@ const Tasks = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('/users');
+      // Use different endpoint based on role
+      const endpoint = user?.role === 'team_lead' ? '/users/team-members' : '/users';
+      const response = await api.get(endpoint);
       setUsers(response.data.users);
     } catch (error) {
       if (error.response?.status === 403) {
