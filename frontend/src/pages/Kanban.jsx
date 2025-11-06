@@ -752,7 +752,7 @@ const Kanban = () => {
 
               <div>
                 <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                  Due Date
+                  Due Date *
                 </label>
                 <input
                   type="date"
@@ -760,6 +760,7 @@ const Kanban = () => {
                   onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                   className="input"
                   data-testid="task-due-date-input"
+                  required
                 />
               </div>
 

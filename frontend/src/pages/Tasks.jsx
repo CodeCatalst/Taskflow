@@ -771,7 +771,7 @@ const Tasks = () => {
 
               <div>
                 <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                  Due Date
+                  Due Date *
                 </label>
                 <input
                   type="date"
@@ -779,6 +779,7 @@ const Tasks = () => {
                   onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value })}
                   className="input"
                   data-testid="edit-task-due-date-input"
+                  required
                 />
               </div>
 
@@ -929,7 +930,7 @@ const Tasks = () => {
 
               <div>
                 <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                  Due Date
+                  Due Date *
                 </label>
                 <input
                   type="date"
@@ -937,6 +938,7 @@ const Tasks = () => {
                   onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                   className="input"
                   data-testid="task-due-date-input"
+                  required
                 />
               </div>
 

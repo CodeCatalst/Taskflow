@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import { useTheme } from '../context/ThemeContext';
 import useRealtimeSync from '../hooks/useRealtimeSync';
-import { Upload, Download, FileJson, FileSpreadsheet, X } from 'lucide-react';
+import { Upload, Download, FileJson, FileSpreadsheet, X, Search, Filter, Users as UsersIcon } from 'lucide-react';
 
 export default function UserManagement() {
   const { user } = useAuth();
@@ -22,6 +22,10 @@ export default function UserManagement() {
   const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserIds, setSelectedUserIds] = useState([]); // For bulk delete
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [teamFilter, setTeamFilter] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -74,6 +78,37 @@ export default function UserManagement() {
       console.error('Failed to fetch teams:', err);
     }
   };
+
+  // Filter and search users
+  const filteredUsers = useMemo(() => {
+    let filtered = [...users];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(usr => 
+        usr.full_name.toLowerCase().includes(query) ||
+        usr.email.toLowerCase().includes(query) ||
+        (usr.team_id?.name && usr.team_id.name.toLowerCase().includes(query))
+      );
+    }
+
+    // Role filter
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter(usr => usr.role === roleFilter);
+    }
+
+    // Team filter
+    if (teamFilter !== 'all') {
+      if (teamFilter === 'no_team') {
+        filtered = filtered.filter(usr => !usr.team_id);
+      } else {
+        filtered = filtered.filter(usr => usr.team_id?._id === teamFilter);
+      }
+    }
+
+    return filtered;
+  }, [users, searchQuery, roleFilter, teamFilter]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -379,6 +414,157 @@ export default function UserManagement() {
               <p className={`${currentTheme.textSecondary} mt-1 sm:mt-2 text-sm sm:text-base`}>Manage all users in the system</p>
             </div>
 
+            {/* Statistics Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className={`${currentTheme.surface} rounded-lg p-4 border ${currentTheme.border} shadow-sm`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-sm ${currentTheme.textSecondary} mb-1`}>Total Users</p>
+                    <p className={`text-2xl font-bold ${currentTheme.text}`}>{users.length}</p>
+                  </div>
+                  <UsersIcon className={`w-8 h-8 ${currentColorScheme.primaryText} opacity-50`} />
+                </div>
+              </div>
+
+              <div className={`${currentTheme.surface} rounded-lg p-4 border ${currentTheme.border} shadow-sm`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-sm ${currentTheme.textSecondary} mb-1`}>Filtered Users</p>
+                    <p className={`text-2xl font-bold ${currentTheme.text}`}>{filteredUsers.length}</p>
+                  </div>
+                  <Filter className={`w-8 h-8 ${currentColorScheme.primaryText} opacity-50`} />
+                </div>
+              </div>
+
+              <div className={`${currentTheme.surface} rounded-lg p-4 border ${currentTheme.border} shadow-sm`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-sm ${currentTheme.textSecondary} mb-1`}>Admins</p>
+                    <p className={`text-2xl font-bold ${currentTheme.text}`}>
+                      {users.filter(u => u.role === 'admin').length}
+                    </p>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                    <span className="text-purple-600 font-bold text-sm">A</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className={`${currentTheme.surface} rounded-lg p-4 border ${currentTheme.border} shadow-sm`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-sm ${currentTheme.textSecondary} mb-1`}>Team Members</p>
+                    <p className={`text-2xl font-bold ${currentTheme.text}`}>
+                      {users.filter(u => u.team_id).length}
+                    </p>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                    <span className="text-green-600 font-bold text-sm">T</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Search and Filter Bar */}
+            <div className={`${currentTheme.surface} rounded-lg p-4 mb-4 border ${currentTheme.border} shadow-sm`}>
+              <div className="flex flex-col lg:flex-row gap-4">
+                {/* Search Bar */}
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${currentTheme.textMuted}`} />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by name, email, or team..."
+                      className={`w-full pl-10 pr-4 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${currentTheme.textMuted} hover:${currentTheme.text}`}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Filter Toggle Button */}
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg ${currentTheme.hover} ${currentTheme.text} border ${currentTheme.border}`}
+                >
+                  <Filter className="w-4 h-4" />
+                  <span>Filters</span>
+                  {(roleFilter !== 'all' || teamFilter !== 'all') && (
+                    <span className="ml-1 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                      Active
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Filter Options */}
+              {showFilters && (
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Role Filter */}
+                    <div>
+                      <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
+                        Filter by Role
+                      </label>
+                      <select
+                        value={roleFilter}
+                        onChange={(e) => setRoleFilter(e.target.value)}
+                        className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                      >
+                        <option value="all">All Roles</option>
+                        <option value="admin">Admin</option>
+                        <option value="hr">HR</option>
+                        <option value="team_lead">Team Lead</option>
+                        <option value="member">Member</option>
+                      </select>
+                    </div>
+
+                    {/* Team Filter */}
+                    <div>
+                      <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
+                        Filter by Team
+                      </label>
+                      <select
+                        value={teamFilter}
+                        onChange={(e) => setTeamFilter(e.target.value)}
+                        className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                      >
+                        <option value="all">All Teams</option>
+                        <option value="no_team">No Team</option>
+                        {teams.map((team) => (
+                          <option key={team._id} value={team._id}>
+                            {team.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Clear Filters */}
+                    <div className="flex items-end">
+                      <button
+                        onClick={() => {
+                          setRoleFilter('all');
+                          setTeamFilter('all');
+                          setSearchQuery('');
+                        }}
+                        className={`w-full px-4 py-2 rounded-lg ${currentTheme.hover} ${currentTheme.text} border ${currentTheme.border}`}
+                      >
+                        Clear All Filters
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
         {/* Alerts */}
         {error && (
           <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-2 sm:py-3 rounded text-sm">
@@ -478,7 +664,7 @@ export default function UserManagement() {
           <div className={`${currentTheme.surface} shadow-md rounded-lg overflow-hidden`}>
             {/* Mobile: Card View */}
             <div className="block lg:hidden">
-              {users.map((usr) => (
+              {filteredUsers.map((usr) => (
                 <div key={usr._id} className={`${currentTheme.border} border-b p-4`}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
@@ -536,9 +722,11 @@ export default function UserManagement() {
                 </div>
               ))}
               
-              {users.length === 0 && (
+              {filteredUsers.length === 0 && (
                 <div className={`text-center py-12 ${currentTheme.textMuted}`}>
-                  No users found. Create your first user!
+                  {searchQuery || roleFilter !== 'all' || teamFilter !== 'all' 
+                    ? 'No users match your search or filters' 
+                    : 'No users found. Create your first user!'}
                 </div>
               )}
             </div>
@@ -580,7 +768,7 @@ export default function UserManagement() {
                   </tr>
                 </thead>
                 <tbody className={`divide-y ${currentTheme.border}`}>
-                  {users.map((usr) => (
+                  {filteredUsers.map((usr) => (
                     <tr key={usr._id} className={`${currentTheme.hover}`}>
                       {user.role === 'admin' && (
                         <td className="px-4 xl:px-6 py-4 whitespace-nowrap">
@@ -647,9 +835,11 @@ export default function UserManagement() {
                 </tbody>
               </table>
               
-              {users.length === 0 && (
+              {filteredUsers.length === 0 && (
                 <div className={`text-center py-12 ${currentTheme.textMuted}`}>
-                  No users found. Create your first user!
+                  {searchQuery || roleFilter !== 'all' || teamFilter !== 'all' 
+                    ? 'No users match your search or filters' 
+                    : 'No users found. Create your first user!'}
                 </div>
               )}
             </div>

@@ -36,7 +36,7 @@ const taskSchema = new mongoose.Schema({
   },
   due_date: {
     type: Date,
-    default: null
+    required: [true, 'Due date is required']
   },
   progress: {
     type: Number,
