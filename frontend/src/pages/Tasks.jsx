@@ -5,7 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
 import useRealtimeSync from '../hooks/useRealtimeSync';
-import { Plus, X, Edit2, Trash2, MessageSquare, Clock, UserCheck } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, MessageSquare, Clock, UserCheck, Filter, Target, Calendar, User, Search, AlertTriangle } from 'lucide-react';
 
 const Tasks = () => {
   const { user, socket } = useAuth();
@@ -473,126 +473,193 @@ const Tasks = () => {
         </div>
 
         {/* Filters */}
-        <div className={`${currentTheme.surface} rounded-lg shadow-md p-6 mb-6`}>
+        <div className={`${currentTheme.surface} rounded-xl shadow-lg p-6 mb-6 border-2 ${currentTheme.border}`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-lg font-semibold ${currentTheme.text} flex items-center space-x-2`}>
+              <Filter className="w-5 h-5 text-blue-500" />
+              <span>Task Filters</span>
+            </h3>
+            {(filters.status || filters.priority || filters.showMyTasksOnly || filters.team || filters.assigned_to || filters.search) && (
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded-full text-sm font-medium">
+                Filters Active
+              </span>
+            )}
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                Status
+              <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                <Target className="w-4 h-4 text-gray-500" />
+                <span>Status</span>
               </label>
               <select
                 value={filters.status}
                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                className="input"
+                className={`w-full px-4 py-2.5 border-2 ${
+                  filters.status 
+                    ? filters.status === 'done' 
+                      ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
+                      : filters.status === 'in_progress'
+                      ? 'border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                      : filters.status === 'review'
+                      ? 'border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                      : filters.status === 'archived'
+                      ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
+                      : 'border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/20'
+                    : currentTheme.border
+                } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-blue-500`}
                 data-testid="filter-status"
               >
-                <option value="">All Statuses</option>
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="review">Review</option>
-                <option value="done">Done</option>
-                <option value="archived">Archived</option>
+                <option value="">🌐 All Statuses</option>
+                <option value="todo">⏳ To Do</option>
+                <option value="in_progress">⚡ In Progress</option>
+                <option value="review">👀 Review</option>
+                <option value="done">✅ Done</option>
+                <option value="archived">📦 Archived</option>
               </select>
             </div>
             <div>
-              <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                Priority
+              <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                <AlertTriangle className="w-4 h-4 text-orange-500" />
+                <span>Priority</span>
               </label>
               <select
                 value={filters.priority}
                 onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-                className="input"
+                className={`w-full px-4 py-2.5 border-2 ${
+                  filters.priority 
+                    ? filters.priority === 'urgent' 
+                      ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
+                      : filters.priority === 'high'
+                      ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20'
+                      : filters.priority === 'medium'
+                      ? 'border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                      : 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
+                    : currentTheme.border
+                } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-orange-500`}
                 data-testid="filter-priority"
               >
-                <option value="">All Priorities</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
+                <option value="">🎯 All Priorities</option>
+                <option value="low">🟢 Low</option>
+                <option value="medium">🟡 Medium</option>
+                <option value="high">🟠 High</option>
+                <option value="urgent">🔴 Urgent</option>
               </select>
             </div>
             <div>
-              <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                Assignment
+              <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                <UserCheck className="w-4 h-4 text-purple-500" />
+                <span>Assignment</span>
               </label>
               <button
                 onClick={() => setFilters({ ...filters, showMyTasksOnly: !filters.showMyTasksOnly })}
-                className={`w-full px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center space-x-2 ${
+                className={`w-full px-4 py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center space-x-2 border-2 ${
                   filters.showMyTasksOnly
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : `${currentTheme.surface} border-2 ${currentTheme.border} ${currentTheme.text} hover:bg-gray-50 dark:hover:bg-gray-700`
+                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-purple-600 shadow-md hover:shadow-lg hover:scale-105'
+                    : `${currentTheme.surface} ${currentTheme.border} ${currentTheme.text} hover:bg-gray-50 dark:hover:bg-gray-700`
                 }`}
                 data-testid="filter-my-tasks"
               >
                 <UserCheck className="w-4 h-4" />
-                <span>{filters.showMyTasksOnly ? 'My Tasks Only' : 'All Tasks'}</span>
+                <span>{filters.showMyTasksOnly ? '👤 My Tasks Only' : '👥 All Tasks'}</span>
               </button>
             </div>
             {/* Advanced Filters for HR/Admin */}
             {['admin', 'hr'].includes(user?.role) && (
               <>
                 <div>
-                  <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                    Team
+                  <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                    <User className="w-4 h-4 text-orange-500" />
+                    <span>Team</span>
                   </label>
                   <select
                     value={filters.team}
                     onChange={(e) => setFilters({ ...filters, team: e.target.value })}
-                    className="input"
+                    className={`w-full px-4 py-2.5 border-2 ${
+                      filters.team 
+                        ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20' 
+                        : currentTheme.border
+                    } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-orange-500`}
                   >
-                    <option value="">All Teams</option>
+                    <option value="">👥 All Teams</option>
                     {teams.map((team) => (
-                      <option key={team._id} value={team._id}>{team.name}</option>
+                      <option key={team._id} value={team._id}>🏢 {team.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                    Assigned User
+                  <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                    <User className="w-4 h-4 text-blue-500" />
+                    <span>Assigned User</span>
                   </label>
                   <select
                     value={filters.assigned_to}
                     onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })}
-                    className="input"
+                    className={`w-full px-4 py-2.5 border-2 ${
+                      filters.assigned_to 
+                        ? 'border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20' 
+                        : currentTheme.border
+                    } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-blue-500`}
                   >
-                    <option value="">All Users</option>
+                    <option value="">👤 All Users</option>
                     {users.map((u) => (
-                      <option key={u._id} value={u._id}>{u.full_name}</option>
+                      <option key={u._id} value={u._id}>👨‍💼 {u.full_name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                    Due Date From
+                  <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                    <Calendar className="w-4 h-4 text-green-500" />
+                    <span>Due Date From</span>
                   </label>
                   <input
                     type="date"
                     value={filters.dueDateFrom}
                     onChange={(e) => setFilters({ ...filters, dueDateFrom: e.target.value })}
-                    className="input"
+                    className={`w-full px-4 py-2.5 border-2 ${
+                      filters.dueDateFrom 
+                        ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20' 
+                        : currentTheme.border
+                    } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-green-500`}
                   />
                 </div>
                 <div>
-                  <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                    Due Date To
+                  <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                    <Calendar className="w-4 h-4 text-red-500" />
+                    <span>Due Date To</span>
                   </label>
                   <input
                     type="date"
                     value={filters.dueDateTo}
                     onChange={(e) => setFilters({ ...filters, dueDateTo: e.target.value })}
-                    className="input"
+                    className={`w-full px-4 py-2.5 border-2 ${
+                      filters.dueDateTo 
+                        ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20' 
+                        : currentTheme.border
+                    } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-red-500`}
                   />
                 </div>
                 <div className="md:col-span-3">
-                  <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                    Search
+                  <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                    <Search className="w-4 h-4 text-indigo-500" />
+                    <span>Search Tasks</span>
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Search by title or description..."
-                    value={filters.search}
-                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                    className="input"
-                  />
+                  <div className="relative">
+                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
+                      filters.search ? 'text-indigo-500' : currentTheme.textMuted
+                    }`} />
+                    <input
+                      type="text"
+                      placeholder="🔍 Search by title or description..."
+                      value={filters.search}
+                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                      className={`w-full pl-10 pr-4 py-2.5 border-2 ${
+                        filters.search 
+                          ? 'border-indigo-400 dark:border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20' 
+                          : currentTheme.border
+                      } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-indigo-500`}
+                    />
+                  </div>
                 </div>
               </>
             )}

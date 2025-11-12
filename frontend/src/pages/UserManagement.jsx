@@ -4,7 +4,7 @@ import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import { useTheme } from '../context/ThemeContext';
 import useRealtimeSync from '../hooks/useRealtimeSync';
-import { Upload, Download, FileJson, FileSpreadsheet, X, Search, Filter, Users as UsersIcon } from 'lucide-react';
+import { Upload, Download, FileJson, FileSpreadsheet, X, Search, Filter, Users as UsersIcon, User, Shield, RefreshCw } from 'lucide-react';
 
 export default function UserManagement() {
   const { user } = useAuth();
@@ -471,13 +471,19 @@ export default function UserManagement() {
                 {/* Search Bar */}
                 <div className="flex-1">
                   <div className="relative">
-                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${currentTheme.textMuted}`} />
+                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                      searchQuery ? 'text-blue-500' : currentTheme.textMuted
+                    }`} />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search by name, email, or team..."
-                      className={`w-full pl-10 pr-4 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      placeholder="🔍 Search by name, email, or team..."
+                      className={`w-full pl-10 pr-4 py-2.5 border-2 ${
+                        searchQuery 
+                          ? 'border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20' 
+                          : currentTheme.border
+                      } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-blue-500`}
                     />
                     {searchQuery && (
                       <button
@@ -507,41 +513,57 @@ export default function UserManagement() {
 
               {/* Filter Options */}
               {showFilters && (
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="mt-4 pt-4 border-t-2 border-gray-200 dark:border-gray-700">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Role Filter */}
                     <div>
-                      <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                        Filter by Role
+                      <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                        <Shield className="w-4 h-4 text-purple-500" />
+                        <span>Filter by Role</span>
                       </label>
                       <select
                         value={roleFilter}
                         onChange={(e) => setRoleFilter(e.target.value)}
-                        className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                        className={`w-full px-4 py-2.5 border-2 ${
+                          roleFilter !== 'all' 
+                            ? roleFilter === 'admin'
+                              ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
+                              : roleFilter === 'hr'
+                              ? 'border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                              : roleFilter === 'team_lead'
+                              ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20'
+                              : 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
+                            : currentTheme.border
+                        } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-purple-500`}
                       >
-                        <option value="all">All Roles</option>
-                        <option value="admin">Admin</option>
-                        <option value="hr">HR</option>
-                        <option value="team_lead">Team Lead</option>
-                        <option value="member">Member</option>
+                        <option value="all">👥 All Roles</option>
+                        <option value="admin">👑 Admin</option>
+                        <option value="hr">💼 HR</option>
+                        <option value="team_lead">⭐ Team Lead</option>
+                        <option value="member">👤 Member</option>
                       </select>
                     </div>
 
                     {/* Team Filter */}
                     <div>
-                      <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                        Filter by Team
+                      <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                        <UsersIcon className="w-4 h-4 text-orange-500" />
+                        <span>Filter by Team</span>
                       </label>
                       <select
                         value={teamFilter}
                         onChange={(e) => setTeamFilter(e.target.value)}
-                        className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                        className={`w-full px-4 py-2.5 border-2 ${
+                          teamFilter !== 'all' 
+                            ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20' 
+                            : currentTheme.border
+                        } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-orange-500`}
                       >
-                        <option value="all">All Teams</option>
-                        <option value="no_team">No Team</option>
+                        <option value="all">🏢 All Teams</option>
+                        <option value="no_team">❌ No Team</option>
                         {teams.map((team) => (
                           <option key={team._id} value={team._id}>
-                            {team.name}
+                            👥 {team.name}
                           </option>
                         ))}
                       </select>
@@ -555,9 +577,10 @@ export default function UserManagement() {
                           setTeamFilter('all');
                           setSearchQuery('');
                         }}
-                        className={`w-full px-4 py-2 rounded-lg ${currentTheme.hover} ${currentTheme.text} border ${currentTheme.border}`}
+                        className={`w-full px-5 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 ${currentTheme.hover} ${currentTheme.text} font-semibold transition-all hover:scale-105 flex items-center justify-center space-x-2`}
                       >
-                        Clear All Filters
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Clear All Filters</span>
                       </button>
                     </div>
                   </div>

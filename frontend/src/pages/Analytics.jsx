@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
 import useRealtimeSync from '../hooks/useRealtimeSync';
-import { Filter, Calendar, AlertTriangle, TrendingUp, BarChart3, PieChart, Download, FileSpreadsheet, FileText, Calendar as CalendarIcon } from 'lucide-react';
+import { Filter, Calendar, AlertTriangle, TrendingUp, BarChart3, PieChart, Download, FileSpreadsheet, FileText, Calendar as CalendarIcon, Target, User, Users, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PieChart as RechartsPieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
 import { useTheme } from '../context/ThemeContext';
@@ -562,33 +562,61 @@ const Analytics = () => {
             </div>
             <div className={`grid grid-cols-1 sm:grid-cols-2 ${user?.role === 'member' ? 'lg:grid-cols-2 2xl:grid-cols-2' : 'lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'} gap-2 sm:gap-3 md:gap-4`}>
               <div>
-                <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1 sm:mb-1.5`}>Status</label>
+                <label className={`block text-xs sm:text-sm font-semibold ${currentTheme.text} mb-1 sm:mb-1.5 flex items-center space-x-2`}>
+                  <Target className="w-4 h-4 text-gray-500" />
+                  <span>Status</span>
+                </label>
                 <select
                   value={filters.status}
                   onChange={(e) => setFilters({...filters, status: e.target.value})}
-                  className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500 ${currentTheme.surface} ${currentTheme.text}`}
+                  className={`w-full border-2 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium ${
+                    filters.status 
+                      ? filters.status === 'done' 
+                        ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
+                        : filters.status === 'in_progress'
+                        ? 'border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                        : filters.status === 'review'
+                        ? 'border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                        : filters.status === 'archived'
+                        ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
+                        : 'border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/20'
+                      : currentTheme.border
+                  } transition-all focus:ring-2 focus:ring-blue-500 ${currentTheme.surface} ${currentTheme.text}`}
                 >
-                  <option value="">All Statuses</option>
-                  <option value="todo">To Do</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="review">Review</option>
-                  <option value="done">Done</option>
-                  <option value="archived">Archived</option>
+                  <option value="">🌐 All Statuses</option>
+                  <option value="todo">⏳ To Do</option>
+                  <option value="in_progress">⚡ In Progress</option>
+                  <option value="review">👀 Review</option>
+                  <option value="done">✅ Done</option>
+                  <option value="archived">📦 Archived</option>
                 </select>
               </div>
 
               <div>
-                <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1 sm:mb-1.5`}>Priority</label>
+                <label className={`block text-xs sm:text-sm font-semibold ${currentTheme.text} mb-1 sm:mb-1.5 flex items-center space-x-2`}>
+                  <AlertTriangle className="w-4 h-4 text-orange-500" />
+                  <span>Priority</span>
+                </label>
                 <select
                   value={filters.priority}
                   onChange={(e) => setFilters({...filters, priority: e.target.value})}
-                  className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500 ${currentTheme.surface} ${currentTheme.text}`}
+                  className={`w-full border-2 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium ${
+                    filters.priority 
+                      ? filters.priority === 'urgent' 
+                        ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
+                        : filters.priority === 'high'
+                        ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20'
+                        : filters.priority === 'medium'
+                        ? 'border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                        : 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
+                      : currentTheme.border
+                  } transition-all focus:ring-2 focus:ring-orange-500 ${currentTheme.surface} ${currentTheme.text}`}
                 >
-                  <option value="">All Priorities</option>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
+                  <option value="">🎯 All Priorities</option>
+                  <option value="low">🟢 Low</option>
+                  <option value="medium">🟡 Medium</option>
+                  <option value="high">🟠 High</option>
+                  <option value="urgent">🔴 Urgent</option>
                 </select>
               </div>
 
@@ -596,45 +624,66 @@ const Analytics = () => {
               {user?.role !== 'member' && (
                 <>
                   <div>
-                    <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1 sm:mb-1.5`}>Date Range</label>
+                    <label className={`block text-xs sm:text-sm font-semibold ${currentTheme.text} mb-1 sm:mb-1.5 flex items-center space-x-2`}>
+                      <Clock className="w-4 h-4 text-purple-500" />
+                      <span>Date Range</span>
+                    </label>
                     <select
                       value={filters.dateRange}
                       onChange={(e) => setFilters({...filters, dateRange: e.target.value})}
-                      className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500 ${currentTheme.surface} ${currentTheme.text}`}
+                      className={`w-full border-2 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium ${
+                        filters.dateRange !== 'all' 
+                          ? 'border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20' 
+                          : currentTheme.border
+                      } transition-all focus:ring-2 focus:ring-purple-500 ${currentTheme.surface} ${currentTheme.text}`}
                     >
-                      <option value="all">All Time</option>
-                      <option value="today">Today</option>
-                      <option value="week">Last 7 Days</option>
-                      <option value="month">This Month</option>
-                      <option value="custom">Custom Range</option>
+                      <option value="all">🌐 All Time</option>
+                      <option value="today">📅 Today</option>
+                      <option value="week">📆 Last 7 Days</option>
+                      <option value="month">📊 This Month</option>
+                      <option value="custom">🗓️ Custom Range</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1 sm:mb-1.5`}>Team</label>
+                    <label className={`block text-xs sm:text-sm font-semibold ${currentTheme.text} mb-1 sm:mb-1.5 flex items-center space-x-2`}>
+                      <Users className="w-4 h-4 text-orange-500" />
+                      <span>Team</span>
+                    </label>
                     <select
                       value={filters.team}
                       onChange={(e) => setFilters({...filters, team: e.target.value})}
-                      className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500 ${currentTheme.surface} ${currentTheme.text}`}
+                      className={`w-full border-2 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium ${
+                        filters.team 
+                          ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20' 
+                          : currentTheme.border
+                      } transition-all focus:ring-2 focus:ring-orange-500 ${currentTheme.surface} ${currentTheme.text}`}
                     >
-                      <option value="">All Teams</option>
+                      <option value="">👥 All Teams</option>
                       {teams.map(team => (
-                        <option key={team._id} value={team._id}>{team.name}</option>
+                        <option key={team._id} value={team._id}>🏢 {team.name}</option>
                       ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1 sm:mb-1.5`}>User</label>
+                    <label className={`block text-xs sm:text-sm font-semibold ${currentTheme.text} mb-1 sm:mb-1.5 flex items-center space-x-2`}>
+                      <User className="w-4 h-4 text-blue-500" />
+                      <span>User</span>
+                    </label>
                     <select
                       value={filters.user}
                       onChange={(e) => setFilters({...filters, user: e.target.value})}
-                      className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500 ${currentTheme.surface} ${currentTheme.text}`}
+                      className={`w-full border-2 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium ${
+                        filters.user 
+                          ? 'border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20' 
+                          : currentTheme.border
+                      } transition-all focus:ring-2 focus:ring-blue-500 ${currentTheme.surface} ${currentTheme.text}`}
                     >
-                      <option value="">All Users</option>
-                      <option value="unassigned">Unassigned</option>
+                      <option value="">👤 All Users</option>
+                      <option value="unassigned">❌ Unassigned</option>
                       {users.map(user => (
-                        <option key={user._id} value={user._id}>{user.full_name}</option>
+                        <option key={user._id} value={user._id}>👨‍💼 {user.full_name}</option>
                       ))}
                     </select>
                   </div>
@@ -645,21 +694,35 @@ const Analytics = () => {
             {filters.dateRange === 'custom' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mt-3 sm:mt-4">
                 <div>
-                  <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1 sm:mb-1.5`}>Start Date</label>
+                  <label className={`block text-xs sm:text-sm font-semibold ${currentTheme.text} mb-1 sm:mb-1.5 flex items-center space-x-2`}>
+                    <Calendar className="w-4 h-4 text-green-500" />
+                    <span>Start Date</span>
+                  </label>
                   <input
                     type="date"
                     value={filters.customStartDate}
                     onChange={(e) => setFilters({...filters, customStartDate: e.target.value})}
-                    className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500 ${currentTheme.surface} ${currentTheme.text}`}
+                    className={`w-full border-2 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium ${
+                      filters.customStartDate 
+                        ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20' 
+                        : currentTheme.border
+                    } transition-all focus:ring-2 focus:ring-green-500 ${currentTheme.surface} ${currentTheme.text}`}
                   />
                 </div>
                 <div>
-                  <label className={`block text-xs sm:text-sm font-medium ${currentTheme.text} mb-1 sm:mb-1.5`}>End Date</label>
+                  <label className={`block text-xs sm:text-sm font-semibold ${currentTheme.text} mb-1 sm:mb-1.5 flex items-center space-x-2`}>
+                    <Calendar className="w-4 h-4 text-red-500" />
+                    <span>End Date</span>
+                  </label>
                   <input
                     type="date"
                     value={filters.customEndDate}
                     onChange={(e) => setFilters({...filters, customEndDate: e.target.value})}
-                    className={`w-full border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 ${currentTheme.border} focus:ring-blue-500 ${currentTheme.surface} ${currentTheme.text}`}
+                    className={`w-full border-2 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium ${
+                      filters.customEndDate 
+                        ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20' 
+                        : currentTheme.border
+                    } transition-all focus:ring-2 focus:ring-red-500 ${currentTheme.surface} ${currentTheme.text}`}
                   />
                 </div>
               </div>

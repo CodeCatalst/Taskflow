@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { io } from 'socket.io-client';
 import notificationService from '../utils/notificationService';
@@ -19,8 +19,9 @@ export const AuthProvider = ({ children }) => {
   // Auto-logout configuration (in milliseconds)
   const WARNING_TIME = 5 * 60 * 1000; // 5 minutes before logout
   
-  let inactivityTimer = null;
-  let warningTimer = null;
+  // Use refs to persist timer IDs across re-renders
+  const inactivityTimerRef = useRef(null);
+  const warningTimerRef = useRef(null);
 
   useEffect(() => {
     // Check if user is logged in
@@ -34,6 +35,36 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // Check session when page becomes visible (user returns to tab)
+  useEffect(() => {
+    if (!user) return;
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Page became visible - check if session expired
+        const lastActivity = localStorage.getItem('lastActivityTime');
+        if (lastActivity) {
+          const INACTIVITY_TIMEOUT = getSessionTimeout();
+          const timeSinceLastActivity = Date.now() - parseInt(lastActivity);
+          if (timeSinceLastActivity > INACTIVITY_TIMEOUT) {
+            const timeoutHours = INACTIVITY_TIMEOUT / (60 * 60 * 1000);
+            alert(
+              `🔒 Session Expired\n\nYou have been logged out after ${timeoutHours >= 1 ? `${timeoutHours} hour${timeoutHours !== 1 ? 's' : ''}` : `${timeoutHours * 60} minutes`} of inactivity.`
+            );
+            logout();
+            window.location.href = '/login';
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user]);
+
   // Set up inactivity detection
   useEffect(() => {
     if (!user) return;
@@ -42,27 +73,39 @@ export const AuthProvider = ({ children }) => {
 
     const resetInactivityTimer = () => {
       // Clear existing timers
-      if (inactivityTimer) clearTimeout(inactivityTimer);
-      if (warningTimer) clearTimeout(warningTimer);
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+      if (warningTimerRef.current) {
+        clearTimeout(warningTimerRef.current);
+        warningTimerRef.current = null;
+      }
 
       const timeoutHours = INACTIVITY_TIMEOUT / (60 * 60 * 1000);
       const warningMinutes = WARNING_TIME / (60 * 1000);
 
+      console.log(`🕐 Inactivity timer reset. Will warn in ${(INACTIVITY_TIMEOUT - WARNING_TIME) / 60000} minutes, logout in ${INACTIVITY_TIMEOUT / 60000} minutes`);
+
       // Set warning timer (5 minutes before logout)
-      warningTimer = setTimeout(() => {
+      warningTimerRef.current = setTimeout(() => {
+        console.log('⚠️ Showing inactivity warning');
         const shouldStayLoggedIn = confirm(
           `⚠️ Session Timeout Warning\n\nYou will be logged out in ${warningMinutes} minutes due to inactivity.\n\nClick OK to stay logged in, or Cancel to logout now.`
         );
         
         if (shouldStayLoggedIn) {
+          console.log('✅ User chose to stay logged in');
           resetInactivityTimer(); // Reset the timer if user wants to stay
         } else {
+          console.log('❌ User chose to logout');
           handleInactivityLogout();
         }
       }, INACTIVITY_TIMEOUT - WARNING_TIME);
 
       // Set main logout timer
-      inactivityTimer = setTimeout(() => {
+      inactivityTimerRef.current = setTimeout(() => {
+        console.log('🔒 Inactivity timeout reached - logging out');
         handleInactivityLogout();
       }, INACTIVITY_TIMEOUT);
 
@@ -113,8 +156,14 @@ export const AuthProvider = ({ children }) => {
       events.forEach((event) => {
         document.removeEventListener(event, resetInactivityTimer, true);
       });
-      if (inactivityTimer) clearTimeout(inactivityTimer);
-      if (warningTimer) clearTimeout(warningTimer);
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+      if (warningTimerRef.current) {
+        clearTimeout(warningTimerRef.current);
+        warningTimerRef.current = null;
+      }
     };
   }, [user]);
 

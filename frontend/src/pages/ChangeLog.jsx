@@ -192,13 +192,52 @@ const ChangeLog = () => {
   };
 
   const getEventColor = (eventType) => {
-    if (eventType.includes('login') || eventType.includes('logout')) return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-    if (eventType.includes('created')) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-    if (eventType.includes('updated')) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-    if (eventType.includes('deleted')) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-    if (eventType.includes('automation')) return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
-    if (eventType.includes('report')) return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300';
-    return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+    if (eventType.includes('login')) return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-300 dark:border-blue-700';
+    if (eventType.includes('logout')) return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600';
+    if (eventType.includes('created')) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-2 border-green-400 dark:border-green-700';
+    if (eventType.includes('updated')) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-2 border-yellow-400 dark:border-yellow-700';
+    if (eventType.includes('deleted')) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-2 border-red-400 dark:border-red-700';
+    if (eventType.includes('automation')) return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 border-2 border-purple-400 dark:border-purple-700';
+    if (eventType.includes('report')) return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 border-2 border-indigo-400 dark:border-indigo-700';
+    if (eventType.includes('task')) return 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 border-2 border-teal-400 dark:border-teal-700';
+    if (eventType.includes('team')) return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 border-2 border-orange-400 dark:border-orange-700';
+    if (eventType.includes('notification')) return 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200 border-2 border-pink-400 dark:border-pink-700';
+    if (eventType.includes('comment')) return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 border-2 border-cyan-400 dark:border-cyan-700';
+    return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600';
+  };
+
+  const getTargetTypeColor = (targetType) => {
+    switch(targetType?.toLowerCase()) {
+      case 'task':
+        return 'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 border border-teal-200 dark:border-teal-700';
+      case 'user':
+        return 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700';
+      case 'team':
+        return 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-200 dark:border-orange-700';
+      case 'report':
+        return 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700';
+      case 'comment':
+        return 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700';
+      case 'notification':
+        return 'bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300 border border-pink-200 dark:border-pink-700';
+      case 'automation':
+        return 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-700';
+      default:
+        return 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-600';
+    }
+  };
+
+  const getTargetTypeIcon = (targetType) => {
+    switch(targetType?.toLowerCase()) {
+      case 'task': return '✅';
+      case 'user': return '👤';
+      case 'team': return '👥';
+      case 'report': return '📊';
+      case 'comment': return '💬';
+      case 'notification': return '🔔';
+      case 'automation': return '⚙️';
+      default: return '📌';
+    }
   };
 
   const formatDate = (dateString) => {
@@ -308,91 +347,175 @@ const ChangeLog = () => {
 
           {/* Filters */}
           {showFilters && (
-            <div className={`${currentTheme.surface} rounded-xl p-6 mb-6 border ${currentTheme.border} shadow-sm`}>
-              <h3 className={`text-lg font-semibold ${currentTheme.text} mb-4`}>Filters</h3>
+            <div className={`${currentTheme.surface} rounded-xl p-6 mb-6 border-2 ${currentTheme.border} shadow-lg`}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className={`text-lg font-semibold ${currentTheme.text} flex items-center space-x-2`}>
+                  <Filter className="w-5 h-5 text-blue-500" />
+                  <span>Advanced Filters</span>
+                </h3>
+                {(filters.event_type || filters.target_type || filters.search || filters.start_date || filters.end_date) && (
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded-full text-sm font-medium">
+                    Filters Active
+                  </span>
+                )}
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>Event Type</label>
+                  <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                    <Activity className="w-4 h-4 text-purple-500" />
+                    <span>Event Type</span>
+                  </label>
                   <select
                     value={filters.event_type}
                     onChange={(e) => handleFilterChange('event_type', e.target.value)}
-                    className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                    className={`w-full px-4 py-2.5 border-2 ${
+                      filters.event_type 
+                        ? 'border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20' 
+                        : currentTheme.border
+                    } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-purple-500`}
                   >
-                    <option value="">All Events</option>
-                    {eventTypes.map(type => (
-                      <option key={type} value={type}>{type.replace(/_/g, ' ').toUpperCase()}</option>
-                    ))}
+                    <option value="">🌐 All Events</option>
+                    {eventTypes.map(type => {
+                      const emoji = type.includes('created') ? '✨' : 
+                                   type.includes('updated') ? '📝' : 
+                                   type.includes('deleted') ? '🗑️' : 
+                                   type.includes('login') ? '🔓' : 
+                                   type.includes('logout') ? '🔒' : '📌';
+                      return (
+                        <option key={type} value={type}>
+                          {emoji} {type.replace(/_/g, ' ').toUpperCase()}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>Target Type</label>
+                  <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                    <Target className="w-4 h-4 text-orange-500" />
+                    <span>Target Type</span>
+                  </label>
                   <select
                     value={filters.target_type}
                     onChange={(e) => handleFilterChange('target_type', e.target.value)}
-                    className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                    className={`w-full px-4 py-2.5 border-2 ${
+                      filters.target_type 
+                        ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20' 
+                        : currentTheme.border
+                    } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-orange-500`}
                   >
-                    <option value="">All Types</option>
-                    <option value="task">Task</option>
-                    <option value="user">User</option>
-                    <option value="team">Team</option>
-                    <option value="report">Report</option>
-                    <option value="comment">Comment</option>
-                    <option value="notification">Notification</option>
-                    <option value="automation">Automation</option>
+                    <option value="">🎯 All Types</option>
+                    <option value="task">✅ Task</option>
+                    <option value="user">👤 User</option>
+                    <option value="team">👥 Team</option>
+                    <option value="report">📊 Report</option>
+                    <option value="comment">💬 Comment</option>
+                    <option value="notification">🔔 Notification</option>
+                    <option value="automation">⚙️ Automation</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>Search</label>
+                  <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                    <Search className="w-4 h-4 text-blue-500" />
+                    <span>Search</span>
+                  </label>
                   <div className="relative">
-                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${currentTheme.textMuted}`} />
+                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
+                      filters.search ? 'text-blue-500' : currentTheme.textMuted
+                    }`} />
                     <input
                       type="text"
                       value={filters.search}
                       onChange={(e) => handleFilterChange('search', e.target.value)}
                       placeholder="Search logs..."
-                      className={`w-full pl-10 pr-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                      className={`w-full pl-10 pr-3 py-2.5 border-2 ${
+                        filters.search 
+                          ? 'border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20' 
+                          : currentTheme.border
+                      } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-blue-500`}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>Start Date</label>
+                  <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                    <Calendar className="w-4 h-4 text-green-500" />
+                    <span>Start Date</span>
+                  </label>
                   <input
                     type="date"
                     value={filters.start_date}
                     onChange={(e) => handleFilterChange('start_date', e.target.value)}
-                    className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                    className={`w-full px-4 py-2.5 border-2 ${
+                      filters.start_date 
+                        ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20' 
+                        : currentTheme.border
+                    } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-green-500`}
                   />
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>End Date</label>
+                  <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                    <Calendar className="w-4 h-4 text-red-500" />
+                    <span>End Date</span>
+                  </label>
                   <input
                     type="date"
                     value={filters.end_date}
                     onChange={(e) => handleFilterChange('end_date', e.target.value)}
-                    className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                    className={`w-full px-4 py-2.5 border-2 ${
+                      filters.end_date 
+                        ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20' 
+                        : currentTheme.border
+                    } rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-red-500`}
                   />
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>Items per page</label>
+                  <label className={`block text-sm font-semibold ${currentTheme.text} mb-2 flex items-center space-x-2`}>
+                    <TrendingUp className="w-4 h-4 text-indigo-500" />
+                    <span>Items per page</span>
+                  </label>
                   <select
                     value={filters.limit}
                     onChange={(e) => handleFilterChange('limit', e.target.value)}
-                    className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                    className={`w-full px-4 py-2.5 border-2 ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text} font-medium transition-all focus:ring-2 focus:ring-indigo-500`}
                   >
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                    <option value="200">200</option>
+                    <option value="25">📄 25 items</option>
+                    <option value="50">📋 50 items</option>
+                    <option value="100">📚 100 items</option>
+                    <option value="200">📦 200 items</option>
                   </select>
                 </div>
               </div>
 
-              <div className="mt-4 flex justify-end space-x-3">
+              <div className="mt-6 flex justify-between items-center pt-4 border-t ${currentTheme.border}">
+                <div className="flex items-center space-x-2">
+                  {filters.event_type && (
+                    <span className="px-3 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 rounded-full text-xs font-medium">
+                      Event: {filters.event_type.replace(/_/g, ' ')}
+                    </span>
+                  )}
+                  {filters.target_type && (
+                    <span className="px-3 py-1 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 rounded-full text-xs font-medium">
+                      Type: {filters.target_type}
+                    </span>
+                  )}
+                  {filters.search && (
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded-full text-xs font-medium">
+                      Search: "{filters.search}"
+                    </span>
+                  )}
+                  {(filters.start_date || filters.end_date) && (
+                    <span className="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded-full text-xs font-medium">
+                      📅 Date Range
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex space-x-3">
                 <button
                   onClick={() => {
                     setFilters({
@@ -405,17 +528,19 @@ const ChangeLog = () => {
                     });
                     setPage(1);
                   }}
-                  className={`px-4 py-2 rounded-lg ${currentTheme.hover} ${currentTheme.text} transition-colors`}
+                  className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 ${currentTheme.hover} ${currentTheme.text} font-semibold transition-all hover:scale-105`}
                 >
-                  Clear Filters
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Clear Filters</span>
                 </button>
                 <button
                   onClick={handleClearOldLogs}
-                  className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold transition-all hover:scale-105 hover:shadow-lg"
                 >
                   <Trash2 className="w-4 h-4" />
                   <span>Clear Old Logs (90+ days)</span>
                 </button>
+              </div>
               </div>
             </div>
           )}
@@ -471,9 +596,9 @@ const ChangeLog = () => {
                           {formatDate(log.created_at)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium ${getEventColor(log.event_type)}`}>
-                            <span>{getEventIcon(log.event_type)}</span>
-                            <span>{log.event_type.replace(/_/g, ' ')}</span>
+                          <span className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-bold ${getEventColor(log.event_type)} shadow-sm`}>
+                            <span className="text-base">{getEventIcon(log.event_type)}</span>
+                            <span className="uppercase tracking-wide">{log.event_type.replace(/_/g, ' ')}</span>
                           </span>
                         </td>
                         <td className={`px-6 py-4 text-sm ${currentTheme.text}`}>
@@ -481,8 +606,14 @@ const ChangeLog = () => {
                             <div className="font-medium">{log.user_name || 'System'}</div>
                             <div className={`text-xs ${currentTheme.textSecondary}`}>{log.user_email || 'N/A'}</div>
                             {log.user_role && (
-                              <span className="inline-block mt-1 px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300">
-                                {log.user_role}
+                              <span className={`inline-block mt-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-full ${
+                                log.user_role === 'admin' 
+                                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-300 dark:border-red-700' 
+                                  : log.user_role === 'manager'
+                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                                  : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-300 dark:border-green-700'
+                              }`}>
+                                {log.user_role === 'admin' ? '👑' : log.user_role === 'manager' ? '⭐' : '👤'} {log.user_role.toUpperCase()}
                               </span>
                             )}
                           </div>
@@ -490,12 +621,19 @@ const ChangeLog = () => {
                         <td className={`px-6 py-4 text-sm ${currentTheme.text} max-w-md`}>
                           {log.description}
                         </td>
-                        <td className={`px-6 py-4 text-sm ${currentTheme.textSecondary}`}>
-                          {log.target_type && (
-                            <div>
-                              <div className="font-medium">{log.target_type}</div>
-                              <div className="text-xs">{log.target_name || log.target_id || 'N/A'}</div>
+                        <td className={`px-6 py-4 text-sm ${currentTheme.text}`}>
+                          {log.target_type ? (
+                            <div className="space-y-1">
+                              <span className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${getTargetTypeColor(log.target_type)}`}>
+                                <span>{getTargetTypeIcon(log.target_type)}</span>
+                                <span className="uppercase">{log.target_type}</span>
+                              </span>
+                              <div className={`text-xs ${currentTheme.textSecondary} font-mono`}>
+                                {log.target_name || log.target_id || 'N/A'}
+                              </div>
                             </div>
+                          ) : (
+                            <span className={`${currentTheme.textSecondary} text-xs`}>N/A</span>
                           )}
                         </td>
                         <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentTheme.textSecondary} font-mono`}>

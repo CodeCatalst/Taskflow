@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
 import useRealtimeSync from '../hooks/useRealtimeSync';
-import { Plus, X, Edit2, Trash2, Clock, Users, UserCheck } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, Clock, Users, UserCheck, Target, AlertTriangle, Calendar, User, Search } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const Kanban = () => {
@@ -394,14 +394,14 @@ const Kanban = () => {
                 {/* My Tasks Toggle */}
                 <button
                   onClick={() => setFilters({ ...filters, showMyTasksOnly: !filters.showMyTasksOnly })}
-                  className={`btn flex items-center justify-center space-x-2 ${
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center space-x-2 border-2 ${
                     filters.showMyTasksOnly
-                      ? `${currentColorScheme.primary} text-white`
-                      : `${currentTheme.surface} ${currentTheme.text} border ${currentTheme.border}`
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-purple-600 shadow-md hover:shadow-lg hover:scale-105'
+                      : `${currentTheme.surface} ${currentTheme.text} ${currentTheme.border} hover:bg-gray-50 dark:hover:bg-gray-700`
                   }`}
                 >
                   <UserCheck className="w-4 h-4" />
-                  <span className="text-sm">{filters.showMyTasksOnly ? 'My Tasks Only' : 'All Tasks'}</span>
+                  <span className="text-sm">{filters.showMyTasksOnly ? '👤 My Tasks Only' : '👥 All Tasks'}</span>
                 </button>
                 
                 {/* Advanced Filters for HR/Admin */}
@@ -410,66 +410,111 @@ const Kanban = () => {
                     <select
                       value={filters.team}
                       onChange={(e) => setFilters({ ...filters, team: e.target.value })}
-                      className="input text-sm"
+                      className={`px-3 py-2 text-sm border-2 rounded-lg font-medium transition-all focus:ring-2 ${
+                        filters.team 
+                          ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20 focus:ring-orange-500' 
+                          : `${currentTheme.border} focus:ring-blue-500`
+                      } ${currentTheme.surface} ${currentTheme.text}`}
                     >
-                      <option value="">All Teams</option>
+                      <option value="">👥 All Teams</option>
                       {teams.map((team) => (
-                        <option key={team._id} value={team._id}>{team.name}</option>
+                        <option key={team._id} value={team._id}>🏢 {team.name}</option>
                       ))}
                     </select>
                     <select
                       value={filters.assigned_to}
                       onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })}
-                      className="input text-sm"
+                      className={`px-3 py-2 text-sm border-2 rounded-lg font-medium transition-all focus:ring-2 ${
+                        filters.assigned_to 
+                          ? 'border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 focus:ring-blue-500' 
+                          : `${currentTheme.border} focus:ring-blue-500`
+                      } ${currentTheme.surface} ${currentTheme.text}`}
                     >
-                      <option value="">All Users</option>
+                      <option value="">👤 All Users</option>
                       {users.map((u) => (
-                        <option key={u._id} value={u._id}>{u.full_name}</option>
+                        <option key={u._id} value={u._id}>👨‍💼 {u.full_name}</option>
                       ))}
                     </select>
                     <select
                       value={filters.status}
                       onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                      className="input text-sm"
+                      className={`px-3 py-2 text-sm border-2 rounded-lg font-medium transition-all focus:ring-2 ${
+                        filters.status 
+                          ? filters.status === 'done' 
+                            ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
+                            : filters.status === 'in_progress'
+                            ? 'border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                            : filters.status === 'review'
+                            ? 'border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                            : 'border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/20'
+                          : currentTheme.border
+                      } focus:ring-blue-500 ${currentTheme.surface} ${currentTheme.text}`}
                     >
-                      <option value="">All Statuses</option>
-                      <option value="todo">To Do</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="review">Review</option>
-                      <option value="done">Done</option>
+                      <option value="">🌐 All Statuses</option>
+                      <option value="todo">⏳ To Do</option>
+                      <option value="in_progress">⚡ In Progress</option>
+                      <option value="review">👀 Review</option>
+                      <option value="done">✅ Done</option>
                     </select>
                     <select
                       value={filters.priority}
                       onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-                      className="input text-sm"
+                      className={`px-3 py-2 text-sm border-2 rounded-lg font-medium transition-all focus:ring-2 ${
+                        filters.priority 
+                          ? filters.priority === 'urgent' 
+                            ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
+                            : filters.priority === 'high'
+                            ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20'
+                            : filters.priority === 'medium'
+                            ? 'border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                            : 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
+                          : currentTheme.border
+                      } focus:ring-orange-500 ${currentTheme.surface} ${currentTheme.text}`}
                     >
-                      <option value="">All Priorities</option>
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
+                      <option value="">🎯 All Priorities</option>
+                      <option value="low">🟢 Low</option>
+                      <option value="medium">🟡 Medium</option>
+                      <option value="high">🟠 High</option>
+                      <option value="urgent">🔴 Urgent</option>
                     </select>
                     <input
                       type="date"
                       value={filters.dueDateFrom}
                       onChange={(e) => setFilters({ ...filters, dueDateFrom: e.target.value })}
-                      className="input text-sm"
+                      className={`px-3 py-2 text-sm border-2 rounded-lg font-medium transition-all focus:ring-2 ${
+                        filters.dueDateFrom 
+                          ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 focus:ring-green-500' 
+                          : `${currentTheme.border} focus:ring-green-500`
+                      } ${currentTheme.surface} ${currentTheme.text}`}
                       placeholder="Due Date From"
                     />
                     <input
                       type="date"
                       value={filters.dueDateTo}
                       onChange={(e) => setFilters({ ...filters, dueDateTo: e.target.value })}
-                      className="input text-sm"
+                      className={`px-3 py-2 text-sm border-2 rounded-lg font-medium transition-all focus:ring-2 ${
+                        filters.dueDateTo 
+                          ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20 focus:ring-red-500' 
+                          : `${currentTheme.border} focus:ring-red-500`
+                      } ${currentTheme.surface} ${currentTheme.text}`}
                       placeholder="Due Date To"
                     />
-                    <input
-                      type="text"
-                      placeholder="Search tasks..."
-                      value={filters.search}
-                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                      className="input text-sm sm:col-span-2 lg:col-span-1"
-                    />
+                    <div className="relative sm:col-span-2 lg:col-span-1">
+                      <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
+                        filters.search ? 'text-indigo-500' : currentTheme.textMuted
+                      }`} />
+                      <input
+                        type="text"
+                        placeholder="🔍 Search tasks..."
+                        value={filters.search}
+                        onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                        className={`w-full pl-10 pr-3 py-2 text-sm border-2 rounded-lg font-medium transition-all focus:ring-2 ${
+                          filters.search 
+                            ? 'border-indigo-400 dark:border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 focus:ring-indigo-500' 
+                            : `${currentTheme.border} focus:ring-indigo-500`
+                        } ${currentTheme.surface} ${currentTheme.text}`}
+                      />
+                    </div>
                   </>
                 )}
               </div>

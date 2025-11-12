@@ -42,6 +42,10 @@ api.interceptors.response.use(
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
+          localStorage.removeItem('lastActivityTime');
+          
+          // Dispatch custom event for logout
+          window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'no-refresh-token' } }));
           
           // Only redirect if not already on login page
           if (!window.location.pathname.includes('/login')) {
@@ -57,6 +61,8 @@ api.interceptors.response.use(
         const { accessToken, refreshToken: newRefreshToken } = response.data;
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', newRefreshToken);
+        // Update last activity time when token is refreshed
+        localStorage.setItem('lastActivityTime', Date.now().toString());
 
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
@@ -65,6 +71,10 @@ api.interceptors.response.use(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
+        localStorage.removeItem('lastActivityTime');
+        
+        // Dispatch custom event for logout
+        window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'refresh-failed' } }));
         
         // Only redirect if not already on login page
         if (!window.location.pathname.includes('/login')) {
