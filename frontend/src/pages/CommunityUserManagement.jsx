@@ -602,13 +602,13 @@ export default function CommunityUserManagement() {
       {/* Confirm Modal */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
-        onClose={confirmModal.hide}
-        onConfirm={confirmModal.handleConfirm}
-        title={confirmModal.config.title}
-        message={confirmModal.config.message}
-        confirmText={confirmModal.config.confirmText}
-        cancelText={confirmModal.config.cancelText}
-        variant={confirmModal.config.variant}
+        onClose={confirmModal.onClose}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
+        variant={confirmModal.variant}
         isLoading={confirmModal.isLoading}
       />
     </div>
