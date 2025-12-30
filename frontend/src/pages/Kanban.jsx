@@ -4,7 +4,9 @@ import { useTheme } from '../context/ThemeContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import useRealtimeSync from '../hooks/useRealtimeSync';
+import { useConfirmModal } from '../hooks/useConfirmModal';
 import Sidebar from '../components/Sidebar';
+import ConfirmModal from '../components/modals/ConfirmModal';
 import { 
   Plus, X, Search, Settings, UserPlus, Calendar as CalendarIcon,
   MoreHorizontal, MessageSquare
@@ -15,6 +17,7 @@ const Kanban = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const confirmModal = useConfirmModal();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -163,16 +166,23 @@ const Kanban = () => {
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
-    if (!confirm('Are you sure you want to delete this task?')) return;
-
-    try {
-      await api.delete(`/tasks/${taskId}`);
-      fetchTasks();
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      alert(error.response?.data?.message || 'Failed to delete task');
-    }
+  const handleDeleteTask = (taskId) => {
+    confirmModal.show({
+      title: 'Delete Task',
+      message: 'Are you sure you want to delete this task? This action cannot be undone and will remove all associated data.',
+      confirmText: 'Delete Task',
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/tasks/${taskId}`);
+          fetchTasks();
+        } catch (error) {
+          console.error('Error deleting task:', error);
+          alert(error.response?.data?.message || 'Failed to delete task');
+        }
+      },
+    });
   };
 
   const handleDragStart = (e, task) => {
@@ -806,6 +816,19 @@ const Kanban = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={confirmModal.onClose}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
+        variant={confirmModal.variant}
+        isLoading={confirmModal.isLoading}
+      />
     </div>
   );
 };

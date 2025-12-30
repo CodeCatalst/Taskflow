@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useConfirmModal } from '../hooks/useConfirmModal';
 import api from '../api/axios';
 import Sidebar from '../components/Sidebar';
+import ConfirmModal from '../components/modals/ConfirmModal';
 import useRealtimeSync from '../hooks/useRealtimeSync';
 import { Search, Users as UsersIcon, User, Trash2, Edit2, Key, Plus, X } from 'lucide-react';
 
@@ -10,6 +12,7 @@ export default function CommunityUserManagement() {
   const { user } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const confirmModal = useConfirmModal();
   
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
@@ -140,17 +143,25 @@ export default function CommunityUserManagement() {
     }
   };
 
-  const handleDelete = async (userId, userEmail) => {
-    if (!window.confirm(`Are you sure you want to delete user: ${userEmail}?`)) return;
-    try {
-      await api.delete(`/users/${userId}`);
-      setSuccess('User deleted successfully');
-      await fetchUsers();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete user');
-      setTimeout(() => setError(''), 3000);
-    }
+  const handleDelete = (userId, userEmail) => {
+    confirmModal.show({
+      title: 'Delete User',
+      message: `Are you sure you want to delete user: ${userEmail}? This will permanently remove their account and all associated data from your workspace.`,
+      confirmText: 'Delete User',
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/users/${userId}`);
+          setSuccess('User deleted successfully');
+          await fetchUsers();
+          setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+          setError(err.response?.data?.message || 'Failed to delete user');
+          setTimeout(() => setError(''), 3000);
+        }
+      },
+    });
   };
 
   const handleResetPassword = async (userId, userEmail) => {
@@ -587,6 +598,19 @@ export default function CommunityUserManagement() {
           </div>
         </div>
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={confirmModal.hide}
+        onConfirm={confirmModal.handleConfirm}
+        title={confirmModal.config.title}
+        message={confirmModal.config.message}
+        confirmText={confirmModal.config.confirmText}
+        cancelText={confirmModal.config.cancelText}
+        variant={confirmModal.config.variant}
+        isLoading={confirmModal.isLoading}
+      />
     </div>
   );
 }

@@ -1,25 +1,37 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const { theme } = useTheme();
   const [formData, setFormData] = useState({
-    email: '',
+    email: location.state?.email || '',
     password: '',
   });
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
+  useEffect(() => {
+    // Clear success message after 5 seconds
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setNeedsVerification(false);
     setLoading(true);
 
     const result = await login(formData.email, formData.password);
@@ -28,6 +40,11 @@ const Login = () => {
       navigate('/dashboard');
     } else {
       setError(result.message);
+      
+      // Check if verification is required
+      if (result.requiresVerification) {
+        setNeedsVerification(true);
+      }
     }
     setLoading(false);
   };
@@ -55,6 +72,14 @@ const Login = () => {
 
           {/* Form Section */}
           <form onSubmit={handleSubmit} className="px-8 pb-10 flex flex-col gap-5">
+            {/* Success Message */}
+            {successMessage && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-lg flex items-start gap-3">
+                <CheckCircle size={20} className="flex-shrink-0 mt-0.5" />
+                <span className="text-sm">{successMessage}</span>
+              </div>
+            )}
+
             {/* Work Email Field */}
             <div className="flex flex-col gap-2">
               <label className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-sm font-medium`}>
@@ -127,8 +152,20 @@ const Login = () => {
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded text-sm" data-testid="login-error">
-                {error}
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 p-3 rounded-lg text-sm flex items-start gap-3" data-testid="login-error">
+                <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+                <div>
+                  <p>{error}</p>
+                  {needsVerification && (
+                    <button
+                      type="button"
+                      onClick={() => navigate('/verify-email', { state: { email: formData.email } })}
+                      className="mt-2 text-red-600 dark:text-red-400 underline hover:text-red-800 dark:hover:text-red-300 font-semibold"
+                    >
+                      Go to verification page →
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -163,7 +200,7 @@ const Login = () => {
         {/* Page Footer */}
         <div className="mt-8 flex flex-col items-center gap-4">
           <p className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} font-normal`}>
-            © 2024 TaskFlow. Enterprise Edition.
+            © 2025 TaskFlow. Enterprise Edition.
           </p>
         </div>
       </div>

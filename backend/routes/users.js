@@ -345,7 +345,8 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
         email,
         role,
         team_id
-      }
+      },
+      workspaceId: req.context.workspaceId
     });
 
     // Emit socket event for user creation

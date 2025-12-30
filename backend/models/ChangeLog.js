@@ -81,11 +81,12 @@ const changeLogSchema = new mongoose.Schema({
     type: Object,
     default: {}
   },
-  // WORKSPACE SUPPORT: All audit logs belong to a workspace (CORE only)
+  // WORKSPACE SUPPORT: All audit logs belong to a workspace (null for system admins)
   workspaceId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Workspace',
-    required: true,
+    required: false,
+    default: null,
     index: true
   },
   created_at: {

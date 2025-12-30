@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useConfirmModal } from '../hooks/useConfirmModal';
 import Sidebar from '../components/Sidebar';
+import ConfirmModal from '../components/modals/ConfirmModal';
 import api from '../api/axios';
 import useRealtimeSync from '../hooks/useRealtimeSync';
 import { Plus, X, Users, UserPlus, UserMinus, Trash2, Pin, GripVertical } from 'lucide-react';
@@ -9,6 +11,7 @@ import { Plus, X, Users, UserPlus, UserMinus, Trash2, Pin, GripVertical } from '
 const Teams = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const confirmModal = useConfirmModal();
   const [teams, setTeams] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -149,31 +152,43 @@ const Teams = () => {
     }
   };
 
-  const handleRemoveMember = async (teamId, userId) => {
-    if (!confirm('Are you sure you want to remove this member?')) return;
-
-    try {
-      await api.delete(`/teams/${teamId}/members/${userId}`);
-      fetchTeams();
-    } catch (error) {
-      console.error('Error removing member:', error);
-      alert(error.response?.data?.message || 'Failed to remove member');
-    }
+  const handleRemoveMember = (teamId, userId) => {
+    confirmModal.show({
+      title: 'Remove Member',
+      message: 'Are you sure you want to remove this member from the team? They will no longer have access to team resources.',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      variant: 'warning',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/teams/${teamId}/members/${userId}`);
+          fetchTeams();
+        } catch (error) {
+          console.error('Error removing member:', error);
+          alert(error.response?.data?.message || 'Failed to remove member');
+        }
+      },
+    });
   };
 
-  const handleDeleteTeam = async (teamId, teamName) => {
-    if (!confirm(`Are you sure you want to delete team "${teamName}"? All members will be unassigned from this team.`)) {
-      return;
-    }
-
-    try {
-      await api.delete(`/teams/${teamId}`);
-      fetchTeams();
-      alert('Team deleted successfully');
-    } catch (error) {
-      console.error('Error deleting team:', error);
-      alert(error.response?.data?.message || 'Failed to delete team');
-    }
+  const handleDeleteTeam = (teamId, teamName) => {
+    confirmModal.show({
+      title: 'Delete Team',
+      message: `Are you sure you want to delete team "${teamName}"? All members will be unassigned from this team and this action cannot be undone.`,
+      confirmText: 'Delete Team',
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/teams/${teamId}`);
+          fetchTeams();
+          alert('Team deleted successfully');
+        } catch (error) {
+          console.error('Error deleting team:', error);
+          alert(error.response?.data?.message || 'Failed to delete team');
+        }
+      },
+    });
   };
 
   const handleTogglePin = async (teamId) => {
@@ -660,6 +675,19 @@ const Teams = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={confirmModal.onClose}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
+        variant={confirmModal.variant}
+        isLoading={confirmModal.isLoading}
+      />
     </div>
   );
 };

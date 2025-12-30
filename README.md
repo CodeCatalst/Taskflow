@@ -4,18 +4,56 @@ A **modern**, **comprehensive**, and **role-based** task management system built
 
 ---
 
+## 🆕 Recent Updates (December 2025)
+
+### ✅ Major Fixes & Enhancements
+- **Landing Page** - Production-ready conversion-focused page with cinematic UI
+- **Dashboard Search & Filters** - Fixed non-functional search bar and filter panel
+- **Enhanced Analytics** - Added 5 new graphs (11 total) with advanced metrics
+- **Mobile Responsiveness** - Comprehensive mobile optimization across all pages
+- **Notifications Fixed** - Desktop notifications now working with smart filtering
+- **Session Management** - Fixed automatic logout with proper timer persistence
+- **PWA Install Banner** - Smart installation prompt on dashboard
+- **Export Functionality** - Fixed dropdown positioning for Excel/PDF export
+- **Workspace Activation** - Enhanced control for activating/deactivating workspaces
+
+### 📊 New Analytics Graphs
+- Weekly Progress (8-week trend line chart)
+- Hourly Distribution (24-hour task creation patterns)
+- Task Age Distribution (pending task analysis)
+- Priority Trend (12-week stacked area chart)
+- Team Completion Rate (efficiency comparison)
+
+### 🎨 New Landing Page Features
+- Dark-first cinematic design with glassmorphism
+- Animated UI previews (no screenshots)
+- Floating 3D elements with parallax
+- Scroll-based reveals with staggered animations
+- Community vs CORE pricing comparison
+- 6 capability trust cards
+- Philosophy section explaining "why TaskFlow"
+
+---
+
 ## 🎯 Core Features
 
 ### 🔐 Authentication & Security
 - **JWT Authentication** with access and refresh tokens
-- **Role-Based Access Control (RBAC)** - Admin, HR, Team Lead, Member
+- **Role-Based Access Control (RBAC)** - System Admin, Workspace Admin, Community Admin, HR, Team Lead, Member
 - **Multi-Workspace Support** - CORE (enterprise) and COMMUNITY (free tier)
 - **Public Community Registration** - Self-service workspace creation
 - **System Administrator** - Full cross-workspace management
-- **Automatic Session Management** - Configurable session timeouts (30 min - 24 hours)
-- **Auto-Logout Warning** - 5-minute warning before session expires
+- **Enhanced Session Management** (Fixed & Improved):
+  - Configurable session timeouts (30 min - 24 hours)
+  - Smart inactivity detection using useRef for proper timer persistence
+  - 5-minute warning before session expires
+  - Automatic logout on inactivity
+  - Tab visibility detection - validates session when returning to tab
+  - Activity-based timer reset (mouse movement, clicks, keyboard)
+  - Console logging for debugging timer activity
 - **Secure Password Hashing** with bcrypt
 - **Workspace Isolation** - Complete data separation between workspaces
+- **Workspace Activation Control** - Admins can activate/deactivate workspaces to restrict access
 
 ### 👥 User Management
 - **Comprehensive User Profiles** - Full name, email, role, team assignment
@@ -27,13 +65,19 @@ A **modern**, **comprehensive**, and **role-based** task management system built
 
 ### 🏢 Workspace Management (System Admin)
 - **Multi-Workspace Administration** - Manage all workspaces from one interface
-- **Workspace Creation** - Create CORE or COMMUNITY workspaces
-- **Workspace Activation Control** - Activate or deactivate workspaces to restrict access
-- **Usage Monitoring** - Track users, tasks, and teams per workspace
-- **Limit Management** - Configure COMMUNITY workspace limits
-- **Workspace Statistics** - Real-time metrics and completion rates
+- **Workspace Creation** - Create CORE or COMMUNITY workspaces with instant setup
+- **Workspace Activation Control** (Enhanced):
+  - Toggle workspaces active/inactive to control access
+  - Deactivated workspaces block all user access immediately
+  - Clear error messages for users of deactivated workspaces
+  - Visual status indicators (green badge for active, red for inactive)
+  - Reactivation restores full access instantly
+  - All data preserved during deactivation
+- **Usage Monitoring** - Real-time tracking of users, tasks, and teams per workspace
+- **Limit Management** - Configure and monitor COMMUNITY workspace limits
+- **Workspace Statistics** - Live metrics, completion rates, and usage trends
 - **User Assignment** - Assign workspace owners and admins
-- **Workspace Deletion** - Safe removal with validation checks
+- **Workspace Deletion** - Safe removal with validation checks (only empty workspaces)
 
 ### 🎯 Task Management
 - **Complete Task Lifecycle** - Create, assign, update, track, and complete tasks
@@ -74,29 +118,44 @@ A **modern**, **comprehensive**, and **role-based** task management system built
 - **Smooth Transitions** - Animated theme switching
 - **System-wide Consistency** - All components themed uniformly
 
-### 📱 Mobile Responsiveness
+### 📱 Mobile Responsiveness (Enhanced)
 - **Fully Responsive Design** - Optimized for all screen sizes
 - **Mobile-First Approach** - Touch-friendly interfaces
 - **Adaptive Layouts**:
   - Mobile (< 640px)
-  - Tablet (640px - 1024px)
+  - Tablet (640px - 1024px)  
   - Desktop (> 1024px)
-- **Responsive Tables** - Horizontal scroll on mobile with proper column hiding
+- **Enhanced Tables** (Improved):
+  - Horizontal scroll on mobile with min-width constraints
+  - Hidden non-essential columns on mobile
+  - Reduced cell padding on small screens
+  - Smaller badges and icons (4x4 on mobile, 5x5 on desktop)
+  - Compact font sizes (10px-12px on mobile)
 - **Touch-Optimized Controls** - Larger tap targets on mobile
 - **Responsive Navigation** - Collapsible sidebar for mobile
-- **Mobile-Friendly Forms** - Simplified inputs for touch devices
-- **Optimized Chart Rendering** - Charts resize and adapt to mobile screens
+- **Mobile-Friendly Forms** - Simplified inputs with responsive padding
+- **Optimized Chart Rendering** (Major Improvements):
+  - Dynamic chart heights (250px mobile, 300-400px desktop)
+  - Responsive axis labels with dynamic font sizes
+  - Adjusted pie chart radius for mobile
+  - Angled X-axis labels on mobile for readability
+  - Touch-friendly chart interactions
+- **Responsive Filter Panels** - Stack vertically on mobile
+- **Adaptive Key Metrics Cards** - 2-column grid on mobile, 4-column on desktop
 
 ### 🎯 Dashboard Views
 - **📊 Comprehensive Dashboard** (Default View)
-  - Real-time task statistics
-  - Visual analytics with charts (Pie, Bar, Line)
-  - Recent tasks overview
-  - Overdue task alerts
-  - Team distribution charts
+  - Real-time task statistics with visual cards
+  - **Interactive search bar** with real-time filtering
+  - **Advanced filter panel** - Filter by status, priority, date range
+  - **Working export dropdown** - Excel and PDF export
+  - **PWA install banner** - Smart installation prompt
+  - 3 live charts: Status distribution (pie), Priority breakdown (bar), Team distribution (bar)
+  - Recent tasks overview with smart filtering
+  - Overdue task alerts with visual indicators
   - Completion rate metrics
   - Quick action buttons
-  - Mobile app installation prompt
+  - "View Detailed Analytics" link to full analytics page
   
 - **📋 Kanban Board** (Drag & Drop)
   - Visual task workflow (Todo → In Progress → Review → Done)
@@ -115,19 +174,24 @@ A **modern**, **comprehensive**, and **role-based** task management system built
   - Filter by status and priority
   - Visual task distribution
   
-- **📈 Analytics & Reports**
-  - Comprehensive task analytics
-  - Status distribution (Pie charts)
-  - Priority breakdown (Bar charts)
-  - Completion trends (Line charts)
-  - Team performance metrics
-  - Overdue task analysis
-  - Assignee performance tracking
+- **📈 Analytics & Reports** (11 Comprehensive Graphs)
+  - **Status Distribution** (Pie Chart) - Task breakdown by status
+  - **Priority Distribution** (Bar Chart) - Workload urgency levels
+  - **Overdue Tasks by Priority** (Bar Chart) - Critical bottleneck analysis
+  - **30-Day Completion Trend** (Area Chart) - Creation vs completion tracking
+  - **User Performance** (Grouped Bar Chart) - Individual productivity metrics
+  - **Team Distribution** (Multi-color Bar Chart) - Tasks per team
+  - **Weekly Progress** (Line Chart) - 8-week trend analysis NEW!
+  - **Hourly Distribution** (Bar Chart) - Task creation patterns (24-hour) NEW!
+  - **Task Age Distribution** (Horizontal Bar Chart) - Pending task analysis NEW!
+  - **Priority Trend** (Stacked Area Chart) - 12-week urgency evolution NEW!
+  - **Team Completion Rate** (Bar Chart) - Team efficiency comparison NEW!
   - Custom date range filtering
-  - Export capabilities (Excel & PDF)
+  - Export capabilities (Excel & PDF with embedded charts)
+  - Mobile-optimized responsive charts
 
-### 🔔 Notifications System
-- **PWA Push Notifications** - Desktop and mobile notifications
+### 🔔 Notifications System (Fixed & Working)
+- **PWA Push Notifications** - Desktop and mobile notifications ✅ WORKING
 - **Real-time Alerts** for:
   - ✅ Task assignments
   - ✅ Task updates
@@ -135,11 +199,19 @@ A **modern**, **comprehensive**, and **role-based** task management system built
   - ✅ Due date reminders (24 hours before)
   - ✅ Overdue task alerts
   - ✅ Status changes
-- **Granular Control** - Enable/disable by notification type
+- **Smart User Filtering** - Only notifies involved users (assignee, creator, commenters)
+- **Granular Control** - Enable/disable by notification type (all enabled by default)
 - **Click-to-Open** - Notifications link directly to relevant tasks
 - **Browser Support** - Chrome, Firefox, Edge, Safari (iOS 16.4+)
 - **Permission Management** - Easy enable/disable interface
-- **Test Notifications** - Built-in testing functionality
+- **Enhanced Test Notifications** - Built-in testing with detailed diagnostic output
+- **Comprehensive Logging** - Console logs with emojis for easy debugging
+- **Diagnostic Tools** - Built-in troubleshooting script (notification-debug.js)
+- **Fixed Issues**:
+  - ✅ Removed duplicate Socket.IO event listeners
+  - ✅ All notification types enabled by default
+  - ✅ Added user involvement filtering
+  - ✅ Enhanced debugging capabilities
 
 ### 📊 Advanced Analytics Features
 - **Real-time Data Visualization** using Recharts:
@@ -768,17 +840,33 @@ If you see **"Your workspace has been deactivated. Please contact support."**:
 
 ## 📚 Additional Documentation
 
+### Core Documentation
+- [**Landing Page Guide**](./LANDING_PAGE_GUIDE.md) - Complete implementation guide for the landing page
+- [**Landing Page Quick Reference**](./LANDING_QUICK_REF.md) - Developer quick reference
 - [**Workspace Quick Start Guide**](./WORKSPACE_QUICK_START.md) - Community registration & workspace management
 - [**Workspace Activation Guide**](./WORKSPACE_ACTIVATION_GUIDE.md) - Activate/deactivate workspaces & access control
 - [System Administrator Access Guide](./SYSTEM_ADMIN_ACCESS.md)
 - [Multi-Workspace Architecture](./FINAL_WORKSPACE_SUMMARY.md)
-- [PWA Notification Documentation](./PWA_NOTIFICATION_DOCUMENTATION.md)
-- [Real-time Sync Implementation](./REALTIME_SYNC_IMPLEMENTATION.md)
-- [Mobile Responsiveness Guide](./MOBILE_RESPONSIVENESS_IMPROVEMENTS.md)
-- [Calendar View Documentation](./CALENDAR_VIEW_DOCUMENTATION.md)
 - [Bulk User Import Guide](./BULK_USER_IMPORT_GUIDE.md)
-- [Auth Error Fix Guide](./AUTH_ERROR_FIX_GUIDE.md)
+
+### Feature Guides
+- [Dashboard Features Fixed](./DASHBOARD_FEATURES_FIXED.md) - Search, filters, export fixes
+- [Analytics Dashboard Improvements](./ANALYTICS_DASHBOARD_IMPROVEMENTS.md) - 11 comprehensive graphs
+- [Calendar View Documentation](./CALENDAR_VIEW_DOCUMENTATION.md)
+- [Mobile Responsiveness Guide](./MOBILE_RESPONSIVENESS_IMPROVEMENTS.md)
+- [Real-time Sync Implementation](./REALTIME_SYNC_IMPLEMENTATION.md)
+
+### Notifications
+- [Quick Start Notifications](./QUICK_START_NOTIFICATIONS.md) - 30-second test guide
+- [Notifications Fixed README](./NOTIFICATIONS_FIXED_README.md) - What was fixed and how
+- [PWA Notification Documentation](./PWA_NOTIFICATION_DOCUMENTATION.md)
+- [Notification Testing Guide](./NOTIFICATION_TESTING_GUIDE.md)
 - [Notification Troubleshooting](./NOTIFICATION_TROUBLESHOOTING.md)
+
+### Technical Guides
+- [Automatic Logout Test Guide](./AUTOMATIC_LOGOUT_TEST_GUIDE.md) - Session management testing
+- [Auth Error Fix Guide](./AUTH_ERROR_FIX_GUIDE.md)
+- [Workspace Implementation Status](./WORKSPACE_IMPLEMENTATION_STATUS.md)
 
 ---
 
@@ -811,27 +899,28 @@ For issues, questions, or feature requests:
 
 ## 🎉 Features Summary
 
-✅ **Multi-Workspace** - CORE and COMMUNITY workspace types  
-✅ **Community Registration** - Self-service free workspace creation  
-✅ **Workspace Management** - System admin workspace control panel  
-✅ **Authentication** - JWT with refresh tokens, session management  
-✅ **Authorization** - Role-based access control (6 roles: System Admin, Workspace Admin, Community Admin, HR, Team Lead, Member)  
-✅ **Data Isolation** - Complete workspace separation  
-✅ **Task Management** - Complete CRUD with comments  
-✅ **Team Management** - Teams with leads and members  
-✅ **User Management** - Bulk import, creation, deletion  
-✅ **Real-time Sync** - Socket.IO across all features  
-✅ **Notifications** - PWA push notifications  
+✅ **Multi-Workspace Architecture** - CORE and COMMUNITY workspace types with complete isolation  
+✅ **Community Registration** - Self-service free workspace creation with instant setup  
+✅ **Workspace Management** - System admin control panel with activation/deactivation  
+✅ **Enhanced Authentication** - JWT with refresh tokens, improved session management  
+✅ **Advanced Authorization** - 6 role-based access levels with feature restrictions  
+✅ **Data Isolation** - Complete workspace separation with scoped queries  
+✅ **Task Management** - Complete CRUD with comments and real-time updates  
+✅ **Team Management** - Teams with leads and members, drag-and-drop reordering  
+✅ **User Management** - Bulk import, creation, deletion (CORE workspaces)  
+✅ **Real-time Sync** - Socket.IO across all features with auto-reconnect  
+✅ **Notifications** - ✅ FIXED PWA push notifications with smart user filtering  
 ✅ **Email Automation** - Welcome emails, overdue reminders, weekly reports  
-✅ **Reports** - Excel and PDF export with analytics  
-✅ **Analytics** - Comprehensive charts and visualizations  
-✅ **Audit Logging** - Complete activity trail  
-✅ **PWA Support** - Installable, offline-capable  
-✅ **Theming** - Multiple themes and color schemes  
-✅ **Mobile Responsive** - Optimized for all devices  
-✅ **Calendar View** - Visual task planning  
-✅ **Kanban Board** - Drag & drop task management  
-✅ **Dashboard** - Real-time statistics and charts  
+✅ **Advanced Reports** - Excel and PDF export with embedded charts  
+✅ **Enhanced Analytics** - 11 comprehensive graphs with mobile optimization  
+✅ **Audit Logging** - Complete activity trail (CORE workspaces only)  
+✅ **PWA Support** - Installable, offline-capable, smart install banner  
+✅ **Theming** - Multiple themes and color schemes with smooth transitions  
+✅ **Mobile Responsive** - ✅ ENHANCED mobile optimization for all screens  
+✅ **Calendar View** - Visual task planning with multiple views  
+✅ **Kanban Board** - Drag & drop task management with real-time sync  
+✅ **Improved Dashboard** - ✅ FIXED search, filters, export, PWA banner  
+✅ **Session Management** - ✅ FIXED automatic logout with proper timer persistence  
 
 ---
 

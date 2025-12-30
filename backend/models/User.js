@@ -40,6 +40,19 @@ const userSchema = new mongoose.Schema({
     required: false,  // Not required - admins can exist without workspace
     index: true
   },
+  // EMAIL VERIFICATION: For community user registration
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationToken: {
+    type: String,
+    default: null
+  },
+  verificationTokenExpiry: {
+    type: Date,
+    default: null
+  },
   created_at: {
     type: Date,
     default: Date.now

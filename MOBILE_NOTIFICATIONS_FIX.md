@@ -418,6 +418,6 @@ If notifications still don't work after following this guide:
 
 ---
 
-**Last Updated**: 2024
+**Last Updated**: 2025
 **Version**: 1.0
 **Status**: ✅ Production Ready

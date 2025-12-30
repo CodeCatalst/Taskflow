@@ -572,6 +572,304 @@ ${appUrl}
   }
 };
 
+// Send email verification for community registration
+export const sendVerificationEmail = async (fullName, email, verificationCode, password, workspaceName) => {
+  try {
+    const transporter = createTransporter();
+    const appUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://taskflow-nine-phi.vercel.app'
+      : (process.env.CLIENT_URL || 'http://localhost:3000');
+    
+    const verificationLink = `${appUrl}/verify-email?code=${verificationCode}`;
+
+    const mailOptions = {
+      from: {
+        name: 'TaskFlow Team',
+        address: process.env.EMAIL_USER
+      },
+      to: email,
+      subject: '✉️ Verify Your TaskFlow Account - Action Required',
+      html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your Email</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #1a1a1a;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 0;
+    }
+    .email-wrapper { padding: 40px 20px; }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 50px 30px;
+      text-align: center;
+      color: white;
+    }
+    .logo-container {
+      background: white;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      font-size: 50px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 32px;
+      font-weight: 700;
+    }
+    .content { padding: 50px 40px; }
+    .greeting {
+      font-size: 24px;
+      color: #1a1a1a;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+    .message {
+      color: #4a5568;
+      margin-bottom: 30px;
+      font-size: 16px;
+      line-height: 1.8;
+    }
+    .verification-box {
+      background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      padding: 30px;
+      margin: 30px 0;
+      text-align: center;
+    }
+    .verification-box h3 {
+      margin: 0 0 20px 0;
+      color: #10b981;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .verification-code {
+      background: white;
+      border: 2px dashed #10b981;
+      border-radius: 10px;
+      padding: 20px;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 8px;
+      color: #059669;
+      margin: 20px 0;
+      font-family: 'Courier New', monospace;
+    }
+    .button-container {
+      text-align: center;
+      margin: 40px 0;
+    }
+    .btn {
+      display: inline-block;
+      padding: 18px 50px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white !important;
+      text-decoration: none;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 18px;
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+    }
+    .credentials-box {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 25px;
+      margin: 30px 0;
+    }
+    .credentials-box h3 {
+      margin: 0 0 15px 0;
+      color: #667eea;
+      font-size: 16px;
+    }
+    .credential-item {
+      background: white;
+      padding: 12px 15px;
+      border-radius: 8px;
+      margin: 10px 0;
+      border: 1px solid #e0e7ff;
+    }
+    .credential-label {
+      font-weight: 600;
+      color: #667eea;
+      font-size: 12px;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .credential-value {
+      color: #1a1a1a;
+      font-family: 'Courier New', monospace;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .warning-box {
+      background: linear-gradient(135deg, #fff7e6 0%, #ffe8cc 100%);
+      border: 2px solid #ffd699;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .warning-box p {
+      margin: 0;
+      color: #996300;
+      font-size: 14px;
+    }
+    .footer {
+      background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+      padding: 30px;
+      text-align: center;
+      color: #cbd5e0;
+      font-size: 14px;
+    }
+    @media only screen and (max-width: 600px) {
+      .content { padding: 30px 20px; }
+      .verification-code { font-size: 24px; letter-spacing: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-wrapper">
+    <div class="container">
+      <div class="header">
+        <div class="logo-container">✉️</div>
+        <h1>Verify Your Email Address</h1>
+      </div>
+      
+      <div class="content">
+        <div class="greeting">
+          👋 Hi <strong>${fullName}</strong>!
+        </div>
+        
+        <div class="message">
+          <p>Welcome to <strong>TaskFlow</strong>! 🎉</p>
+          <p>Your workspace "<strong>${workspaceName}</strong>" has been created successfully. To activate your account and start managing tasks, please verify your email address.</p>
+        </div>
+
+        <div class="verification-box">
+          <h3>🔒 Your Verification Code</h3>
+          <div class="verification-code">${verificationCode}</div>
+          <p style="color: #059669; margin: 10px 0; font-size: 14px;">This code expires in 24 hours</p>
+        </div>
+
+        <div class="button-container">
+          <a href="${verificationLink}" class="btn">✅ Verify Email Now</a>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <p style="color: #64748b; font-size: 14px; margin: 10px 0;">Or copy and paste this link into your browser:</p>
+          <p style="color: #667eea; font-size: 13px; word-break: break-all;">${verificationLink}</p>
+        </div>
+
+        <div style="border-top: 2px solid #e0e7ff; padding-top: 30px; margin-top: 30px;">
+          <div class="credentials-box">
+            <h3>📋 Your Login Credentials (After Verification)</h3>
+            <div class="credential-item">
+              <span class="credential-label">📧 Email</span>
+              <div class="credential-value">${email}</div>
+            </div>
+            <div class="credential-item">
+              <span class="credential-label">🔑 Temporary Password</span>
+              <div class="credential-value">${password}</div>
+            </div>
+            <div class="credential-item">
+              <span class="credential-label">🏢 Workspace</span>
+              <div class="credential-value">${workspaceName}</div>
+            </div>
+          </div>
+
+          <div class="warning-box">
+            <p><strong>⚠️ Important:</strong> You must verify your email before you can login. After verification, please change your temporary password immediately for security.</p>
+          </div>
+        </div>
+
+        <div style="margin-top: 40px; padding: 25px; background: #f8fafc; border-radius: 12px; text-align: center;">
+          <p style="color: #64748b; margin: 0; font-size: 14px;">Didn't create a TaskFlow account? Please ignore this email or contact support if you have concerns.</p>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p><strong>TaskFlow</strong> - Collaborative Task Management</p>
+        <p style="font-size: 12px; opacity: 0.8; margin-top: 15px;">This is an automated message. Please do not reply.</p>
+        <p style="margin-top: 15px;"><a href="${appUrl}" style="color: #90cdf4; text-decoration: none;">Visit TaskFlow</a></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+      `,
+      text: `
+Welcome to TaskFlow!
+
+Hi ${fullName},
+
+Your workspace "${workspaceName}" has been created! To activate your account, please verify your email address.
+
+VERIFICATION CODE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${verificationCode}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This code expires in 24 hours.
+
+Verify here: ${verificationLink}
+
+YOUR LOGIN CREDENTIALS (After Verification):
+📧 Email: ${email}
+🔑 Temporary Password: ${password}
+🏢 Workspace: ${workspaceName}
+
+⚠️ IMPORTANT: You must verify your email before you can login. After verification, please change your temporary password immediately.
+
+Didn't create an account? Please ignore this email.
+
+Best regards,
+The TaskFlow Team
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TaskFlow - Collaborative Task Management
+${appUrl}
+      `.trim()
+    };
+
+    // Send email in background
+    transporter.sendMail(mailOptions)
+      .then(info => {
+        console.log('✅ Verification email sent to:', email);
+      })
+      .catch(error => {
+        console.error('❌ Failed to send verification email');
+        console.error('   To:', email);
+        console.error('   Error:', error.message);
+      });
+    
+    return { success: true, status: 'queued', message: 'Verification email queued' };
+  } catch (error) {
+    console.error('❌ Error in sendVerificationEmail:', error);
+    return { success: false, status: 'error', error: error.message };
+  }
+};
+
 // Send password reset email
 export const sendPasswordResetEmail = async (fullName, email, newPassword) => {
   try {

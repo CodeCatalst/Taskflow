@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { useConfirmModal } from '../hooks/useConfirmModal';
 import Sidebar from '../components/Sidebar';
+import ConfirmModal from '../components/modals/ConfirmModal';
 import axios from '../api/axios';
 import { 
   Building2, 
@@ -20,6 +22,7 @@ import {
 
 export default function WorkspaceManagement() {
   const { theme } = useTheme();
+  const confirmModal = useConfirmModal();
   const [workspaces, setWorkspaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -151,51 +154,56 @@ This will permanently delete:
 
 This action CANNOT be undone!`;
     
-    if (!confirm(confirmMsg)) {
-      return;
-    }
+    confirmModal.show({
+      title: '⚠️ Delete Workspace',
+      message: confirmMsg,
+      confirmText: 'Delete Workspace',
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: async () => {
+        const confirmation = prompt("Type 'DELETE' to confirm:");
+        if (confirmation !== 'DELETE') {
+          alert('Deletion cancelled');
+          return;
+        }
 
-    const confirmation = prompt("Type 'DELETE' to confirm:");
-    if (confirmation !== 'DELETE') {
-      alert('Deletion cancelled');
-      return;
-    }
-
-    try {
-      const response = await axios.delete(`/workspaces/${id}`);
-      const deleted = response.data.deleted || {};
-      alert(`✅ Workspace deleted successfully
-
-Deleted:
-• ${deleted.users || 0} users
-• ${deleted.tasks || 0} tasks
-• ${deleted.teams || 0} teams`);
-      fetchWorkspaces();
-      fetchStats();
-    } catch (error) {
-      console.error('Error deleting workspace:', error);
-      alert(error.response?.data?.message || 'Failed to delete workspace');
-    }
+        try {
+          const response = await axios.delete(`/workspaces/${id}`);
+          const deleted = response.data.deleted || {};
+          alert(`✅ Workspace deleted successfully\n\nDeleted:\n• ${deleted.users || 0} users\n• ${deleted.tasks || 0} tasks\n• ${deleted.teams || 0} teams`);
+          fetchWorkspaces();
+          fetchStats();
+        } catch (error) {
+          console.error('Error deleting workspace:', error);
+          alert(error.response?.data?.message || 'Failed to delete workspace');
+        }
+      },
+    });
   };
 
-  const handleToggleStatus = async (id, name, currentStatus) => {
+  const handleToggleStatus = (id, name, currentStatus) => {
     const action = currentStatus ? 'deactivate' : 'activate';
-    if (!confirm(`Are you sure you want to ${action} workspace "${name}"?`)) {
-      return;
-    }
-
-    try {
-      const response = await axios.patch(`/workspaces/${id}/toggle-status`);
-      const message = response.data.message || `Workspace ${action}d successfully`;
-      const note = response.data.note || '';
-      
-      alert(`${message}\n\n⚠️ IMPORTANT: ${note || 'Users in this workspace must log out and log back in to see the change.'}`);
-      fetchWorkspaces();
-      fetchStats();
-    } catch (error) {
-      console.error('Error toggling workspace status:', error);
-      alert(error.response?.data?.message || 'Failed to toggle workspace status');
-    }
+    confirmModal.show({
+      title: `${action === 'activate' ? 'Activate' : 'Deactivate'} Workspace`,
+      message: `Are you sure you want to ${action} workspace "${name}"? Users in this workspace will ${action === 'deactivate' ? 'lose access until it is reactivated' : 'regain access'}.`,
+      confirmText: action === 'activate' ? 'Activate' : 'Deactivate',
+      cancelText: 'Cancel',
+      variant: action === 'deactivate' ? 'warning' : 'info',
+      onConfirm: async () => {
+        try {
+          const response = await axios.patch(`/workspaces/${id}/toggle-status`);
+          const message = response.data.message || `Workspace ${action}d successfully`;
+          const note = response.data.note || '';
+          
+          alert(`${message}\n\n⚠️ IMPORTANT: ${note || 'Users in this workspace must log out and log back in to see the change.'}`);
+          fetchWorkspaces();
+          fetchStats();
+        } catch (error) {
+          console.error('Error toggling workspace status:', error);
+          alert(error.response?.data?.message || 'Failed to toggle workspace status');
+        }
+      },
+    });
   };
 
   const openEditModal = (workspace) => {
@@ -914,6 +922,19 @@ Deleted:
           )}
         </div>
       </div>
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={confirmModal.onClose}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
+        variant={confirmModal.variant}
+        isLoading={confirmModal.isLoading}
+      />
     </div>
   );
 }

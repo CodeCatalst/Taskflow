@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useConfirmModal } from '../hooks/useConfirmModal';
+import ConfirmModal from './modals/ConfirmModal';
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -26,6 +28,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const confirmModal = useConfirmModal();
 
   const getUserInitials = (name) => {
     if (!name) return 'U';
@@ -52,7 +55,7 @@ const Sidebar = () => {
     { path: '/teams', icon: Users, label: 'Teams', roles: ['admin', 'hr', 'team_lead', 'community_admin'] },
     { path: '/users', icon: UserCog, label: 'User Management', roles: ['admin', 'hr'] },
     { path: '/community-users', icon: UserCog, label: 'Community Users', roles: ['community_admin'] },
-    { path: '/workspaces', icon: Building2, label: 'Workspaces', roles: ['admin'], systemAdminOnly: true },
+    { path: '/workspaces', icon: Building2, label: 'Workspaces', roles: ['admin'] },
     { path: '/changelog', icon: FileText, label: 'Audit Logs', roles: ['admin'] },
   ];
 
@@ -320,8 +323,16 @@ const Sidebar = () => {
 
           {/* Logout Button */}
           <button
-            onClick={() => {
-              if (window.confirm('Are you sure you want to logout?')) {
+            onClick={async () => {
+              const confirmed = await confirmModal.show({
+                title: 'Logout',
+                message: 'Are you sure you want to logout? You will need to sign in again to access your account.',
+                confirmText: 'Logout',
+                cancelText: 'Stay Logged In',
+                variant: 'logout',
+              });
+              
+              if (confirmed) {
                 logout();
                 navigate('/login');
               }
@@ -351,6 +362,19 @@ const Sidebar = () => {
       >
         {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
       </button>
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={confirmModal.onClose}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
+        variant={confirmModal.variant}
+        isLoading={confirmModal.isLoading}
+      />
     </aside>
   );
 };

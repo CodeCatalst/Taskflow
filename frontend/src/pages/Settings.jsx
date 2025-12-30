@@ -1,16 +1,21 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useConfirmModal } from '../hooks/useConfirmModal';
 import Sidebar from '../components/Sidebar';
 import ThemeToggle from '../components/ThemeToggle';
 import NotificationSettings from '../components/NotificationSettings';
 import SessionSettings from '../components/SessionSettings';
+import ConfirmModal from '../components/modals/ConfirmModal';
 import api from '../api/axios';
-import { User, Settings as SettingsIcon, Palette, Monitor, Lock, Eye, EyeOff, Bell, AlertCircle, Camera, Trash2, Upload } from 'lucide-react';
+import { User, Settings as SettingsIcon, Palette, Monitor, Lock, Eye, EyeOff, Bell, AlertCircle, Camera, Trash2, Upload, AlertTriangle } from 'lucide-react';
 
 const Settings = () => {
-  const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
+  const { user, updateUser, logout } = useAuth();
   const { theme } = useTheme();
+  const confirmModal = useConfirmModal();
   const fileInputRef = useRef(null);
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -163,6 +168,41 @@ const Settings = () => {
       });
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  const handleDeleteWorkspace = async () => {
+    const confirmed = await confirmModal.show({
+      title: 'Delete Workspace & Account',
+      message: `Are you absolutely sure you want to delete your workspace "${user?.workspace?.name}"?\n\nThis will PERMANENTLY DELETE:\n• Your account\n• All users in this workspace\n• All tasks and projects\n• All teams\n• All data and settings\n\nThis action cannot be undone!`,
+      confirmText: 'Yes, Delete Everything',
+      variant: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    // Second confirmation for extra safety
+    const doubleConfirmed = await confirmModal.show({
+      title: '⚠️ FINAL WARNING',
+      message: `Last chance to change your mind!\n\nClicking "Confirm Deletion" will PERMANENTLY and IRREVERSIBLY delete:\n\n• Workspace: ${user?.workspace?.name}\n• Your account: ${user?.email}\n• ${user?.workspace?.type === 'COMMUNITY' ? 'All community' : 'All'} data\n\nThere is NO way to recover this data!`,
+      confirmText: 'Confirm Deletion',
+      variant: 'danger'
+    });
+
+    if (!doubleConfirmed) return;
+
+    try {
+      await api.delete('/workspaces/my-workspace/delete');
+      
+      // Logout and redirect to home page
+      await logout();
+      navigate('/', { 
+        state: { 
+          message: 'Your workspace and account have been permanently deleted.' 
+        } 
+      });
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to delete workspace. Please contact support.');
     }
   };
 
@@ -516,9 +556,71 @@ const Settings = () => {
                 </div>
               </div>
             )}
+
+            {/* Danger Zone - Community Admin Only */}
+            {user?.role === 'community_admin' && (
+              <div className={`${theme === 'dark' ? 'bg-red-950/20 border-red-900/50' : 'bg-red-50 border-red-200'} rounded border p-6`}>
+                <div className="flex items-center gap-3 mb-4">
+                  <AlertTriangle className="text-red-500" size={24} />
+                  <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-red-400' : 'text-red-700'} uppercase tracking-wider`}>Danger Zone</h3>
+                </div>
+                
+                <div className={`${theme === 'dark' ? 'bg-red-950/40 border-red-900' : 'bg-white border-red-200'} border rounded-lg p-5`}>
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      <Trash2 className="text-red-500" size={28} />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className={`font-bold text-base ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                        Delete Workspace & Account
+                      </h4>
+                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-3 leading-relaxed`}>
+                        Permanently delete your workspace "<strong>{user?.workspace?.name}</strong>" and your account.
+                      </p>
+                      <div className={`${theme === 'dark' ? 'bg-red-950/60' : 'bg-red-50'} border ${theme === 'dark' ? 'border-red-900' : 'border-red-200'} rounded-lg p-4 mb-4`}>
+                        <p className={`font-semibold ${theme === 'dark' ? 'text-red-400' : 'text-red-700'} mb-2 flex items-center gap-2`}>
+                          <AlertTriangle size={16} />
+                          This action will permanently delete:
+                        </p>
+                        <ul className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} space-y-1.5 ml-6 list-disc`}>
+                          <li>Your account and login credentials</li>
+                          <li>All users in this workspace</li>
+                          <li>All tasks and projects</li>
+                          <li>All teams and team members</li>
+                          <li>All files and attachments</li>
+                          <li>All settings and configurations</li>
+                          <li>All activity history and logs</li>
+                        </ul>
+                        <p className={`text-sm ${theme === 'dark' ? 'text-red-400' : 'text-red-700'} mt-3 font-bold`}>
+                          ⚠️ This action cannot be undone! All data will be lost forever.
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleDeleteWorkspace}
+                        className={`
+                          px-6 py-3 rounded-lg font-semibold text-sm
+                          bg-red-600 hover:bg-red-700 text-white
+                          transition-all duration-200
+                          flex items-center gap-2
+                          shadow-lg hover:shadow-xl
+                          focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2
+                          ${theme === 'dark' ? 'focus:ring-offset-[#111418]' : 'focus:ring-offset-white'}
+                        `}
+                      >
+                        <Trash2 size={18} />
+                        Delete My Workspace & Account
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
+
+      {/* Confirm Modal */}
+      <ConfirmModal {...confirmModal} />
     </div>
   );
 };

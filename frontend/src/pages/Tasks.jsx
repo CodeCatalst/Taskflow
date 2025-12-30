@@ -4,14 +4,17 @@ import { useTheme } from '../context/ThemeContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import useRealtimeSync from '../hooks/useRealtimeSync';
+import { useConfirmModal } from '../hooks/useConfirmModal';
 import Sidebar from '../components/Sidebar';
-import { Plus, X, Edit2, Trash2, MessageSquare, Search, ChevronDown, MoreHorizontal, CheckSquare, Bell, HelpCircle, Download, Grid3x3 } from 'lucide-react';
+import ConfirmModal from '../components/modals/ConfirmModal';
+import { Plus, X, Edit2, Trash2, MessageSquare, Search, ChevronDown, MoreHorizontal, CheckSquare, Bell, HelpCircle, Download, Grid3x3, Settings } from 'lucide-react';
 
 const Tasks = () => {
   const { user, socket } = useAuth();
   const { theme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const confirmModal = useConfirmModal();
   const [tasks, setTasks] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -311,17 +314,24 @@ const Tasks = () => {
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
-    if (!confirm('Are you sure you want to delete this task?')) return;
-
-    try {
-      await api.delete(`/tasks/${taskId}`);
-      fetchTasks();
-      setShowDetailModal(false);
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      alert(error.response?.data?.message || 'Failed to delete task');
-    }
+  const handleDeleteTask = (taskId) => {
+    confirmModal.show({
+      title: 'Delete Task',
+      message: 'Are you sure you want to delete this task? This action cannot be undone and will remove all associated comments and data.',
+      confirmText: 'Delete Task',
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/tasks/${taskId}`);
+          fetchTasks();
+          setShowDetailModal(false);
+        } catch (error) {
+          console.error('Error deleting task:', error);
+          alert(error.response?.data?.message || 'Failed to delete task');
+        }
+      },
+    });
   };
 
   const viewTaskDetails = async (task) => {
@@ -429,39 +439,56 @@ const Tasks = () => {
   return (
     <div className={`${theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-gray-50 text-gray-900'} font-['Inter'] overflow-hidden flex flex-col h-screen`}>
       {/* Top Navigation */}
-      <header className={`flex flex-none items-center justify-between whitespace-nowrap border-b border-solid ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} ${theme === 'dark' ? 'bg-[#111418]' : 'bg-white'} px-6 py-3 shrink-0 z-20`}>
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3">
-            <div className="size-8 rounded bg-[#136dec] flex items-center justify-center">
-              <CheckSquare className="text-white" size={20} />
-            </div>
-            <h2 className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-lg font-bold leading-tight tracking-tight`}>TaskFlow</h2>
-          </div>
-          <label className="hidden md:flex flex-col min-w-[320px] h-9">
-            <div className={`flex w-full flex-1 items-stretch rounded ${theme === 'dark' ? 'bg-[#1c2027]' : 'bg-white'} border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} group focus-within:border-[#136dec] transition-colors`}>
-              <div className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} flex items-center justify-center pl-3`}>
-                <Search size={20} />
-              </div>
-              <input
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className={`flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded bg-transparent ${theme === 'dark' ? 'text-white' : 'text-gray-900'} focus:outline-none ${theme === 'dark' ? 'placeholder:text-[#9da8b9]' : 'placeholder:text-gray-500'} px-3 text-sm font-normal leading-normal border-none focus:ring-0`}
-                placeholder="Search tasks, projects, or people..."
-              />
-            </div>
-          </label>
+      <header className={`h-16 flex items-center justify-between px-6 border-b ${theme === 'dark' ? 'border-[#282f39] bg-[#111418]' : 'border-gray-200 bg-white'} shrink-0 z-20`}>
+        <div className="flex items-center gap-4">
+          <h2 className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-lg font-bold leading-tight tracking-tight`}>Tasks</h2>
         </div>
-        <div className="flex flex-1 justify-end gap-6 items-center">
-          <div className="flex gap-1">
-            <button className={`flex items-center justify-center size-9 rounded-full ${theme === 'dark' ? 'hover:bg-[#1c2027]' : 'hover:bg-gray-100'} ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} ${theme === 'dark' ? 'hover:text-white' : 'hover:text-gray-900'} transition-colors`}>
-              <Bell size={20} />
-            </button>
-            <button className={`flex items-center justify-center size-9 rounded-full ${theme === 'dark' ? 'hover:bg-[#1c2027]' : 'hover:bg-gray-100'} ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} ${theme === 'dark' ? 'hover:text-white' : 'hover:text-gray-900'} transition-colors`}>
-              <HelpCircle size={20} />
-            </button>
+        <div className="flex items-center gap-6">
+          {/* Search */}
+          <div className="relative w-80 hidden md:block">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className={`w-5 h-5 ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-400'}`} />
+            </div>
+            <input
+              className={`block w-full rounded-[0.125rem] ${theme === 'dark' ? 'bg-[#1c2027] text-white placeholder-[#9da8b9]' : 'bg-gray-100 text-gray-900 placeholder-gray-400'} border-0 py-2 pl-10 pr-3 focus:ring-1 focus:ring-[#136dec] sm:text-sm`}
+              placeholder="Search tasks, projects, or people..."
+              type="text"
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            />
+            {filters.search && (
+              <button
+                onClick={() => setFilters({ ...filters, search: '' })}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                <X className="w-4 h-4 text-[#9da8b9] hover:text-white" />
+              </button>
+            )}
           </div>
-          <div className="bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full size-8 flex items-center justify-center text-[10px] text-white font-bold cursor-pointer ring-2 ring-[#282f39]">
-            {getUserInitials(user?.full_name || user?.email)}
+
+          {/* Actions */}
+          <div className={`flex items-center gap-4 border-l ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} pl-6`}>
+            <button 
+              onClick={() => navigate('/notifications')}
+              className={`${theme === 'dark' ? 'text-[#9da8b9] hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors relative`}
+              title="Notifications"
+            >
+              <Bell className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={() => navigate('/')}
+              className={`${theme === 'dark' ? 'text-[#9da8b9] hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+              title="Help & Documentation"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={() => navigate('/settings')}
+              className={`${theme === 'dark' ? 'text-[#9da8b9] hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+              title="Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </header>
@@ -506,9 +533,13 @@ const Tasks = () => {
                     <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-xs font-medium`}>{filters.priority ? getPriorityLabel(filters.priority) : 'All'}</span>
                     <ChevronDown size={16} className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`} />
                   </button>
-                  <button style={{ borderRadius: '0.125rem' }} className={`flex h-7 items-center gap-1.5 border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} px-3 ${theme === 'dark' ? 'hover:bg-[#1c2027]' : 'hover:bg-gray-100'} transition-colors`}>
-                    <Plus size={16} className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`} />
-                    <span className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} text-xs font-medium`}>Add Filter</span>
+                  <button 
+                    onClick={() => setFilters({ ...filters, showMyTasksOnly: !filters.showMyTasksOnly })}
+                    style={{ borderRadius: '0.125rem' }} 
+                    className={`flex h-7 items-center gap-1.5 border px-3 transition-colors ${filters.showMyTasksOnly ? 'border-[#136dec] bg-[#136dec]/10' : `${theme === 'dark' ? 'border-[#282f39] hover:bg-[#1c2027]' : 'border-gray-200 hover:bg-gray-100'}`}`}
+                  >
+                    <CheckSquare size={16} className={`${filters.showMyTasksOnly ? 'text-[#136dec]' : theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`} />
+                    <span className={`text-xs font-medium ${filters.showMyTasksOnly ? 'text-[#136dec]' : theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>My Tasks Only</span>
                   </button>
                 </div>
               </div>
@@ -1163,6 +1194,19 @@ const Tasks = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={confirmModal.onClose}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
+        variant={confirmModal.variant}
+        isLoading={confirmModal.isLoading}
+      />
     </div>
   );
 };

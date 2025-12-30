@@ -40,15 +40,16 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
       assigned_to: assigned_to && assigned_to.length > 0 ? assigned_to : [req.user._id],
       team_id: team_id || req.user.team_id,
       due_date,
-      workspaceId: req.context.workspaceId || null  // WORKSPACE SUPPORT (null for system admins)
+      workspaceId: req.context?.workspaceId || req.user.workspaceId || null  // WORKSPACE SUPPORT (fallback to user's workspace, null for system admins)
     });
 
     await task.save();
 
     // Update workspace task count (skip for system admins)
-    if (req.context.workspaceId) {
+    const targetWorkspaceId = req.context?.workspaceId || req.user.workspaceId;
+    if (targetWorkspaceId) {
       await Workspace.findByIdAndUpdate(
-        req.context.workspaceId,
+        targetWorkspaceId,
         { $inc: { 'usage.taskCount': 1 } }
       );
     }
@@ -62,6 +63,7 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
           type: 'task_assigned',
           message: `${req.user.full_name} assigned you a new task: "${task.title}"`,
           task_id: task._id,
+          workspaceId: targetWorkspaceId,
           payload: {
             task_id: task._id,
             task_title: task.title,
@@ -109,7 +111,8 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
         status: task.status,
         due_date: task.due_date,
         assigned_to: assigned_to
-      }
+      },
+      workspaceId: req.context?.workspaceId || req.user.workspaceId
     });
 
     // Emit socket events for task creation (to all users) and task assignment (to specific users)
@@ -357,7 +360,8 @@ router.patch('/:id', authenticate, async (req, res) => {
         status: task.status,
         due_date: task.due_date
       },
-      changes
+      changes,
+      workspaceId: req.context.workspaceId
     });
 
     // Emit socket event
@@ -408,7 +412,8 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr', 'team_lead', 'comm
       target_id: req.params.id,
       target_name: taskTitle,
       action: 'Deleted task',
-      description: `${req.user.full_name} deleted task "${taskTitle}"`
+      description: `${req.user.full_name} deleted task "${taskTitle}"`,
+      workspaceId: req.context.workspaceId
     });
 
     // Emit socket event for task deletion

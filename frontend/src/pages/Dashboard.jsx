@@ -557,7 +557,11 @@ const Dashboard = () => {
                   <span className={`absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ${theme === 'dark' ? 'ring-[#111418]' : 'ring-white'}`}></span>
                 )}
               </button>
-              <button className={`${theme === 'dark' ? 'text-[#9da8b9] hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+              <button 
+                onClick={() => navigate('/')}
+                className={`${theme === 'dark' ? 'text-[#9da8b9] hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+                title="Help & Documentation"
+              >
                 <HelpCircle className="w-5 h-5" />
               </button>
               <button 

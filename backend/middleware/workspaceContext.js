@@ -12,14 +12,12 @@ import Workspace from '../models/Workspace.js';
 const workspaceContext = async (req, res, next) => {
   try {
     // Skip workspace resolution for public endpoints
-    if (!req.user || !req.user.id) {
+    if (!req.user || !req.user._id) {
       return next();
     }
 
-    // Fetch user with workspace details
-    const user = await User.findById(req.user.id)
-      .select('workspaceId role email full_name')
-      .lean();
+    // User is already fetched in auth middleware, use it directly
+    const user = req.user;
 
     if (!user) {
       return res.status(401).json({ 
@@ -62,19 +60,24 @@ const workspaceContext = async (req, res, next) => {
       });
     }
 
-    // Fetch workspace details
-    const workspace = await Workspace.findById(user.workspaceId)
-      .select('name type isActive settings limits usage')
-      .lean();
-
-    if (!workspace) {
-      return res.status(403).json({ 
-        message: 'Workspace not found',
-        error: 'INVALID_WORKSPACE' 
-      });
+    // Use workspace already populated in auth middleware
+    let workspace = user.workspaceId;
+    
+    // If workspace wasn't populated (shouldn't happen), fetch it
+    if (!workspace || typeof workspace === 'string') {
+      workspace = await Workspace.findById(user.workspaceId)
+        .select('name type isActive settings limits usage')
+        .lean();
+      
+      if (!workspace) {
+        return res.status(403).json({ 
+          message: 'Workspace not found',
+          error: 'INVALID_WORKSPACE' 
+        });
+      }
     }
 
-    // Check workspace active status (skip for admins accessing workspace management)
+    // Check workspace active status
     if (!workspace.isActive) {
       return res.status(403).json({ 
         message: 'Your workspace has been deactivated. Please contact support.',
