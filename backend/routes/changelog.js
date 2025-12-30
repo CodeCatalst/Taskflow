@@ -29,12 +29,12 @@ router.get('/', authenticate, checkRole(['admin']), async (req, res) => {
       workspace_id  // Allow system admins to filter by specific workspace
     } = req.query;
 
-    // System admins can see all logs or filter by workspace
-    // Regular admins can only see their workspace's logs
+    // Admins (role: 'admin') can see all logs across all workspaces
+    // Community admins can only see their workspace's logs
     let workspaceFilter = req.context.workspaceId;
     
-    if (req.context.isSystemAdmin) {
-      // System admin: show all logs, or filter by specific workspace if provided
+    if (req.user.role === 'admin') {
+      // Admin: show all logs from all workspaces, or filter by specific workspace if provided
       workspaceFilter = workspace_id || null;  // null means all workspaces
     }
 
@@ -48,7 +48,7 @@ router.get('/', authenticate, checkRole(['admin']), async (req, res) => {
       end_date,
       search,
       workspaceId: workspaceFilter,
-      includeAllWorkspaces: req.context.isSystemAdmin && !workspace_id  // New flag for system admins
+      includeAllWorkspaces: req.user.role === 'admin' && !workspace_id  // Admins see all workspaces
     });
 
     res.json(result);
@@ -67,6 +67,7 @@ router.get('/stats', authenticate, checkRole(['admin']), async (req, res) => {
   try {
     const { start_date, end_date } = req.query;
 
+    // Admins see stats from all workspaces
     const stats = await getChangeLogStats({ start_date, end_date });
 
     res.json(stats);
@@ -94,6 +95,7 @@ router.get('/export', authenticate, checkRole(['admin']), async (req, res) => {
 
     const query = {};
 
+    // Admins see logs from all workspaces (no workspaceId filter)
     if (event_type) query.event_type = event_type;
     if (user_id) query.user_id = user_id;
     if (target_type) query.target_type = target_type;

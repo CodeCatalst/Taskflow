@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import { useConfirmModal } from '../hooks/useConfirmModal';
 import Sidebar from '../components/Sidebar';
+import ConfirmModal from '../components/modals/ConfirmModal';
 import api from '../api/axios';
 import { 
   Activity, 
@@ -25,6 +27,7 @@ const ChangeLog = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const confirmModal = useConfirmModal();
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -162,20 +165,25 @@ const ChangeLog = () => {
     }
   };
 
-  const handleClearOldLogs = async () => {
-    if (!confirm('Are you sure you want to delete logs older than 90 days?')) {
-      return;
-    }
-
-    try {
-      const response = await api.delete('/changelog/clear?days=90');
-      alert(response.data.message);
-      fetchLogs();
-      fetchStats();
-    } catch (error) {
-      console.error('Error clearing logs:', error);
-      alert('Failed to clear logs');
-    }
+  const handleClearOldLogs = () => {
+    confirmModal.show({
+      title: 'Clear Old Logs',
+      message: 'Are you sure you want to delete all audit logs older than 90 days? This action cannot be undone and may affect historical reporting.',
+      confirmText: 'Delete Old Logs',
+      cancelText: 'Cancel',
+      variant: 'warning',
+      onConfirm: async () => {
+        try {
+          const response = await api.delete('/changelog/clear?days=90');
+          alert(response.data.message);
+          fetchLogs();
+          fetchStats();
+        } catch (error) {
+          console.error('Error clearing logs:', error);
+          alert('Failed to clear logs');
+        }
+      },
+    });
   };
 
   const getEventIcon = (eventType) => {
@@ -706,6 +714,19 @@ const ChangeLog = () => {
           </div>
         </div>
       </div>
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={confirmModal.onClose}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
+        variant={confirmModal.variant}
+        isLoading={confirmModal.isLoading}
+      />
     </div>
   );
 };

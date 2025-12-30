@@ -1,14 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useConfirmModal } from '../hooks/useConfirmModal';
 import api from '../api/axios';
 import Sidebar from '../components/Sidebar';
+import ConfirmModal from '../components/modals/ConfirmModal';
 import useRealtimeSync from '../hooks/useRealtimeSync';
 import { Upload, Download, FileJson, FileSpreadsheet, X, Search, Filter, Users as UsersIcon, User, Shield, Trash2, Edit2, Key, Plus } from 'lucide-react';
 
 export default function UserManagement() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const confirmModal = useConfirmModal();
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -140,36 +143,52 @@ export default function UserManagement() {
     }
   };
 
-  const handleDelete = async (userId, userEmail) => {
-    if (!window.confirm(`Are you sure you want to delete user: ${userEmail}?`)) return;
-    try {
-      await api.delete(`/users/${userId}`);
-      setSuccess('User deleted successfully');
-      await fetchUsers();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete user');
-      setTimeout(() => setError(''), 3000);
-    }
+  const handleDelete = (userId, userEmail) => {
+    confirmModal.show({
+      title: 'Delete User',
+      message: `Are you sure you want to delete user: ${userEmail}? This will permanently remove their account and all associated data.`,
+      confirmText: 'Delete User',
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/users/${userId}`);
+          setSuccess('User deleted successfully');
+          await fetchUsers();
+          setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+          setError(err.response?.data?.message || 'Failed to delete user');
+          setTimeout(() => setError(''), 3000);
+        }
+      },
+    });
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedUserIds.length === 0) {
       setError('Please select users to delete');
       setTimeout(() => setError(''), 3000);
       return;
     }
-    if (!window.confirm(`Are you sure you want to delete ${selectedUserIds.length} user(s)?`)) return;
-    try {
-      const response = await api.post('/users/bulk-delete', { userIds: selectedUserIds });
-      setSuccess(response.data.message);
-      setSelectedUserIds([]);
-      await fetchUsers();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete users');
-      setTimeout(() => setError(''), 3000);
-    }
+    confirmModal.show({
+      title: 'Delete Multiple Users',
+      message: `Are you sure you want to delete ${selectedUserIds.length} user(s)? This will permanently remove their accounts and all associated data. This action cannot be undone.`,
+      confirmText: `Delete ${selectedUserIds.length} User${selectedUserIds.length !== 1 ? 's' : ''}`,
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          const response = await api.post('/users/bulk-delete', { userIds: selectedUserIds });
+          setSuccess(response.data.message);
+          setSelectedUserIds([]);
+          await fetchUsers();
+          setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+          setError(err.response?.data?.message || 'Failed to delete users');
+          setTimeout(() => setError(''), 3000);
+        }
+      },
+    });
   };
 
   const toggleSelectUser = (userId) => {
@@ -709,6 +728,19 @@ export default function UserManagement() {
           </div>
         </div>
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={confirmModal.onClose}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
+        variant={confirmModal.variant}
+        isLoading={confirmModal.isLoading}
+      />
     </div>
   );
 }

@@ -19,10 +19,11 @@ export const authenticate = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid or expired token' });
     }
 
-    // Get user from database with team populated
+    // Get user from database with team and workspace populated
     const user = await User.findById(decoded.userId)
       .select('-password_hash')
-      .populate('team_id', 'name description');
+      .populate('team_id', 'name description')
+      .populate('workspaceId', 'name type isActive settings limits usage');
     
     if (!user) {
       return res.status(401).json({ message: 'User not found' });

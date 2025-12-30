@@ -12,8 +12,14 @@
 
 /**
  * Middleware to ensure only CORE workspaces can access the route
+ * System admins and workspace admins bypass this check
  */
 export const requireCoreWorkspace = (req, res, next) => {
+  // System admins and workspace admins can access CORE features
+  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'community_admin') {
+    return next();
+  }
+
   if (!req.context || !req.context.workspaceType) {
     return res.status(403).json({
       message: 'Workspace context not found',
@@ -38,8 +44,8 @@ export const requireCoreWorkspace = (req, res, next) => {
  */
 export const requireFeature = (featureName) => {
   return (req, res, next) => {
-    // System admins have all features enabled
-    if (req.context?.isSystemAdmin) {
+    // System admins and workspace admins have all features enabled
+    if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'community_admin') {
       return next();
     }
 
@@ -65,8 +71,14 @@ export const requireFeature = (featureName) => {
 
 /**
  * Middleware to check if workspace can add more users
+ * Admins and system admins bypass this check
  */
 export const checkUserLimit = (req, res, next) => {
+  // System admins and workspace admins can bypass limits
+  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'community_admin') {
+    return next();
+  }
+
   if (!req.context || !req.context.workspace) {
     return res.status(403).json({
       message: 'Workspace context not found',
@@ -89,8 +101,14 @@ export const checkUserLimit = (req, res, next) => {
 
 /**
  * Middleware to check if workspace can add more tasks
+ * Admins and system admins bypass this check
  */
 export const checkTaskLimit = (req, res, next) => {
+  // System admins and workspace admins can bypass limits
+  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'community_admin') {
+    return next();
+  }
+
   if (!req.context || !req.context.workspace) {
     return res.status(403).json({
       message: 'Workspace context not found',
@@ -113,8 +131,14 @@ export const checkTaskLimit = (req, res, next) => {
 
 /**
  * Middleware to check if workspace can add more teams
+ * Admins and system admins bypass this check
  */
 export const checkTeamLimit = (req, res, next) => {
+  // System admins and workspace admins can bypass limits
+  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'community_admin') {
+    return next();
+  }
+
   if (!req.context || !req.context.workspace) {
     return res.status(403).json({
       message: 'Workspace context not found',
@@ -138,16 +162,18 @@ export const checkTeamLimit = (req, res, next) => {
 /**
  * Combined middleware for bulk user import
  * Requires CORE workspace AND bulkUserImport feature
- * Blocked for community_admin role
+ * System admins and workspace admins bypass restrictions
  */
 export const requireBulkImport = [
   (req, res, next) => {
+    // Allow admins and system admins to bypass
+    if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
+      return next();
+    }
+    
     if (req.user && req.user.role === 'community_admin') {
-      return res.status(403).json({
-        message: 'Bulk import is not available for community administrators. Please upgrade to a CORE workspace.',
-        error: 'COMMUNITY_ADMIN_RESTRICTED',
-        feature: 'bulkUserImport'
-      });
+      // Community admins can use bulk import (they're admins)
+      return next();
     }
     next();
   },
@@ -157,16 +183,18 @@ export const requireBulkImport = [
 /**
  * Combined middleware for audit logs
  * Requires CORE workspace AND auditLogs feature
- * Blocked for community_admin role
+ * System admins and workspace admins bypass restrictions
  */
 export const requireAuditLogs = [
   (req, res, next) => {
+    // Allow admins and system admins to bypass
+    if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
+      return next();
+    }
+    
     if (req.user && req.user.role === 'community_admin') {
-      return res.status(403).json({
-        message: 'Audit logs are not available for community administrators. Please upgrade to a CORE workspace.',
-        error: 'COMMUNITY_ADMIN_RESTRICTED',
-        feature: 'auditLogs'
-      });
+      // Community admins can access audit logs (they're admins)
+      return next();
     }
     next();
   },

@@ -9,11 +9,11 @@ import { logChange } from '../utils/changeLogService.js';
 
 const router = express.Router();
 
-// System admin guard middleware
-const requireSystemAdmin = (req, res, next) => {
-  if (!req.context.isSystemAdmin) {
+// Admin guard middleware (allows both system admins and regular admins)
+const requireAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin') {
     return res.status(403).json({ 
-      message: 'Access denied. System administrator privileges required.' 
+      message: 'Access denied. Administrator privileges required.' 
     });
   }
   next();
@@ -23,8 +23,8 @@ const requireSystemAdmin = (req, res, next) => {
 router.use(authenticate);
 router.use(workspaceContext);
 
-// Get all workspaces (System Admin only)
-router.get('/', requireSystemAdmin, async (req, res) => {
+// Get all workspaces (Admin only)
+router.get('/', requireAdmin, async (req, res) => {
   try {
     const workspaces = await Workspace.find().sort({ createdAt: -1 });
     
@@ -66,8 +66,8 @@ router.get('/', requireSystemAdmin, async (req, res) => {
   }
 });
 
-// Get single workspace details (System Admin only)
-router.get('/:id', requireSystemAdmin, async (req, res) => {
+// Get single workspace details (Admin only)
+router.get('/:id', requireAdmin, async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
     if (!workspace) {
@@ -117,8 +117,8 @@ router.get('/:id', requireSystemAdmin, async (req, res) => {
   }
 });
 
-// Create new workspace (System Admin only)
-router.post('/', requireSystemAdmin, async (req, res) => {
+// Create new workspace (Admin only)
+router.post('/', requireAdmin, async (req, res) => {
   try {
     const { name, type, ownerEmail } = req.body;
 
@@ -143,10 +143,20 @@ router.post('/', requireSystemAdmin, async (req, res) => {
       });
     }
 
+    // Find owner if email provided
+    let ownerId = null;
+    if (ownerEmail) {
+      const owner = await User.findOne({ email: ownerEmail });
+      if (owner) {
+        ownerId = owner._id;
+      }
+    }
+
     // Create workspace
     const workspace = new Workspace({
       name,
       type,
+      owner: ownerId,
       settings: {
         features: type === 'CORE' 
           ? ['analytics', 'reports', 'changelog', 'automation', 'teams']
@@ -159,9 +169,9 @@ router.post('/', requireSystemAdmin, async (req, res) => {
 
     await workspace.save();
 
-    // If owner email provided, create workspace admin
-    if (ownerEmail) {
-      const owner = await User.findOne({ email: ownerEmail });
+    // If owner email provided, assign workspace to owner
+    if (ownerId) {
+      const owner = await User.findById(ownerId);
       if (owner) {
         owner.workspaceId = workspace._id;
         if (owner.role === 'member') {
@@ -196,7 +206,8 @@ router.post('/', requireSystemAdmin, async (req, res) => {
 });
 
 // Update workspace (System Admin only)
-router.put('/:id', requireSystemAdmin, async (req, res) => {
+// Update workspace settings (Admin only)
+router.put('/:id', requireAdmin, async (req, res) => {
   try {
     const { name, type, settings, limits } = req.body;
 
@@ -255,8 +266,94 @@ router.put('/:id', requireSystemAdmin, async (req, res) => {
   }
 });
 
-// Delete workspace (System Admin only)
-router.delete('/:id', requireSystemAdmin, async (req, res) => {
+// Delete own workspace and account (Community Admin only)
+router.delete('/my-workspace/delete', async (req, res) => {
+  try {
+    // Only community admins can delete their own workspace
+    if (req.user.role !== 'community_admin') {
+      return res.status(403).json({ 
+        message: 'Only community workspace admins can delete their workspace' 
+      });
+    }
+
+    const workspace = await Workspace.findById(req.user.workspaceId);
+    if (!workspace) {
+      return res.status(404).json({ message: 'Workspace not found' });
+    }
+
+    // Verify user is the owner of the workspace
+    if (!workspace.owner.equals(req.user._id)) {
+      return res.status(403).json({ 
+        message: 'You can only delete workspaces you created' 
+      });
+    }
+
+    // Only allow deletion of COMMUNITY workspaces
+    if (workspace.type !== 'COMMUNITY') {
+      return res.status(403).json({ 
+        message: 'Only community workspaces can be self-deleted. Contact support for enterprise workspaces.' 
+      });
+    }
+
+    // Get counts for logging
+    const [userCount, taskCount, teamCount] = await Promise.all([
+      User.countDocuments({ workspaceId: workspace._id }),
+      Task.countDocuments({ workspaceId: workspace._id }),
+      Team.countDocuments({ workspaceId: workspace._id })
+    ]);
+
+    console.log(`🗑️  Community admin deleting workspace "${workspace.name}" with ${userCount} users, ${taskCount} tasks, ${teamCount} teams`);
+
+    // Log workspace deletion BEFORE deleting (so we can still log it)
+    await logChange({
+      event_type: 'workspace_action',
+      user: req.user,
+      target_type: 'Workspace',
+      target_id: workspace._id,
+      target_name: workspace.name,
+      action: 'delete',
+      description: `Community admin ${req.user.full_name} deleted their workspace: ${workspace.name} (${userCount} users, ${taskCount} tasks, ${teamCount} teams)`,
+      changes: { before: workspace.toObject() },
+      metadata: { 
+        userCount, 
+        taskCount, 
+        teamCount,
+        selfDeleted: true,
+        workspaceType: 'COMMUNITY'
+      },
+      workspaceId: workspace._id
+    });
+
+    // CASCADE DELETE: Delete all workspace data including users and changelog
+    const ChangeLog = (await import('../models/ChangeLog.js')).default;
+    await Promise.all([
+      User.deleteMany({ workspaceId: workspace._id }),
+      Task.deleteMany({ workspaceId: workspace._id }),
+      Team.deleteMany({ workspaceId: workspace._id }),
+      ChangeLog.deleteMany({ workspaceId: workspace._id })
+    ]);
+
+    console.log(`✅ Deleted ${userCount} users, ${taskCount} tasks, ${teamCount} teams, and all changelog entries`);
+
+    await workspace.deleteOne();
+
+    res.json({ 
+      message: 'Your workspace, account, and all associated data have been permanently deleted',
+      deleted: {
+        workspace: workspace.name,
+        users: userCount,
+        tasks: taskCount,
+        teams: teamCount
+      }
+    });
+  } catch (error) {
+    console.error('Error deleting workspace:', error);
+    res.status(500).json({ message: 'Failed to delete workspace. Please try again or contact support.' });
+  }
+});
+
+// Delete workspace (Admin only)
+router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
     if (!workspace) {
@@ -312,8 +409,8 @@ router.delete('/:id', requireSystemAdmin, async (req, res) => {
   }
 });
 
-// Toggle workspace activation status (System Admin only)
-router.patch('/:id/toggle-status', requireSystemAdmin, async (req, res) => {
+// Toggle workspace activation status (Admin only)
+router.patch('/:id/toggle-status', requireAdmin, async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
     if (!workspace) {
@@ -354,7 +451,8 @@ router.patch('/:id/toggle-status', requireSystemAdmin, async (req, res) => {
 });
 
 // Get workspace statistics summary (System Admin only)
-router.get('/stats/summary', requireSystemAdmin, async (req, res) => {
+// Get workspace statistics summary (Admin only)
+router.get('/stats/summary', requireAdmin, async (req, res) => {
   try {
     const [
       totalWorkspaces,
@@ -392,7 +490,8 @@ router.get('/stats/summary', requireSystemAdmin, async (req, res) => {
 
 
 // Get users of a specific workspace (System Admin only)
-router.get('/:id/users', requireSystemAdmin, async (req, res) => {
+// Get workspace users (Admin only)
+router.get('/:id/users', requireAdmin, async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
     if (!workspace) {
@@ -407,7 +506,8 @@ router.get('/:id/users', requireSystemAdmin, async (req, res) => {
 });
 
 // Get tasks of a specific workspace (System Admin only)
-router.get('/:id/tasks', requireSystemAdmin, async (req, res) => {
+// Get workspace tasks (Admin only)
+router.get('/:id/tasks', requireAdmin, async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
     if (!workspace) {
@@ -422,7 +522,8 @@ router.get('/:id/tasks', requireSystemAdmin, async (req, res) => {
 });
 
 // Get teams of a specific workspace (System Admin only)
-router.get('/:id/teams', requireSystemAdmin, async (req, res) => {
+// Get workspace teams (Admin only)
+router.get('/:id/teams', requireAdmin, async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
     if (!workspace) {

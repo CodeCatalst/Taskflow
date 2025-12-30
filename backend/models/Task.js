@@ -34,11 +34,12 @@ const taskSchema = new mongoose.Schema({
     ref: 'Team',
     default: null
   },
-  // WORKSPACE SUPPORT: All tasks belong to a workspace
+  // WORKSPACE SUPPORT: All tasks belong to a workspace (null for system admins)
   workspaceId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Workspace',
-    required: true,
+    required: false,
+    default: null,
     index: true
   },
   due_date: {

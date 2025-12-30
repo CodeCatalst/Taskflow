@@ -6,6 +6,7 @@ import useNotifications from './hooks/useNotifications';
 import Login from './pages/Login';
 import Register from './pages/RegisterDisabled';
 import CommunityRegister from './pages/CommunityRegister';
+import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
 import Kanban from './pages/Kanban';
@@ -18,6 +19,8 @@ import Settings from './pages/Settings';
 import Calendar from './pages/Calendar';
 import ChangeLog from './pages/ChangeLog';
 import Notifications from './pages/Notifications';
+import Landing from './pages/Landing';
+import ScreenshotDemo from './pages/ScreenshotDemo';
 
 function AppContent() {
   // Initialize notifications
@@ -25,9 +28,11 @@ function AppContent() {
 
   return (
     <Routes>
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/register" element={<CommunityRegister />} />
       <Route path="/register-community" element={<CommunityRegister />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
 
       <Route
         path="/dashboard"
@@ -86,7 +91,7 @@ function AppContent() {
       <Route
         path="/workspaces"
         element={
-          <ProtectedRoute allowedRoles={['admin']} requireSystemAdmin={true}>
+          <ProtectedRoute allowedRoles={['admin']}>
             <WorkspaceManagement />
           </ProtectedRoute>
         }
@@ -137,7 +142,8 @@ function AppContent() {
         }
       />
 
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Screenshot Demo - Public route for capturing marketing screenshots */}
+      <Route path="/screenshot-demo" element={<ScreenshotDemo />} />
     </Routes>
   );
 }

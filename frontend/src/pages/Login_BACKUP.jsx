@@ -158,7 +158,7 @@ const Login = () => {
         {/* Page Footer */}
         <div className="mt-8 flex flex-col items-center gap-4">
           <p className="text-xs text-gray-400 dark:text-gray-600 font-normal">
-            © 2024 TaskFlow. Enterprise Edition.
+            © 2025 TaskFlow. Enterprise Edition.
           </p>
         </div>
       </div>

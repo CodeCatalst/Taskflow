@@ -1,5 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
 import Workspace from '../models/Workspace.js';
@@ -7,6 +8,7 @@ import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '.
 import { logChange } from '../utils/changeLogService.js';
 import { authenticate } from '../middleware/auth.js';
 import getClientIP from '../utils/getClientIP.js';
+import { sendVerificationEmail } from '../utils/emailService.js';
 
 const router = express.Router();
 
@@ -68,7 +70,11 @@ router.post('/register-community', [
 
     await workspace.save();
 
-    // Create community admin user for this workspace
+    // Generate 6-digit verification code
+    const verificationCode = crypto.randomInt(100000, 999999).toString();
+    const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Create community admin user for this workspace (NOT VERIFIED YET)
     const user = new User({
       _id: tempUserId,
       full_name,
@@ -77,6 +83,9 @@ router.post('/register-community', [
       role: 'community_admin',
       workspaceId: workspace._id,
       team_id: null,
+      isEmailVerified: false,
+      verificationToken: verificationCode,
+      verificationTokenExpiry: verificationExpiry,
     });
 
     await user.save();
@@ -85,9 +94,8 @@ router.post('/register-community', [
     workspace.usage.userCount = 1;
     await workspace.save();
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user._id, user.role);
-    const refreshToken = generateRefreshToken(user._id);
+    // Send verification email (async, doesn't block response)
+    await sendVerificationEmail(full_name, email, verificationCode, password, workspace_name);
 
     // Log workspace creation
     await logChange({
@@ -95,30 +103,25 @@ router.post('/register-community', [
       user: user,
       user_ip: getClientIP(req),
       action: 'Community workspace created',
-      description: `New COMMUNITY workspace "${workspace_name}" created by ${full_name}`,
+      description: `New COMMUNITY workspace "${workspace_name}" created by ${full_name} - awaiting email verification`,
       metadata: {
         workspaceId: workspace._id,
         workspaceType: 'COMMUNITY',
         workspaceName: workspace_name,
+        emailVerificationRequired: true,
       },
       workspaceId: workspace._id,
     });
 
     res.status(201).json({
-      message: 'Community workspace created successfully',
+      message: 'Community workspace created! Please check your email to verify your account.',
+      requiresVerification: true,
+      email: email,
       workspace: {
         id: workspace._id,
         name: workspace.name,
         type: workspace.type,
       },
-      user: {
-        id: user._id,
-        full_name: user.full_name,
-        email: user.email,
-        role: user.role,
-      },
-      accessToken,
-      refreshToken,
     });
   } catch (error) {
     console.error('Community registration error:', error);
@@ -146,6 +149,15 @@ router.post('/login', validateLogin, async (req, res) => {
     
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if email is verified (only for community admins)
+    if (user.role === 'community_admin' && !user.isEmailVerified) {
+      return res.status(403).json({ 
+        message: 'Please verify your email address before logging in. Check your inbox for the verification code.',
+        requiresVerification: true,
+        email: user.email
+      });
     }
 
     // SYSTEM ADMIN: Admins and community_admins can have special handling
@@ -292,6 +304,145 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
+// Verify email with code
+router.post('/verify-email', [
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('code').trim().notEmpty().withMessage('Verification code is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, code } = req.body;
+
+    // Find user
+    const user = await User.findOne({ email })
+      .populate('workspaceId', 'name type');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if already verified
+    if (user.isEmailVerified) {
+      return res.status(400).json({ message: 'Email is already verified. You can now login.' });
+    }
+
+    // Check if verification code matches
+    if (user.verificationToken !== code) {
+      return res.status(400).json({ message: 'Invalid verification code. Please check your email and try again.' });
+    }
+
+    // Check if code has expired
+    if (!user.verificationTokenExpiry || user.verificationTokenExpiry < new Date()) {
+      return res.status(400).json({ 
+        message: 'Verification code has expired. Please request a new one.',
+        codeExpired: true 
+      });
+    }
+
+    // Mark email as verified
+    user.isEmailVerified = true;
+    user.verificationToken = null;
+    user.verificationTokenExpiry = null;
+    await user.save();
+
+    // Log verification event
+    await logChange({
+      event_type: 'system_event',
+      user: user,
+      user_ip: getClientIP(req),
+      action: 'Email verified',
+      description: `${user.full_name} (${user.email}) verified their email address`,
+      metadata: {
+        role: user.role,
+        workspaceId: user.workspaceId?._id || null,
+        workspaceName: user.workspaceId?.name || null,
+      },
+      workspaceId: user.workspaceId?._id || null,
+    });
+
+    res.status(200).json({
+      message: 'Email verified successfully! You can now login.',
+      verified: true,
+      user: {
+        email: user.email,
+        full_name: user.full_name,
+      },
+      workspace: user.workspaceId ? {
+        name: user.workspaceId.name,
+        type: user.workspaceId.type,
+      } : null
+    });
+  } catch (error) {
+    console.error('Email verification error:', error);
+    res.status(500).json({ 
+      message: 'Failed to verify email', 
+      error: error.message 
+    });
+  }
+});
+
+// Resend verification email
+router.post('/resend-verification', [
+  body('email').isEmail().withMessage('Valid email is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+
+    // Find user
+    const user = await User.findOne({ email })
+      .populate('workspaceId', 'name');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if already verified
+    if (user.isEmailVerified) {
+      return res.status(400).json({ message: 'Email is already verified. You can now login.' });
+    }
+
+    // Generate new verification code
+    const verificationCode = crypto.randomInt(100000, 999999).toString();
+    const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    user.verificationToken = verificationCode;
+    user.verificationTokenExpiry = verificationExpiry;
+    await user.save();
+
+    // Get temporary password from request or use placeholder
+    const tempPassword = req.body.password || '******';
+
+    // Send new verification email
+    await sendVerificationEmail(
+      user.full_name, 
+      user.email, 
+      verificationCode, 
+      tempPassword, 
+      user.workspaceId?.name || 'TaskFlow'
+    );
+
+    res.status(200).json({
+      message: 'Verification email resent successfully. Please check your inbox.',
+      email: user.email
+    });
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    res.status(500).json({ 
+      message: 'Failed to resend verification email', 
+      error: error.message 
+    });
+  }
+});
+
 // Logout
 router.post('/logout', authenticate, async (req, res) => {
   // Log logout event
@@ -301,7 +452,8 @@ router.post('/logout', authenticate, async (req, res) => {
     user: req.user,
     user_ip,
     action: 'User logged out',
-    description: `${req.user.full_name} (${req.user.email}) logged out`
+    description: `${req.user.full_name} (${req.user.email}) logged out`,
+    workspaceId: req.user.workspaceId?._id || null
   });
 
   // In a production app, you might want to blacklist the token

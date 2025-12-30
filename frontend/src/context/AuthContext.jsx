@@ -205,9 +205,11 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
+      const errorData = error.response?.data;
       return {
         success: false,
-        message: error.response?.data?.message || 'Login failed',
+        message: errorData?.message || 'Login failed',
+        requiresVerification: errorData?.requiresVerification || false,
       };
     }
   };

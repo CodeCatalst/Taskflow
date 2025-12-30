@@ -90,19 +90,31 @@ const CommunityRegister = () => {
         password: formData.password,
       });
 
-      const { user, workspace, accessToken, refreshToken } = response.data;
+      // Check if verification is required
+      if (response.data.requiresVerification) {
+        // Redirect to verification page with email
+        navigate('/verify-email', { 
+          state: { 
+            email: formData.email,
+            message: response.data.message 
+          }
+        });
+      } else {
+        // Old flow - shouldn't happen anymore but keep as fallback
+        const { user, workspace, accessToken, refreshToken } = response.data;
 
-      // Store tokens
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      
-      // Store user and workspace data
-      localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('workspace', JSON.stringify(workspace));
+        // Store tokens
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        
+        // Store user and workspace data
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('workspace', JSON.stringify(workspace));
 
-      // Redirect to dashboard
-      navigate('/dashboard');
-      window.location.reload(); // Reload to trigger auth context update
+        // Redirect to dashboard
+        navigate('/dashboard');
+        window.location.reload();
+      }
     } catch (error) {
       console.error('Community registration error:', error);
       if (error.response?.data?.message) {
