@@ -868,40 +868,7 @@ export const sendVerificationEmail = async (fullName, email, verificationCode, p
   </div>
 </body>
 </html>
-      `,
-      text: `
-Welcome to TaskFlow!
-
-Hi ${fullName},
-
-Your workspace "${workspaceName}" has been created! To activate your account, please verify your email address.
-
-VERIFICATION CODE:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${verificationCode}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-This code expires in 24 hours.
-
-Verify here: ${verificationLink}
-
-YOUR LOGIN CREDENTIALS (After Verification):
-📧 Email: ${email}
-🔑 Temporary Password: ${password}
-🏢 Workspace: ${workspaceName}
-
-⚠️ IMPORTANT: You must verify your email before you can login. After verification, please change your temporary password immediately.
-
-Didn't create an account? Please ignore this email.
-
-Best regards,
-The TaskFlow Team
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TaskFlow - Collaborative Task Management
-${appUrl}
-      `.trim()
-    };
+      `;
 
     // Try Brevo API first (preferred)
     if (process.env.BREVO_API_KEY) {
@@ -915,15 +882,7 @@ ${appUrl}
 
     // Fallback to SMTP
     const transporter = createTransporter();
-    const mailOptions = {
-      from: {
-        name: 'TaskFlow Team',
-        address: process.env.EMAIL_USER
-      },
-      to: email,
-      subject: subject,
-      html: htmlContent,
-      text: `
+    const textContent = `
 Welcome to TaskFlow!
 
 Hi ${fullName},
@@ -954,7 +913,17 @@ The TaskFlow Team
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TaskFlow - Collaborative Task Management
 ${appUrl}
-      `.trim()
+    `;
+
+    const mailOptions = {
+      from: {
+        name: 'TaskFlow Team',
+        address: process.env.EMAIL_USER
+      },
+      to: email,
+      subject: subject,
+      html: htmlContent,
+      text: textContent.trim()
     };
 
     // Send email in background
@@ -1118,25 +1087,7 @@ export const sendPasswordResetEmail = async (fullName, email, newPassword) => {
   </div>
 </body>
 </html>
-      `,
-      text: `
-Password Reset
-
-Hi ${fullName},
-
-Your password has been reset. Here is your new temporary password:
-
-Email: ${email}
-New Password: ${newPassword}
-
-Please login at: ${appUrl}
-
-Important: Please change this password immediately after logging in.
-
-Best regards,
-TaskFlow Team
-      `.trim()
-    };
+      `;
 
     // Try Brevo API first (preferred)
     if (process.env.BREVO_API_KEY) {
@@ -1150,15 +1101,7 @@ TaskFlow Team
 
     // Fallback to SMTP
     const transporter = createTransporter();
-    const mailOptions = {
-      from: {
-        name: 'TaskFlow Team',
-        address: process.env.EMAIL_USER
-      },
-      to: email,
-      subject: subject,
-      html: htmlContent,
-      text: `
+    const textContent = `
 Password Reset
 
 Hi ${fullName},
@@ -1174,7 +1117,17 @@ Important: Please change this password immediately after logging in.
 
 Best regards,
 TaskFlow Team
-      `.trim()
+    `;
+
+    const mailOptions = {
+      from: {
+        name: 'TaskFlow Team',
+        address: process.env.EMAIL_USER
+      },
+      to: email,
+      subject: subject,
+      html: htmlContent,
+      text: textContent.trim()
     };
 
     // Send email asynchronously without blocking
