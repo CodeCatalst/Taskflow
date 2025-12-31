@@ -6,13 +6,13 @@ import { useConfirmModal } from '../hooks/useConfirmModal';
 import Sidebar from '../components/Sidebar';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import api from '../api/axios';
-import { 
-  Activity, 
-  Download, 
-  Filter, 
-  Search, 
-  RefreshCw, 
-  Trash2, 
+import {
+  Activity,
+  Download,
+  Filter,
+  Search,
+  RefreshCw,
+  Trash2,
   Calendar,
   User,
   Target,
@@ -53,7 +53,7 @@ const ChangeLog = () => {
       navigate('/dashboard');
       return;
     }
-    
+
     if (user) {
       fetchLogs();
       fetchStats();
@@ -71,13 +71,13 @@ const ChangeLog = () => {
       });
 
       const response = await api.get(`/changelog?${params}`);
-      
+
       setLogs(response.data.logs || []);
       setTotalPages(response.data.totalPages || 1);
       setTotal(response.data.total || 0);
     } catch (error) {
       console.error('Error fetching change logs:', error);
-      
+
       if (error.response?.status === 401) {
         setError('Authentication required. Please log in again.');
       } else if (error.response?.status === 403) {
@@ -215,7 +215,7 @@ const ChangeLog = () => {
   };
 
   const getTargetTypeColor = (targetType) => {
-    switch(targetType?.toLowerCase()) {
+    switch (targetType?.toLowerCase()) {
       case 'task':
         return 'bg-teal-500/10 text-teal-400 border border-teal-500/30';
       case 'user':
@@ -236,7 +236,7 @@ const ChangeLog = () => {
   };
 
   const getTargetTypeIcon = (targetType) => {
-    switch(targetType?.toLowerCase()) {
+    switch (targetType?.toLowerCase()) {
       case 'task': return '✅';
       case 'user': return '👤';
       case 'team': return '👥';
@@ -291,9 +291,8 @@ const ChangeLog = () => {
               <div className="flex items-center space-x-3">
                 <button
                   onClick={fetchLogs}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-[0.125rem] transition-colors ${
-                    theme === 'dark' ? 'bg-[#1c2027] hover:bg-[#282f39] text-white' : 'bg-white hover:bg-gray-100 text-gray-900'
-                  } border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-[0.125rem] transition-colors ${theme === 'dark' ? 'bg-[#1c2027] hover:bg-[#282f39] text-white' : 'bg-white hover:bg-gray-100 text-gray-900'
+                    } border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}
                 >
                   <RefreshCw className="w-4 h-4" />
                   <span>Refresh</span>
@@ -308,9 +307,8 @@ const ChangeLog = () => {
                 </button>
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-[0.125rem] transition-colors ${
-                    theme === 'dark' ? 'bg-[#1c2027] hover:bg-[#282f39] text-white' : 'bg-white hover:bg-gray-100 text-gray-900'
-                  } border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-[0.125rem] transition-colors ${theme === 'dark' ? 'bg-[#1c2027] hover:bg-[#282f39] text-white' : 'bg-white hover:bg-gray-100 text-gray-900'
+                    } border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}
                 >
                   <Filter className="w-4 h-4" />
                   <span>Filters</span>
@@ -325,9 +323,8 @@ const ChangeLog = () => {
           {/* Statistics Cards */}
           {stats && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className={`rounded-[0.125rem] p-6 border shadow-sm ${
-                theme === 'dark' ? 'bg-[#1c2027] border-[#282f39]' : 'bg-white border-gray-200'
-              }`}>
+              <div className={`rounded-[0.125rem] p-6 border shadow-sm ${theme === 'dark' ? 'bg-[#1c2027] border-[#282f39]' : 'bg-white border-gray-200'
+                }`}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className={`text-sm mb-1 ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>Total Events</p>
@@ -336,10 +333,9 @@ const ChangeLog = () => {
                   <TrendingUp className="w-10 h-10 text-[#136dec] opacity-50" />
                 </div>
               </div>
-              
-              <div className={`rounded-[0.125rem] p-6 border shadow-sm ${
-                theme === 'dark' ? 'bg-[#1c2027] border-[#282f39]' : 'bg-white border-gray-200'
-              }`}>
+
+              <div className={`rounded-[0.125rem] p-6 border shadow-sm ${theme === 'dark' ? 'bg-[#1c2027] border-[#282f39]' : 'bg-white border-gray-200'
+                }`}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className={`text-sm mb-1 ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>Event Types</p>
@@ -348,10 +344,9 @@ const ChangeLog = () => {
                   <Target className="w-10 h-10 text-[#136dec] opacity-50" />
                 </div>
               </div>
-              
-              <div className={`rounded-[0.125rem] p-6 border shadow-sm ${
-                theme === 'dark' ? 'bg-[#1c2027] border-[#282f39]' : 'bg-white border-gray-200'
-              }`}>
+
+              <div className={`rounded-[0.125rem] p-6 border shadow-sm ${theme === 'dark' ? 'bg-[#1c2027] border-[#282f39]' : 'bg-white border-gray-200'
+                }`}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className={`text-sm mb-1 ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>Active Users</p>
@@ -365,13 +360,11 @@ const ChangeLog = () => {
 
           {/* Filters */}
           {showFilters && (
-            <div className={`rounded-[0.125rem] p-6 mb-6 border-2 shadow-lg ${
-              theme === 'dark' ? 'bg-[#1c2027] border-[#282f39]' : 'bg-white border-gray-200'
-            }`}>
+            <div className={`rounded-[0.125rem] p-6 mb-6 border-2 shadow-lg ${theme === 'dark' ? 'bg-[#1c2027] border-[#282f39]' : 'bg-white border-gray-200'
+              }`}>
               <div className="flex items-center justify-between mb-6">
-                <h3 className={`text-lg font-semibold flex items-center space-x-2 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}>
+                <h3 className={`text-lg font-semibold flex items-center space-x-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}>
                   <Filter className="w-5 h-5 text-blue-500" />
                   <span>Advanced Filters</span>
                 </h3>
@@ -381,33 +374,31 @@ const ChangeLog = () => {
                   </span>
                 )}
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className={`block text-sm font-semibold mb-2 flex items-center space-x-2 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-900'
-                  }`}>
+                  <label className={`block text-sm font-semibold mb-2 flex items-center space-x-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    }`}>
                     <Activity className="w-4 h-4 text-purple-500" />
                     <span>Event Type</span>
                   </label>
                   <select
                     value={filters.event_type}
                     onChange={(e) => handleFilterChange('event_type', e.target.value)}
-                    className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-purple-500 focus:outline-none ${
-                      filters.event_type 
-                        ? 'border-purple-500/30 bg-purple-500/10' 
-                        : theme === 'dark' 
+                    className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-purple-500 focus:outline-none ${filters.event_type
+                        ? 'border-purple-500/30 bg-purple-500/10'
+                        : theme === 'dark'
                           ? 'border-[#282f39] bg-[#1c2027]'
                           : 'border-gray-200 bg-white'
-                    } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+                      } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                   >
                     <option value="">🌐 All Events</option>
                     {eventTypes.map(type => {
-                      const emoji = type.includes('created') ? '✨' : 
-                                   type.includes('updated') ? '📝' : 
-                                   type.includes('deleted') ? '🗑️' : 
-                                   type.includes('login') ? '🔓' : 
-                                   type.includes('logout') ? '🔒' : '📌';
+                      const emoji = type.includes('created') ? '✨' :
+                        type.includes('updated') ? '📝' :
+                          type.includes('deleted') ? '🗑️' :
+                            type.includes('login') ? '🔓' :
+                              type.includes('logout') ? '🔒' : '📌';
                       return (
                         <option key={type} value={type}>
                           {emoji} {type.replace(/_/g, ' ').toUpperCase()}
@@ -418,20 +409,18 @@ const ChangeLog = () => {
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-semibold mb-2 flex items-center space-x-2 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-900'
-                  }`}>
+                  <label className={`block text-sm font-semibold mb-2 flex items-center space-x-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    }`}>
                     <Target className="w-4 h-4 text-orange-500" />
                     <span>Target Type</span>
                   </label>
                   <select
                     value={filters.target_type}
                     onChange={(e) => handleFilterChange('target_type', e.target.value)}
-                    className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-orange-500 focus:outline-none ${
-                      filters.target_type 
-                        ? 'border-orange-500/30 bg-orange-500/10' 
+                    className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-orange-500 focus:outline-none ${filters.target_type
+                        ? 'border-orange-500/30 bg-orange-500/10'
                         : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
-                    } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+                      } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                   >
                     <option value="">🎯 All Types</option>
                     <option value="task">✅ Task</option>
@@ -445,34 +434,30 @@ const ChangeLog = () => {
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-semibold mb-2 flex items-center space-x-2 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-900'
-                  }`}>
+                  <label className={`block text-sm font-semibold mb-2 flex items-center space-x-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    }`}>
                     <Search className="w-4 h-4 text-blue-500" />
                     <span>Search</span>
                   </label>
                   <div className="relative">
-                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
-                      filters.search ? 'text-blue-500' : theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'
-                    }`} />
+                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${filters.search ? 'text-blue-500' : theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'
+                      }`} />
                     <input
                       type="text"
                       value={filters.search}
                       onChange={(e) => handleFilterChange('search', e.target.value)}
                       placeholder="Search logs..."
-                      className={`w-full pl-10 pr-3 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none ${
-                        filters.search 
-                          ? 'border-blue-500/30 bg-blue-500/10' 
+                      className={`w-full pl-10 pr-3 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none ${filters.search
+                          ? 'border-blue-500/30 bg-blue-500/10'
                           : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
-                      } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+                        } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-semibold mb-2 flex items-center space-x-2 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-900'
-                  }`}>
+                  <label className={`block text-sm font-semibold mb-2 flex items-center space-x-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    }`}>
                     <Calendar className="w-4 h-4 text-green-500" />
                     <span>Start Date</span>
                   </label>
@@ -480,18 +465,16 @@ const ChangeLog = () => {
                     type="date"
                     value={filters.start_date}
                     onChange={(e) => handleFilterChange('start_date', e.target.value)}
-                    className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-green-500 focus:outline-none ${
-                      filters.start_date 
-                        ? 'border-green-500/30 bg-green-500/10' 
+                    className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-green-500 focus:outline-none ${filters.start_date
+                        ? 'border-green-500/30 bg-green-500/10'
                         : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
-                    } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+                      } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                   />
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-semibold mb-2 flex items-center space-x-2 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-900'
-                  }`}>
+                  <label className={`block text-sm font-semibold mb-2 flex items-center space-x-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    }`}>
                     <Calendar className="w-4 h-4 text-red-500" />
                     <span>End Date</span>
                   </label>
@@ -499,27 +482,24 @@ const ChangeLog = () => {
                     type="date"
                     value={filters.end_date}
                     onChange={(e) => handleFilterChange('end_date', e.target.value)}
-                    className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-red-500 focus:outline-none ${
-                      filters.end_date 
-                        ? 'border-red-500/30 bg-red-500/10' 
+                    className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-red-500 focus:outline-none ${filters.end_date
+                        ? 'border-red-500/30 bg-red-500/10'
                         : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
-                    } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+                      } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                   />
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-semibold mb-2 flex items-center space-x-2 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-900'
-                  }`}>
+                  <label className={`block text-sm font-semibold mb-2 flex items-center space-x-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    }`}>
                     <TrendingUp className="w-4 h-4 text-indigo-500" />
                     <span>Items per page</span>
                   </label>
                   <select
                     value={filters.limit}
                     onChange={(e) => handleFilterChange('limit', e.target.value)}
-                    className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:outline-none ${
-                      theme === 'dark' ? 'border-[#282f39] bg-[#1c2027] text-white' : 'border-gray-200 bg-white text-gray-900'
-                    }`}
+                    className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:outline-none ${theme === 'dark' ? 'border-[#282f39] bg-[#1c2027] text-white' : 'border-gray-200 bg-white text-gray-900'
+                      }`}
                   >
                     <option value="25">📄 25 items</option>
                     <option value="50">📋 50 items</option>
@@ -552,33 +532,33 @@ const ChangeLog = () => {
                     </span>
                   )}
                 </div>
-                
+
                 <div className="flex space-x-3">
-                <button
-                  onClick={() => {
-                    setFilters({
-                      event_type: '',
-                      target_type: '',
-                      search: '',
-                      start_date: '',
-                      end_date: '',
-                      limit: 50
-                    });
-                    setPage(1);
-                  }}
-                  className={`flex items-center space-x-2 px-5 py-2.5 rounded-[0.125rem] border-2 ${theme === 'dark' ? 'border-[#282f39] bg-[#1c2027] hover:bg-[#282f39] text-white' : 'border-gray-200 bg-white hover:bg-gray-100 text-gray-900'} font-semibold transition-all`}
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Clear Filters</span>
-                </button>
-                <button
-                  onClick={handleClearOldLogs}
-                  className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-[0.125rem] font-semibold transition-all hover:opacity-90"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Clear Old Logs (90+ days)</span>
-                </button>
-              </div>
+                  <button
+                    onClick={() => {
+                      setFilters({
+                        event_type: '',
+                        target_type: '',
+                        search: '',
+                        start_date: '',
+                        end_date: '',
+                        limit: 50
+                      });
+                      setPage(1);
+                    }}
+                    className={`flex items-center space-x-2 px-5 py-2.5 rounded-[0.125rem] border-2 ${theme === 'dark' ? 'border-[#282f39] bg-[#1c2027] hover:bg-[#282f39] text-white' : 'border-gray-200 bg-white hover:bg-gray-100 text-gray-900'} font-semibold transition-all`}
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Clear Filters</span>
+                  </button>
+                  <button
+                    onClick={handleClearOldLogs}
+                    className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-[0.125rem] font-semibold transition-all hover:opacity-90"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Clear Old Logs (90+ days)</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -644,13 +624,12 @@ const ChangeLog = () => {
                             <div className="font-medium">{log.user_name || 'System'}</div>
                             <div className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>{log.user_email || 'N/A'}</div>
                             {log.user_role && (
-                              <span className={`inline-block mt-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-full ${
-                                log.user_role === 'admin' 
-                                  ? 'bg-red-500/10 text-red-400 border border-red-500/30' 
+                              <span className={`inline-block mt-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-full ${log.user_role === 'admin'
+                                  ? 'bg-red-500/10 text-red-400 border border-red-500/30'
                                   : log.user_role === 'manager'
-                                  ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
-                                  : 'bg-green-500/10 text-green-400 border border-green-500/30'
-                              }`}>
+                                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
+                                    : 'bg-green-500/10 text-green-400 border border-green-500/30'
+                                }`}>
                                 {log.user_role === 'admin' ? '👑' : log.user_role === 'manager' ? '⭐' : '👤'} {log.user_role.toUpperCase()}
                               </span>
                             )}
@@ -658,6 +637,22 @@ const ChangeLog = () => {
                         </td>
                         <td className={`px-6 py-4 text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'} max-w-md`}>
                           {log.description}
+                          {log.changes && Object.keys(log.changes).length > 0 && (
+                            <div className={`mt-2 p-2 rounded text-xs font-mono border ${theme === 'dark' ? 'bg-[#111418] border-[#282f39]' : 'bg-gray-100 border-gray-200'}`}>
+                              {Object.entries(log.changes).map(([field, change]) => (
+                                <div key={field} className="flex gap-2">
+                                  <span className={`font-semibold capitalize ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-500'}`}>{field.replace('_', ' ')}:</span>
+                                  <span className={theme === 'dark' ? 'text-red-400' : 'text-red-600'}>
+                                    {change.old !== undefined ? String(change.old) : 'null'}
+                                  </span>
+                                  <span className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-400'}>→</span>
+                                  <span className={theme === 'dark' ? 'text-green-400' : 'text-green-600'}>
+                                    {change.new !== undefined ? String(change.new) : 'null'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </td>
                         <td className={`px-6 py-4 text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                           {log.target_type ? (

@@ -236,6 +236,11 @@ router.patch('/:id', authenticate, async (req, res) => {
     const { title, description, status, priority, assigned_to, due_date, progress } = req.body;
 
     const oldStatus = task.status;
+    const oldTitle = task.title;
+    const oldDescription = task.description;
+    const oldPriority = task.priority;
+    const oldDueDate = task.due_date;
+    const oldTeamId = task.team_id;
     const oldAssignedTo = task.assigned_to ? task.assigned_to.map(id => id.toString()) : [];
 
     if (title) task.title = title;
@@ -344,11 +349,38 @@ router.patch('/:id', authenticate, async (req, res) => {
     // Log task update
     const user_ip = getClientIP(req);
     const changes = {};
-    if (status && status !== oldStatus) {
-      changes.status = { old: oldStatus, new: status };
+
+    if (oldTitle !== task.title) changes.title = { old: oldTitle, new: task.title };
+    if (oldDescription !== task.description) changes.description = { old: oldDescription, new: task.description };
+    if (oldStatus !== task.status) changes.status = { old: oldStatus, new: task.status };
+    if (oldPriority !== task.priority) changes.priority = { old: oldPriority, new: task.priority };
+
+    // Check for Due Date changes
+    const getDatesDiff = (d1, d2) => {
+      const t1 = d1 ? new Date(d1).getTime() : 0;
+      const t2 = d2 ? new Date(d2).getTime() : 0;
+      return t1 !== t2;
+    };
+    if (getDatesDiff(oldDueDate, task.due_date)) {
+      changes.due_date = { old: oldDueDate, new: task.due_date };
     }
-    if (title && title !== task.title) changes.title = title;
-    if (priority) changes.priority = priority;
+
+    // Check for Team changes
+    if (oldTeamId?.toString() !== task.team_id?.toString()) {
+      changes.team_id = { old: oldTeamId, new: task.team_id };
+    }
+
+    // Check for Assigned To changes
+    const newAssignedIds = task.assigned_to.map(id => id.toString()).sort();
+    const oldAssignedIds = oldAssignedTo.sort();
+    const assignmentsChanged = JSON.stringify(newAssignedIds) !== JSON.stringify(oldAssignedIds);
+
+    if (assignmentsChanged) {
+      changes.assigned_to = {
+        added: newAssignedIds.filter(id => !oldAssignedIds.includes(id)),
+        removed: oldAssignedIds.filter(id => !newAssignedIds.includes(id))
+      };
+    }
 
     await logChange({
       event_type: status && status !== oldStatus ? 'task_status_changed' : 'task_updated',
