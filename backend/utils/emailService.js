@@ -633,21 +633,14 @@ ${appUrl}
 // Send email verification for community registration
 export const sendVerificationEmail = async (fullName, email, verificationCode, password, workspaceName) => {
   try {
-    const transporter = createTransporter();
     const appUrl = process.env.NODE_ENV === 'production' 
       ? 'https://taskflow-nine-phi.vercel.app'
       : (process.env.CLIENT_URL || 'http://localhost:3000');
     
     const verificationLink = `${appUrl}/verify-email?code=${verificationCode}`;
+    const subject = '✉️ Verify Your TaskFlow Account - Action Required';
 
-    const mailOptions = {
-      from: {
-        name: 'TaskFlow Team',
-        address: process.env.EMAIL_USER
-      },
-      to: email,
-      subject: '✉️ Verify Your TaskFlow Account - Action Required',
-      html: `
+    const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -910,6 +903,60 @@ ${appUrl}
       `.trim()
     };
 
+    // Try Brevo API first (preferred)
+    if (process.env.BREVO_API_KEY) {
+      console.log('📧 Sending verification email via Brevo API to:', email);
+      const result = await sendWithBrevoAPI(email, subject, htmlContent);
+      if (result.success) {
+        return result;
+      }
+      console.log('⚠️ Brevo API failed, falling back to SMTP...');
+    }
+
+    // Fallback to SMTP
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: {
+        name: 'TaskFlow Team',
+        address: process.env.EMAIL_USER
+      },
+      to: email,
+      subject: subject,
+      html: htmlContent,
+      text: `
+Welcome to TaskFlow!
+
+Hi ${fullName},
+
+Your workspace "${workspaceName}" has been created! To activate your account, please verify your email address.
+
+VERIFICATION CODE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${verificationCode}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This code expires in 24 hours.
+
+Verify here: ${verificationLink}
+
+YOUR LOGIN CREDENTIALS (After Verification):
+📧 Email: ${email}
+🔑 Temporary Password: ${password}
+🏢 Workspace: ${workspaceName}
+
+⚠️ IMPORTANT: You must verify your email before you can login. After verification, please change your temporary password immediately.
+
+Didn't create an account? Please ignore this email.
+
+Best regards,
+The TaskFlow Team
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TaskFlow - Collaborative Task Management
+${appUrl}
+      `.trim()
+    };
+
     // Send email in background
     transporter.sendMail(mailOptions)
       .then(info => {
@@ -931,20 +978,12 @@ ${appUrl}
 // Send password reset email
 export const sendPasswordResetEmail = async (fullName, email, newPassword) => {
   try {
-    const transporter = createTransporter();
-    // Use Vercel URL in production, fallback to CLIENT_URL or localhost
     const appUrl = process.env.NODE_ENV === 'production' 
       ? 'https://taskflow-nine-phi.vercel.app'
       : (process.env.CLIENT_URL || 'http://localhost:3000');
 
-    const mailOptions = {
-      from: {
-        name: 'TaskFlow Team',
-        address: process.env.EMAIL_USER
-      },
-      to: email,
-      subject: '🔑 TaskFlow - Password Reset',
-      html: `
+    const subject = '🔑 TaskFlow - Password Reset';
+    const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1080,6 +1119,45 @@ export const sendPasswordResetEmail = async (fullName, email, newPassword) => {
 </body>
 </html>
       `,
+      text: `
+Password Reset
+
+Hi ${fullName},
+
+Your password has been reset. Here is your new temporary password:
+
+Email: ${email}
+New Password: ${newPassword}
+
+Please login at: ${appUrl}
+
+Important: Please change this password immediately after logging in.
+
+Best regards,
+TaskFlow Team
+      `.trim()
+    };
+
+    // Try Brevo API first (preferred)
+    if (process.env.BREVO_API_KEY) {
+      console.log('📧 Sending password reset email via Brevo API to:', email);
+      const result = await sendWithBrevoAPI(email, subject, htmlContent);
+      if (result.success) {
+        return result;
+      }
+      console.log('⚠️ Brevo API failed, falling back to SMTP...');
+    }
+
+    // Fallback to SMTP
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: {
+        name: 'TaskFlow Team',
+        address: process.env.EMAIL_USER
+      },
+      to: email,
+      subject: subject,
+      html: htmlContent,
       text: `
 Password Reset
 
