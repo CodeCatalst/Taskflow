@@ -1,7 +1,52 @@
 import pkg from 'nodemailer';
 const { createTransport } = pkg;
+import * as brevoAPI from '@getbrevo/brevo';
 
-// Create reusable transporter - Simple configuration that works
+// Brevo API Client (preferred for production)
+let brevoClient = null;
+const getBrevoClient = () => {
+  if (!brevoClient && process.env.BREVO_API_KEY) {
+    const apiInstance = new brevoAPI.TransactionalEmailsApi();
+    apiInstance.setApiKey(brevoAPI.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+    brevoClient = apiInstance;
+  }
+  return brevoClient;
+};
+
+// Send email using Brevo API (preferred method)
+const sendWithBrevoAPI = async (to, subject, htmlContent, from = { email: 'updates.codecatalyst@gmail.com', name: 'TaskFlow' }) => {
+  try {
+    const client = getBrevoClient();
+    if (!client) {
+      throw new Error('Brevo API client not configured');
+    }
+
+    const sendSmtpEmail = new brevoAPI.SendSmtpEmail();
+    sendSmtpEmail.sender = from;
+    sendSmtpEmail.to = Array.isArray(to) ? to : [{ email: to }];
+    sendSmtpEmail.subject = subject;
+    sendSmtpEmail.htmlContent = htmlContent;
+
+    const result = await client.sendTransacEmail(sendSmtpEmail);
+    console.log('✅ Email sent via Brevo API:', result.response.statusCode);
+    return {
+      success: true,
+      status: 'sent',
+      messageId: result.response.body.messageId,
+      provider: 'brevo-api'
+    };
+  } catch (error) {
+    console.error('❌ Brevo API error:', error.message);
+    return {
+      success: false,
+      status: 'failed',
+      error: error.message,
+      provider: 'brevo-api'
+    };
+  }
+};
+
+// Create reusable transporter - Simple configuration that works (fallback for SMTP)
 const createTransporter = () => {
   const config = {
     host: process.env.EMAIL_HOST,
@@ -504,20 +549,33 @@ const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
 // Send credential email to new user
 export const sendCredentialEmail = async (fullName, email, password) => {
   try {
-    const transporter = createTransporter();
-    // Use Vercel URL in production, fallback to CLIENT_URL or localhost
     const appUrl = process.env.NODE_ENV === 'production' 
       ? 'https://taskflow-nine-phi.vercel.app'
       : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
 
+    const htmlContent = getCredentialEmailTemplate(fullName, email, password, appUrl);
+    const subject = '🎉 Welcome to TaskFlow - Your Account is Ready!';
+
+    // Try Brevo API first (preferred)
+    if (process.env.BREVO_API_KEY) {
+      console.log('📧 Sending email via Brevo API to:', email);
+      const result = await sendWithBrevoAPI(email, subject, htmlContent);
+      if (result.success) {
+        return result;
+      }
+      console.log('⚠️ Brevo API failed, falling back to SMTP...');
+    }
+
+    // Fallback to SMTP
+    const transporter = createTransporter();
     const mailOptions = {
       from: {
         name: 'TaskFlow Team',
-        address: process.env.EMAIL_USER
+        address: process.env.EMAIL_USER || 'updates.codecatalyst@gmail.com'
       },
       to: email,
-      subject: '🎉 Welcome to TaskFlow - Your Account is Ready!',
-      html: getCredentialEmailTemplate(fullName, email, password, appUrl),
+      subject: subject,
+      html: htmlContent,
       // Plain text fallback
       text: `
 Welcome to TaskFlow!
@@ -556,7 +614,7 @@ ${appUrl}
     // Send email in background
     transporter.sendMail(mailOptions)
       .then(info => {
-        // Email sent successfully
+        console.log('✅ Email sent via SMTP:', info.messageId);
       })
       .catch(error => {
         console.error('❌ Failed to send credential email');
@@ -565,7 +623,7 @@ ${appUrl}
       });
     
     // Return immediately without waiting
-    return { success: true, status: 'queued', message: 'Email queued for sending' };
+    return { success: true, status: 'queued', message: 'Email queued for sending', provider: 'smtp' };
   } catch (error) {
     console.error('❌ Error in sendCredentialEmail:', error);
     return { success: false, status: 'error', error: error.message };

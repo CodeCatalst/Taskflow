@@ -66,6 +66,43 @@ router.get('/', requireAdmin, async (req, res) => {
   }
 });
 
+// Get workspace statistics summary (Admin only) - MUST BE BEFORE /:id
+router.get('/stats/summary', requireAdmin, async (req, res) => {
+  try {
+    const [
+      totalWorkspaces,
+      activeWorkspaces,
+      coreWorkspaces,
+      communityWorkspaces,
+      totalUsers,
+      totalTasks,
+      totalTeams
+    ] = await Promise.all([
+      Workspace.countDocuments(),
+      Workspace.countDocuments({ isActive: true }),
+      Workspace.countDocuments({ type: 'CORE' }),
+      Workspace.countDocuments({ type: 'COMMUNITY' }),
+      User.countDocuments({ workspaceId: { $ne: null } }),
+      Task.countDocuments(),
+      Team.countDocuments()
+    ]);
+
+    res.json({
+      totalWorkspaces,
+      activeWorkspaces,
+      inactiveWorkspaces: totalWorkspaces - activeWorkspaces,
+      coreWorkspaces,
+      communityWorkspaces,
+      totalUsers,
+      totalTasks,
+      totalTeams
+    });
+  } catch (error) {
+    console.error('Error fetching workspace stats:', error);
+    res.status(500).json({ message: 'Failed to fetch workspace statistics' });
+  }
+});
+
 // Get single workspace details (Admin only)
 router.get('/:id', requireAdmin, async (req, res) => {
   try {
@@ -450,47 +487,8 @@ router.patch('/:id/toggle-status', requireAdmin, async (req, res) => {
   }
 });
 
-// Get workspace statistics summary (System Admin only)
-// Get workspace statistics summary (Admin only)
-router.get('/stats/summary', requireAdmin, async (req, res) => {
-  try {
-    const [
-      totalWorkspaces,
-      activeWorkspaces,
-      coreWorkspaces,
-      communityWorkspaces,
-      totalUsers,
-      totalTasks,
-      totalTeams
-    ] = await Promise.all([
-      Workspace.countDocuments(),
-      Workspace.countDocuments({ isActive: true }),
-      Workspace.countDocuments({ type: 'CORE' }),
-      Workspace.countDocuments({ type: 'COMMUNITY' }),
-      User.countDocuments({ workspaceId: { $ne: null } }),
-      Task.countDocuments(),
-      Team.countDocuments()
-    ]);
 
-    res.json({
-      totalWorkspaces,
-      activeWorkspaces,
-      inactiveWorkspaces: totalWorkspaces - activeWorkspaces,
-      coreWorkspaces,
-      communityWorkspaces,
-      totalUsers,
-      totalTasks,
-      totalTeams
-    });
-  } catch (error) {
-    console.error('Error fetching workspace stats:', error);
-    res.status(500).json({ message: 'Failed to fetch workspace statistics' });
-  }
-});
-
-
-// Get users of a specific workspace (System Admin only)
-// Get workspace users (Admin only)
+// Get users of a specific workspace (Admin only)
 router.get('/:id/users', requireAdmin, async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
