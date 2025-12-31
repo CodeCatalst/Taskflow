@@ -49,7 +49,7 @@ const Tasks = () => {
       fetchUsers();
       fetchTeams();
     }
-    
+
     if (searchParams.get('create') === 'true') {
       setShowCreateModal(true);
       searchParams.delete('create');
@@ -115,12 +115,12 @@ const Tasks = () => {
     if (filters.showMyTasksOnly) {
       filtered = filtered.filter((t) => {
         if (!t.assigned_to) return false;
-        const assignedIds = Array.isArray(t.assigned_to) 
+        const assignedIds = Array.isArray(t.assigned_to)
           ? t.assigned_to.map(u => typeof u === 'object' ? u._id : u)
           : [typeof t.assigned_to === 'object' ? t.assigned_to._id : t.assigned_to];
         const isAssignedToUser = assignedIds.includes(user?.id);
         if (user?.role === 'member') {
-          const belongsToUserTeam = user.team_id && t.team_id && 
+          const belongsToUserTeam = user.team_id && t.team_id &&
             (t.team_id._id === user.team_id || t.team_id === user.team_id);
           return isAssignedToUser && belongsToUserTeam;
         }
@@ -191,7 +191,7 @@ const Tasks = () => {
     try {
       const response = await api.patch(`/tasks/${taskId}`, updates);
       const updatedTask = response.data.task;
-      
+
       setTasks((prev) =>
         prev.map((t) => (t._id === taskId ? updatedTask : t))
       );
@@ -212,7 +212,7 @@ const Tasks = () => {
   const openEditModal = (task) => {
     const taskTeam = teams.find(t => t._id === (task.team_id?._id || task.team_id));
     let members = taskTeam ? taskTeam.members : [];
-    
+
     if (taskTeam && user?.role === 'team_lead') {
       const teamLeadAlreadyIncluded = members.some(member => member._id === user?.id);
       if (!teamLeadAlreadyIncluded && taskTeam.lead_id?._id === user?.id) {
@@ -227,7 +227,7 @@ const Tasks = () => {
         ];
       }
     }
-    
+
     setSelectedTeamMembers(members);
     setEditingTask({
       ...task,
@@ -264,7 +264,7 @@ const Tasks = () => {
   const handleTeamChange = (teamId) => {
     const selectedTeam = teams.find(team => team._id === teamId);
     let members = selectedTeam ? selectedTeam.members : [];
-    
+
     if (selectedTeam && user?.role === 'team_lead') {
       const teamLeadAlreadyIncluded = members.some(member => member._id === user?.id);
       if (!teamLeadAlreadyIncluded && selectedTeam.lead_id?._id === user?.id) {
@@ -279,16 +279,16 @@ const Tasks = () => {
         ];
       }
     }
-    
+
     setSelectedTeamMembers(members);
     const memberIds = members.map(m => m._id);
     const currentAssigned = editingTask.assigned_to || [];
     const validAssignments = currentAssigned.filter(id => memberIds.includes(id));
-    
-    setEditingTask({ 
-      ...editingTask, 
-      team_id: teamId, 
-      assigned_to: validAssignments 
+
+    setEditingTask({
+      ...editingTask,
+      team_id: teamId,
+      assigned_to: validAssignments
     });
   };
 
@@ -325,7 +325,7 @@ const Tasks = () => {
   const viewTaskDetails = async (task) => {
     setSelectedTask(task);
     setShowDetailModal(true);
-    
+
     try {
       const response = await api.get(`/comments/${task._id}/comments`);
       setComments(response.data.comments);
@@ -343,7 +343,7 @@ const Tasks = () => {
         content: newComment,
       });
       setNewComment('');
-      
+
       const response = await api.get(`/comments/${selectedTask._id}/comments`);
       setComments(response.data.comments);
     } catch (error) {
@@ -399,7 +399,8 @@ const Tasks = () => {
   };
 
   const canDeleteTask = (task) => {
-    return ['admin', 'hr', 'team_lead'].includes(user?.role);
+    if (['admin', 'hr', 'team_lead', 'community_admin'].includes(user?.role)) return true;
+    return task.created_by._id === user?.id;
   };
 
   const getUserInitials = (name) => {
@@ -530,7 +531,7 @@ const Tasks = () => {
             <div className="px-6 pt-6 pb-2">
               <h1 className="text-white text-2xl font-bold leading-tight">My Tasks</h1>
             </div>
-            
+
             {/* Toolbar */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-6 py-3">
               <div className="flex flex-1 items-center gap-3 overflow-x-auto">
@@ -546,7 +547,7 @@ const Tasks = () => {
                   />
                 </div>
                 <div className="h-6 w-px bg-[#282f39] mx-1"></div>
-                
+
                 <div className="flex gap-2">
                   <button className="flex h-7 items-center gap-1.5 rounded-full border border-[#282f39] bg-[#1c2027] px-3 hover:border-[#4b5563] transition-colors">
                     <span className="text-[#9da8b9] text-xs font-medium">Status:</span>
@@ -564,7 +565,7 @@ const Tasks = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3 shrink-0">
                 <button className="p-1.5 text-[#9da8b9] hover:text-white rounded hover:bg-[#1c2027]" title="Customize Columns">
                   <Grid3x3 size={20} />
@@ -811,7 +812,7 @@ const Tasks = () => {
                         const teamId = e.target.value;
                         const selectedTeam = teams.find(team => team._id === teamId);
                         let members = selectedTeam ? selectedTeam.members : [];
-                        
+
                         if (selectedTeam && user?.role === 'team_lead') {
                           const teamLeadAlreadyIncluded = members.some(member => member._id === user?.id);
                           if (!teamLeadAlreadyIncluded && selectedTeam.lead_id?._id === user?.id) {
@@ -826,7 +827,7 @@ const Tasks = () => {
                             ];
                           }
                         }
-                        
+
                         setSelectedTeamMembers(members);
                         setFormData({ ...formData, team_id: teamId, assigned_to: [] });
                       }}
