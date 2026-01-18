@@ -807,27 +807,27 @@ const Tasks = () => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         title="Create New Task"
-        size="lg"
+        size="large"
       >
         <form onSubmit={handleCreateTask} className="space-y-3 sm:space-y-4">
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Title *</label>
+            <label className={`block text-xs sm:text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-1.5 sm:mb-2`}>Title *</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
+              className={`w-full px-3 sm:px-4 py-2.5 sm:py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-lg text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all`}
               required
               placeholder="Enter task title"
             />
           </div>
 
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Description</label>
+            <label className={`block text-xs sm:text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-1.5 sm:mb-2`}>Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all resize-none"
+              className={`w-full px-3 sm:px-4 py-2.5 sm:py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-lg text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all resize-none`}
               rows="3"
               placeholder="Add a description (optional)"
             />
@@ -835,11 +835,11 @@ const Tasks = () => {
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Priority</label>
+              <label className={`block text-xs sm:text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-1.5 sm:mb-2`}>Priority</label>
               <select
                 value={formData.priority}
                 onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-lg text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all`}
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -849,11 +849,11 @@ const Tasks = () => {
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Status</label>
+              <label className={`block text-xs sm:text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-1.5 sm:mb-2`}>Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-lg text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all`}
               >
                 <option value="todo">To Do</option>
                 <option value="in_progress">In Progress</option>
@@ -864,12 +864,12 @@ const Tasks = () => {
           </div>
 
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Due Date *</label>
+            <label className={`block text-xs sm:text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-1.5 sm:mb-2`}>Due Date *</label>
             <input
               type="date"
               value={formData.due_date}
               onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
+              className={`w-full px-3 sm:px-4 py-2.5 sm:py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-lg text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all`}
               required
             />
           </div>
@@ -877,7 +877,7 @@ const Tasks = () => {
           {['admin', 'hr', 'team_lead'].includes(user?.role) && (
             <>
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Select Team</label>
+                <label className={`block text-xs sm:text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-1.5 sm:mb-2`}>Select Team</label>
                 <select
                   value={formData.team_id}
                   onChange={(e) => {
@@ -903,7 +903,7 @@ const Tasks = () => {
                     setSelectedTeamMembers(members);
                     setFormData({ ...formData, team_id: teamId, assigned_to: [] });
                   }}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-lg text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all`}
                 >
                   <option value="">No Team</option>
                   {teams.map((team) => (
@@ -916,10 +916,10 @@ const Tasks = () => {
 
               {formData.team_id && selectedTeamMembers.length > 0 && (
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Assign Team Members</label>
-                  <div className="space-y-2 max-h-40 overflow-y-auto border border-[#282f39] rounded-lg p-2.5 sm:p-3 bg-[#111418]">
+                  <label className={`block text-xs sm:text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-1.5 sm:mb-2`}>Assign Team Members</label>
+                  <div className={`space-y-2 max-h-40 overflow-y-auto border ${theme === 'dark' ? 'border-[#282f39] bg-[#111418]' : 'border-gray-300 bg-gray-50'} rounded-lg p-2.5 sm:p-3`}>
                     {selectedTeamMembers.map((member) => (
-                      <label key={member._id} className="flex items-center space-x-2.5 min-h-[44px] sm:min-h-0 cursor-pointer hover:bg-[#1c2027] rounded px-2 py-1 transition-colors">
+                      <label key={member._id} className={`flex items-center space-x-2.5 min-h-[44px] sm:min-h-0 cursor-pointer ${theme === 'dark' ? 'hover:bg-[#1c2027]' : 'hover:bg-gray-100'} rounded px-2 py-1 transition-colors`}>
                         <input
                           type="checkbox"
                           checked={formData.assigned_to.includes(member._id)}
@@ -941,8 +941,8 @@ const Tasks = () => {
                           }}
                           className="rounded border-[#4b5563] text-[#136dec] focus:ring-[#136dec] w-4 h-4"
                         />
-                        <span className="text-xs sm:text-sm text-white">
-                          {member.full_name} <span className="text-[#9da8b9]">({member.role})</span>
+                        <span className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          {member.full_name} <span className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>({member.role})</span>
                           {member._id === user?.id && <span className="text-[#136dec] font-medium"> (You)</span>}
                         </span>
                       </label>
@@ -954,11 +954,11 @@ const Tasks = () => {
           )}
 
         </form>
-        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-4 pt-4 mt-4 sm:mt-6 border-t border-[#282f39]">
+        <div className={`flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-4 pt-4 mt-4 sm:mt-6 border-t ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}>
           <button
             type="button"
             onClick={() => setShowCreateModal(false)}
-            className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 sm:py-2 bg-[#282f39] text-white text-sm font-medium rounded-lg hover:bg-[#3a4454] transition-all active:scale-95"
+            className={`w-full sm:w-auto min-h-[44px] px-6 py-2.5 sm:py-2 ${theme === 'dark' ? 'bg-[#282f39] hover:bg-[#3a4454] text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'} text-sm font-medium rounded-lg transition-all active:scale-95`}
           >
             Cancel
           </button>
@@ -980,69 +980,69 @@ const Tasks = () => {
           setEditingTask(null);
         }}
         title="Edit Task"
-        size="lg"
+        size="large"
       >
         {editingTask && (
           <form onSubmit={handleEditTask} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Title *</label>
+              <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Title *</label>
               <input
                 type="text"
                 value={editingTask.title}
                 onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
-                className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
+                className={`w-full px-4 py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Description</label>
+              <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Description</label>
               <textarea
                 value={editingTask.description}
                 onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
-                className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
+                className={`w-full px-4 py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
                 rows="4"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-white mb-2">Priority</label>
+                <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Priority</label>
                 <select
                   value={editingTask.priority}
                   onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value })}
-                  className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
+                  className={`w-full px-4 py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
                 >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
+                  <option value="low" className={theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-white text-gray-900'}>Low</option>
+                  <option value="medium" className={theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-white text-gray-900'}>Medium</option>
+                  <option value="high" className={theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-white text-gray-900'}>High</option>
+                  <option value="urgent" className={theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-white text-gray-900'}>Urgent</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-2">Status</label>
+                <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Status</label>
                 <select
                   value={editingTask.status}
                   onChange={(e) => setEditingTask({ ...editingTask, status: e.target.value })}
-                  className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
+                  className={`w-full px-4 py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
                 >
-                  <option value="todo">To Do</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="review">Review</option>
-                  <option value="done">Done</option>
-                  <option value="archived">Archived</option>
+                  <option value="todo" className={theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-white text-gray-900'}>To Do</option>
+                  <option value="in_progress" className={theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-white text-gray-900'}>In Progress</option>
+                  <option value="review" className={theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-white text-gray-900'}>Review</option>
+                  <option value="done" className={theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-white text-gray-900'}>Done</option>
+                  <option value="archived" className={theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-white text-gray-900'}>Archived</option>
                 </select>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Due Date *</label>
+              <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Due Date *</label>
               <input
                 type="date"
                 value={editingTask.due_date ? new Date(editingTask.due_date).toISOString().split('T')[0] : ''}
                 onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value })}
-                className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
+                className={`w-full px-4 py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
                 required
               />
             </div>
@@ -1050,15 +1050,15 @@ const Tasks = () => {
             {['admin', 'hr', 'team_lead'].includes(user?.role) && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">Select Team</label>
+                  <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Select Team</label>
                   <select
                     value={editingTask.team_id || ''}
                     onChange={(e) => handleTeamChange(e.target.value)}
-                    className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
+                    className={`w-full px-4 py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
                   >
-                    <option value="">No Team</option>
+                    <option value="" className={theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-white text-gray-900'}>No Team</option>
                     {teams.map((team) => (
-                      <option key={team._id} value={team._id}>
+                      <option key={team._id} value={team._id} className={theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-white text-gray-900'}>
                         {team.name}
                       </option>
                     ))}
@@ -1067,8 +1067,8 @@ const Tasks = () => {
 
                 {editingTask.team_id && selectedTeamMembers.length > 0 && (
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">Assign Team Members</label>
-                    <div className="space-y-2 max-h-40 overflow-y-auto border border-[#282f39] rounded-lg p-3 bg-[#111418]">
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Assign Team Members</label>
+                    <div className={`space-y-2 max-h-40 overflow-y-auto border ${theme === 'dark' ? 'border-[#282f39] bg-[#111418]' : 'border-gray-300 bg-gray-50'} rounded-lg p-3`}>
                       {selectedTeamMembers.map((member) => (
                         <label key={member._id} className="flex items-center space-x-2">
                           <input
@@ -1077,7 +1077,7 @@ const Tasks = () => {
                             onChange={() => handleMemberToggle(member._id)}
                             className="rounded border-[#4b5563] text-[#136dec] focus:ring-[#136dec]"
                           />
-                          <span className="text-sm text-white">
+                          <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                             {member.full_name} ({member.role})
                             {member._id === user?.id && <span className="text-[#136dec] font-medium"> (You)</span>}
                           </span>
@@ -1091,14 +1091,14 @@ const Tasks = () => {
 
           </form>
         )}
-        <div className="flex justify-end space-x-4 pt-4 mt-6 border-t border-[#282f39]">
+        <div className={`flex justify-end space-x-4 pt-4 mt-6 border-t ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}>
           <button
             type="button"
             onClick={() => {
               setShowEditModal(false);
               setEditingTask(null);
             }}
-            className="px-6 py-2 bg-[#282f39] text-white rounded hover:bg-[#3a4454] transition-colors"
+            className={`px-6 py-2 ${theme === 'dark' ? 'bg-[#282f39] hover:bg-[#3a4454] text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'} rounded transition-colors`}
           >
             Cancel
           </button>
@@ -1117,7 +1117,7 @@ const Tasks = () => {
         isOpen={showDetailModal && selectedTask}
         onClose={() => setShowDetailModal(false)}
         title={selectedTask?.title || 'Task Details'}
-        size="lg"
+        size="large"
       >
         {selectedTask && (
           <div className="space-y-6">

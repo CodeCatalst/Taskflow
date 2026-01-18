@@ -59,15 +59,15 @@ const ResponsiveModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       {/* Backdrop - darker on mobile for better contrast */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/80 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* Modal Container */}
-      <div 
+      <div
         className={`
-          relative w-full ${sizeClasses[size]}
+          relative w-full ${sizeClasses[size] || sizeClasses.default}
           ${theme === 'dark' ? 'bg-gradient-to-b from-[#1c2027] to-[#181c23]' : 'bg-gradient-to-b from-white to-gray-50'}
           rounded-t-3xl sm:rounded-xl
           shadow-2xl
@@ -83,7 +83,7 @@ const ResponsiveModal = ({
         </div>
 
         {/* Header - Sticky on mobile */}
-        <div 
+        <div
           className={`
             flex-none flex items-center justify-between
             ${noPadding ? '' : 'px-4 py-3 sm:p-6'}
@@ -92,7 +92,7 @@ const ResponsiveModal = ({
             z-10 rounded-t-3xl sm:rounded-t-xl
           `}
         >
-          <h2 
+          <h2
             className={`
               font-bold
               ${theme === 'dark' ? 'text-white' : 'text-gray-900'}
@@ -106,8 +106,8 @@ const ResponsiveModal = ({
             onClick={onClose}
             className={`
               flex-none p-2 rounded-lg
-              ${theme === 'dark' 
-                ? 'hover:bg-[#282f39] text-[#9da8b9] hover:text-white' 
+              ${theme === 'dark'
+                ? 'hover:bg-[#282f39] text-[#9da8b9] hover:text-white'
                 : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
               }
               transition-colors
@@ -119,7 +119,7 @@ const ResponsiveModal = ({
         </div>
 
         {/* Content - Scrollable */}
-        <div 
+        <div
           className={`
             flex-1 overflow-y-auto overflow-x-hidden
             ${noPadding ? '' : 'p-4 sm:p-6'}
@@ -130,7 +130,7 @@ const ResponsiveModal = ({
 
         {/* Footer - Sticky on mobile if provided */}
         {footer && (
-          <div 
+          <div
             className={`
               flex-none
               ${noPadding ? '' : 'p-4 sm:p-6'}
@@ -143,7 +143,7 @@ const ResponsiveModal = ({
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 
