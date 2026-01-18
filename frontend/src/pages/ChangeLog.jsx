@@ -396,10 +396,10 @@ const ChangeLog = () => {
                     value={filters.event_type}
                     onChange={(e) => handleFilterChange('event_type', e.target.value)}
                     className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-purple-500 focus:outline-none ${filters.event_type
-                        ? 'border-purple-500/30 bg-purple-500/10'
-                        : theme === 'dark'
-                          ? 'border-[#282f39] bg-[#1c2027]'
-                          : 'border-gray-200 bg-white'
+                      ? 'border-purple-500/30 bg-purple-500/10'
+                      : theme === 'dark'
+                        ? 'border-[#282f39] bg-[#1c2027]'
+                        : 'border-gray-200 bg-white'
                       } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                   >
                     <option value="">🌐 All Events</option>
@@ -428,8 +428,8 @@ const ChangeLog = () => {
                     value={filters.target_type}
                     onChange={(e) => handleFilterChange('target_type', e.target.value)}
                     className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-orange-500 focus:outline-none ${filters.target_type
-                        ? 'border-orange-500/30 bg-orange-500/10'
-                        : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
+                      ? 'border-orange-500/30 bg-orange-500/10'
+                      : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
                       } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                   >
                     <option value="">🎯 All Types</option>
@@ -458,8 +458,8 @@ const ChangeLog = () => {
                       onChange={(e) => handleFilterChange('search', e.target.value)}
                       placeholder="Search logs..."
                       className={`w-full pl-10 pr-3 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none ${filters.search
-                          ? 'border-blue-500/30 bg-blue-500/10'
-                          : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
+                        ? 'border-blue-500/30 bg-blue-500/10'
+                        : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
                         } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                     />
                   </div>
@@ -476,8 +476,8 @@ const ChangeLog = () => {
                     value={filters.start_date}
                     onChange={(e) => handleFilterChange('start_date', e.target.value)}
                     className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-green-500 focus:outline-none ${filters.start_date
-                        ? 'border-green-500/30 bg-green-500/10'
-                        : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
+                      ? 'border-green-500/30 bg-green-500/10'
+                      : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
                       } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                   />
                 </div>
@@ -493,8 +493,8 @@ const ChangeLog = () => {
                     value={filters.end_date}
                     onChange={(e) => handleFilterChange('end_date', e.target.value)}
                     className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-red-500 focus:outline-none ${filters.end_date
-                        ? 'border-red-500/30 bg-red-500/10'
-                        : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
+                      ? 'border-red-500/30 bg-red-500/10'
+                      : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
                       } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                   />
                 </div>
@@ -579,7 +579,7 @@ const ChangeLog = () => {
               {loading ? (
                 <div className="p-12 text-center">
                   <RefreshCw className="w-8 h-8 text-[#136dec] animate-spin mx-auto mb-4" />
-                  <p className="text-[#9da8b9]">Loading change logs...</p>
+                  <p className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>Loading change logs...</p>
                 </div>
               ) : logs.length === 0 ? (
                 <div className="p-12 text-center">
@@ -635,10 +635,10 @@ const ChangeLog = () => {
                             <div className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>{log.user_email || 'N/A'}</div>
                             {log.user_role && (
                               <span className={`inline-block mt-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-full ${log.user_role === 'admin'
-                                  ? 'bg-red-500/10 text-red-400 border border-red-500/30'
-                                  : log.user_role === 'manager'
-                                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
-                                    : 'bg-green-500/10 text-green-400 border border-green-500/30'
+                                ? 'bg-red-500/10 text-red-400 border border-red-500/30'
+                                : log.user_role === 'manager'
+                                  ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
+                                  : 'bg-green-500/10 text-green-400 border border-green-500/30'
                                 }`}>
                                 {log.user_role === 'admin' ? '👑' : log.user_role === 'manager' ? '⭐' : '👤'} {log.user_role.toUpperCase()}
                               </span>

@@ -421,12 +421,12 @@ const Tasks = () => {
 
   if (loading) {
     return (
-      <div className="bg-[#111418] text-white font-['Inter'] h-screen flex items-center justify-center">
+      <div className={`h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-gray-50 text-gray-900'} font-['Inter']`}>
         <div className="flex flex-col items-center gap-6">
           <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#282f39] border-t-[#136dec]"></div>
+            <div className={`animate-spin rounded-full h-16 w-16 border-4 ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} border-t-[#136dec]`}></div>
           </div>
-          <p className="text-white font-medium">Loading tasks...</p>
+          <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-medium`}>Loading tasks...</p>
         </div>
       </div>
     );
@@ -451,7 +451,7 @@ const Tasks = () => {
         <div className="mb-4 space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9da8b9]" />
+              <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-400'}`} />
               <input
                 type="text"
                 value={filters.search}
@@ -517,7 +517,7 @@ const Tasks = () => {
             {(filters.status || filters.priority || filters.team || filters.assigned_to) && (
               <button
                 onClick={() => setFilters({ ...filters, status: '', priority: '', team: '', assigned_to: '' })}
-                className="px-3 py-1.5 text-sm text-[#9da8b9] hover:text-white transition-colors"
+                className={`px-3 py-1.5 text-sm ${theme === 'dark' ? 'text-[#9da8b9] hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
               >
                 Clear Filters
               </button>
@@ -529,7 +529,7 @@ const Tasks = () => {
         <div className="lg:hidden">
           {filteredTasks.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-[#9da8b9] text-lg">No tasks found. Create your first task!</p>
+              <p className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} text-lg`}>No tasks found. Create your first task!</p>
             </div>
           ) : (
             <ResponsiveGrid cols={{ base: 1, sm: 1, md: 2 }} gap="md">
@@ -556,22 +556,22 @@ const Tasks = () => {
             <table className="w-full text-left border-collapse">
               <thead className={`${theme === 'dark' ? 'bg-[#1c2027]' : 'bg-gray-100'}`}>
                 <tr>
-                  <th className="py-3 pl-6 pr-3 w-10 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}">
+                  <th className={`py-3 pl-6 pr-3 w-10 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}>
                     <input
                       type="checkbox"
                       className="size-4 rounded border-[#4b5563] bg-transparent text-[#136dec] focus:ring-offset-0 focus:ring-0 cursor-pointer"
                     />
                   </th>
-                  <th className={`py-3 px-3 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} text-xs font-semibold text-[#9da8b9] uppercase tracking-wider cursor-pointer hover:text-white group`}>
+                  <th className={`py-3 px-3 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} text-xs font-semibold ${theme === 'dark' ? 'text-[#9da8b9] hover:text-white' : 'text-gray-600 hover:text-gray-900'} uppercase tracking-wider cursor-pointer group`}>
                     <div className="flex items-center gap-1">
                       Task
                       <ChevronDown size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </th>
-                  <th className={`py-3 px-3 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} text-xs font-semibold text-[#9da8b9] uppercase tracking-wider w-32`}>Priority</th>
-                  <th className={`py-3 px-3 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} text-xs font-semibold text-[#9da8b9] uppercase tracking-wider w-36`}>Status</th>
-                  <th className={`py-3 px-3 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} text-xs font-semibold text-[#9da8b9] uppercase tracking-wider w-40`}>Assignee</th>
-                  <th className={`py-3 px-3 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} text-xs font-semibold text-[#9da8b9] uppercase tracking-wider w-32`}>Due Date</th>
+                  <th className={`py-3 px-3 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} text-xs font-semibold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider w-32`}>Priority</th>
+                  <th className={`py-3 px-3 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} text-xs font-semibold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider w-36`}>Status</th>
+                  <th className={`py-3 px-3 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} text-xs font-semibold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider w-40`}>Assignee</th>
+                  <th className={`py-3 px-3 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} text-xs font-semibold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider w-32`}>Due Date</th>
                   <th className={`py-3 px-3 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} w-16`}></th>
                 </tr>
               </thead>
@@ -579,7 +579,7 @@ const Tasks = () => {
                 {filteredTasks.map((task, index) => (
                   <tr
                     key={task._id}
-                    className={`group hover:bg-[#161b22] transition-colors cursor-pointer ${index % 2 === 1 ? 'bg-[#1c2027]/30' : ''}`}
+                    className={`group transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-[#161b22]' : 'hover:bg-gray-100'} ${index % 2 === 1 ? (theme === 'dark' ? 'bg-[#1c2027]/30' : 'bg-gray-50') : ''}`}
                     onClick={() => viewTaskDetails(task)}
                   >
                     <td className="py-2.5 pl-6 pr-3" onClick={(e) => e.stopPropagation()}>
@@ -590,7 +590,7 @@ const Tasks = () => {
                     </td>
                     <td className="py-2.5 px-3">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-white group-hover:text-[#136dec] line-clamp-2">
+                        <span className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} group-hover:text-[#136dec] line-clamp-2`}>
                           {task.title}
                         </span>
                       </div>
@@ -598,7 +598,7 @@ const Tasks = () => {
                     <td className="py-2.5 px-3">
                       <div className="flex items-center gap-2">
                         <div className={`size-2 rounded-full ${getPriorityDot(task.priority)}`}></div>
-                        <span className="text-xs text-[#d1d5db]">{getPriorityLabel(task.priority)}</span>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-[#d1d5db]' : 'text-gray-700'}`}>{getPriorityLabel(task.priority)}</span>
                       </div>
                     </td>
                     <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
@@ -620,17 +620,17 @@ const Tasks = () => {
                           <div className="size-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-[10px] text-white font-bold">
                             {getUserInitials(task.assigned_to[0].full_name)}
                           </div>
-                          <span className="text-xs text-[#d1d5db]">
+                          <span className={`text-xs ${theme === 'dark' ? 'text-[#d1d5db]' : 'text-gray-700'}`}>
                             {task.assigned_to[0].full_name}
                             {task.assigned_to.length > 1 && ` +${task.assigned_to.length - 1}`}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-xs text-[#9da8b9]">Unassigned</span>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-500'}`}>Unassigned</span>
                       )}
                     </td>
                     <td className="py-2.5 px-3">
-                      <span className={`text-xs ${task.due_date && new Date(task.due_date) < new Date() ? 'text-red-400' : 'text-[#9da8b9]'}`}>
+                      <span className={`text-xs ${task.due_date && new Date(task.due_date) < new Date() ? 'text-red-400' : (theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600')}`}>
                         {task.due_date ? new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date'}
                       </span>
                     </td>
@@ -639,7 +639,7 @@ const Tasks = () => {
                         {canEditTask(task) && (
                           <button
                             onClick={() => openEditModal(task)}
-                            className="text-[#9da8b9] hover:text-white p-1"
+                            className={`${theme === 'dark' ? 'text-[#9da8b9] hover:text-white' : 'text-gray-500 hover:text-gray-900'} p-1`}
                           >
                             <Edit2 size={16} />
                           </button>
@@ -647,12 +647,12 @@ const Tasks = () => {
                         {canDeleteTask(task) && (
                           <button
                             onClick={() => handleDeleteTask(task._id)}
-                            className="text-[#9da8b9] hover:text-red-400 p-1"
+                            className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-500'} hover:text-red-400 p-1`}
                           >
                             <Trash2 size={16} />
                           </button>
                         )}
-                        <button className="text-[#9da8b9] hover:text-white p-1">
+                        <button className={`${theme === 'dark' ? 'text-[#9da8b9] hover:text-white' : 'text-gray-500 hover:text-gray-900'} p-1`}>
                           <MoreHorizontal size={18} />
                         </button>
                       </div>
@@ -665,7 +665,7 @@ const Tasks = () => {
 
           {filteredTasks.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-[#9da8b9] text-lg">No tasks found. Create your first task!</p>
+              <p className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} text-lg`}>No tasks found. Create your first task!</p>
             </div>
           )}
         </div>
@@ -686,10 +686,10 @@ const Tasks = () => {
           <div className={`fixed inset-y-0 right-0 w-80 max-w-[85vw] ${theme === 'dark' ? 'bg-[#1c2027]' : 'bg-white'} shadow-xl z-50 lg:hidden transform transition-transform duration-300 ease-out animate-slideInRight`}>
             <div className="flex flex-col h-full">
               <div className={`flex items-center justify-between p-4 border-b ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}>
-                <h3 className="text-lg font-semibold text-white">Filters</h3>
+                <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Filters</h3>
                 <button
                   onClick={() => setShowFilterDrawer(false)}
-                  className="text-[#9da8b9] hover:text-white"
+                  className={`${theme === 'dark' ? 'text-[#9da8b9] hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
                 >
                   <X size={24} />
                 </button>
@@ -697,7 +697,7 @@ const Tasks = () => {
 
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">Status</label>
+                  <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Status</label>
                   <select
                     value={filters.status}
                     onChange={(e) => setFilters({ ...filters, status: e.target.value })}
@@ -713,7 +713,7 @@ const Tasks = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">Priority</label>
+                  <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Priority</label>
                   <select
                     value={filters.priority}
                     onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
@@ -729,7 +729,7 @@ const Tasks = () => {
 
                 {['admin', 'hr', 'team_lead'].includes(user?.role) && teams.length > 0 && (
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">Team</label>
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Team</label>
                     <select
                       value={filters.team}
                       onChange={(e) => setFilters({ ...filters, team: e.target.value })}
@@ -745,7 +745,7 @@ const Tasks = () => {
 
                 {['admin', 'hr', 'team_lead'].includes(user?.role) && users.length > 0 && (
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">Assigned To</label>
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Assigned To</label>
                     <select
                       value={filters.assigned_to}
                       onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })}
@@ -760,7 +760,7 @@ const Tasks = () => {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">Due Date From</label>
+                  <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Due Date From</label>
                   <input
                     type="date"
                     value={filters.dueDateFrom}
@@ -770,7 +770,7 @@ const Tasks = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">Due Date To</label>
+                  <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Due Date To</label>
                   <input
                     type="date"
                     value={filters.dueDateTo}
@@ -810,148 +810,148 @@ const Tasks = () => {
         size="lg"
       >
         <form onSubmit={handleCreateTask} className="space-y-3 sm:space-y-4">
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Title *</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
-                    required
-                    placeholder="Enter task title"
-                  />
-                </div>
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Title *</label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
+              required
+              placeholder="Enter task title"
+            />
+          </div>
 
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all resize-none"
-                    rows="3"
-                    placeholder="Add a description (optional)"
-                  />
-                </div>
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all resize-none"
+              rows="3"
+              placeholder="Add a description (optional)"
+            />
+          </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Priority</label>
-                    <select
-                      value={formData.priority}
-                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
-                    </select>
-                  </div>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Priority</label>
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
 
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Status</label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
-                    >
-                      <option value="todo">To Do</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="review">Review</option>
-                      <option value="done">Done</option>
-                    </select>
-                  </div>
-                </div>
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
+              >
+                <option value="todo">To Do</option>
+                <option value="in_progress">In Progress</option>
+                <option value="review">Review</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
+          </div>
 
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Due Date *</label>
-                  <input
-                    type="date"
-                    value={formData.due_date}
-                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
-                    required
-                  />
-                </div>
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Due Date *</label>
+            <input
+              type="date"
+              value={formData.due_date}
+              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
+              required
+            />
+          </div>
 
-                {['admin', 'hr', 'team_lead'].includes(user?.role) && (
-                  <>
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Select Team</label>
-                      <select
-                        value={formData.team_id}
-                        onChange={(e) => {
-                          const teamId = e.target.value;
-                          const selectedTeam = teams.find(team => team._id === teamId);
-                          let members = selectedTeam ? selectedTeam.members : [];
+          {['admin', 'hr', 'team_lead'].includes(user?.role) && (
+            <>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Select Team</label>
+                <select
+                  value={formData.team_id}
+                  onChange={(e) => {
+                    const teamId = e.target.value;
+                    const selectedTeam = teams.find(team => team._id === teamId);
+                    let members = selectedTeam ? selectedTeam.members : [];
 
-                          if (selectedTeam && user?.role === 'team_lead') {
-                            const teamLeadAlreadyIncluded = members.some(member => member._id === user?.id);
-                            if (!teamLeadAlreadyIncluded && selectedTeam.lead_id?._id === user?.id) {
-                              members = [
-                                ...members,
-                                {
-                                  _id: user.id,
-                                  full_name: user.full_name || user.username || user.email,
-                                  role: user.role,
-                                  email: user.email
-                                }
-                              ];
-                            }
+                    if (selectedTeam && user?.role === 'team_lead') {
+                      const teamLeadAlreadyIncluded = members.some(member => member._id === user?.id);
+                      if (!teamLeadAlreadyIncluded && selectedTeam.lead_id?._id === user?.id) {
+                        members = [
+                          ...members,
+                          {
+                            _id: user.id,
+                            full_name: user.full_name || user.username || user.email,
+                            role: user.role,
+                            email: user.email
                           }
+                        ];
+                      }
+                    }
 
-                          setSelectedTeamMembers(members);
-                          setFormData({ ...formData, team_id: teamId, assigned_to: [] });
-                        }}
-                        className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
-                      >
-                        <option value="">No Team</option>
-                        {teams.map((team) => (
-                          <option key={team._id} value={team._id}>
-                            {team.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    setSelectedTeamMembers(members);
+                    setFormData({ ...formData, team_id: teamId, assigned_to: [] });
+                  }}
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-[#111418] border border-[#282f39] rounded-lg text-white text-sm focus:ring-2 focus:ring-[#136dec] focus:border-transparent transition-all"
+                >
+                  <option value="">No Team</option>
+                  {teams.map((team) => (
+                    <option key={team._id} value={team._id}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                    {formData.team_id && selectedTeamMembers.length > 0 && (
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Assign Team Members</label>
-                        <div className="space-y-2 max-h-40 overflow-y-auto border border-[#282f39] rounded-lg p-2.5 sm:p-3 bg-[#111418]">
-                          {selectedTeamMembers.map((member) => (
-                            <label key={member._id} className="flex items-center space-x-2.5 min-h-[44px] sm:min-h-0 cursor-pointer hover:bg-[#1c2027] rounded px-2 py-1 transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={formData.assigned_to.includes(member._id)}
-                                onChange={() => {
-                                  const currentAssigned = formData.assigned_to;
-                                  const isSelected = currentAssigned.includes(member._id);
+              {formData.team_id && selectedTeamMembers.length > 0 && (
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-white mb-1.5 sm:mb-2">Assign Team Members</label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto border border-[#282f39] rounded-lg p-2.5 sm:p-3 bg-[#111418]">
+                    {selectedTeamMembers.map((member) => (
+                      <label key={member._id} className="flex items-center space-x-2.5 min-h-[44px] sm:min-h-0 cursor-pointer hover:bg-[#1c2027] rounded px-2 py-1 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={formData.assigned_to.includes(member._id)}
+                          onChange={() => {
+                            const currentAssigned = formData.assigned_to;
+                            const isSelected = currentAssigned.includes(member._id);
 
-                                  if (isSelected) {
-                                    setFormData({
-                                      ...formData,
-                                      assigned_to: currentAssigned.filter(id => id !== member._id)
-                                    });
-                                  } else {
-                                    setFormData({
-                                      ...formData,
-                                      assigned_to: [...currentAssigned, member._id]
-                                    });
-                                  }
-                                }}
-                                className="rounded border-[#4b5563] text-[#136dec] focus:ring-[#136dec] w-4 h-4"
-                              />
-                              <span className="text-xs sm:text-sm text-white">
-                                {member.full_name} <span className="text-[#9da8b9]">({member.role})</span>
-                                {member._id === user?.id && <span className="text-[#136dec] font-medium"> (You)</span>}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
+                            if (isSelected) {
+                              setFormData({
+                                ...formData,
+                                assigned_to: currentAssigned.filter(id => id !== member._id)
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                assigned_to: [...currentAssigned, member._id]
+                              });
+                            }
+                          }}
+                          className="rounded border-[#4b5563] text-[#136dec] focus:ring-[#136dec] w-4 h-4"
+                        />
+                        <span className="text-xs sm:text-sm text-white">
+                          {member.full_name} <span className="text-[#9da8b9]">({member.role})</span>
+                          {member._id === user?.id && <span className="text-[#136dec] font-medium"> (You)</span>}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
         </form>
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-4 pt-4 mt-4 sm:mt-6 border-t border-[#282f39]">
@@ -984,110 +984,110 @@ const Tasks = () => {
       >
         {editingTask && (
           <form onSubmit={handleEditTask} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Title *</label>
+              <input
+                type="text"
+                value={editingTask.title}
+                onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Description</label>
+              <textarea
+                value={editingTask.description}
+                onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
+                rows="4"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Priority</label>
+                <select
+                  value={editingTask.priority}
+                  onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Status</label>
+                <select
+                  value={editingTask.status}
+                  onChange={(e) => setEditingTask({ ...editingTask, status: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
+                >
+                  <option value="todo">To Do</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="review">Review</option>
+                  <option value="done">Done</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Due Date *</label>
+              <input
+                type="date"
+                value={editingTask.due_date ? new Date(editingTask.due_date).toISOString().split('T')[0] : ''}
+                onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value })}
+                className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
+                required
+              />
+            </div>
+
+            {['admin', 'hr', 'team_lead'].includes(user?.role) && (
+              <>
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">Title *</label>
-                  <input
-                    type="text"
-                    value={editingTask.title}
-                    onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                  <label className="block text-sm font-medium text-white mb-2">Select Team</label>
+                  <select
+                    value={editingTask.team_id || ''}
+                    onChange={(e) => handleTeamChange(e.target.value)}
                     className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
-                    required
-                  />
+                  >
+                    <option value="">No Team</option>
+                    {teams.map((team) => (
+                      <option key={team._id} value={team._id}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Description</label>
-                  <textarea
-                    value={editingTask.description}
-                    onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
-                    className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
-                    rows="4"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+                {editingTask.team_id && selectedTeamMembers.length > 0 && (
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">Priority</label>
-                    <select
-                      value={editingTask.priority}
-                      onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value })}
-                      className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">Status</label>
-                    <select
-                      value={editingTask.status}
-                      onChange={(e) => setEditingTask({ ...editingTask, status: e.target.value })}
-                      className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
-                    >
-                      <option value="todo">To Do</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="review">Review</option>
-                      <option value="done">Done</option>
-                      <option value="archived">Archived</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Due Date *</label>
-                  <input
-                    type="date"
-                    value={editingTask.due_date ? new Date(editingTask.due_date).toISOString().split('T')[0] : ''}
-                    onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value })}
-                    className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
-                    required
-                  />
-                </div>
-
-                {['admin', 'hr', 'team_lead'].includes(user?.role) && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-white mb-2">Select Team</label>
-                      <select
-                        value={editingTask.team_id || ''}
-                        onChange={(e) => handleTeamChange(e.target.value)}
-                        className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
-                      >
-                        <option value="">No Team</option>
-                        {teams.map((team) => (
-                          <option key={team._id} value={team._id}>
-                            {team.name}
-                          </option>
-                        ))}
-                      </select>
+                    <label className="block text-sm font-medium text-white mb-2">Assign Team Members</label>
+                    <div className="space-y-2 max-h-40 overflow-y-auto border border-[#282f39] rounded-lg p-3 bg-[#111418]">
+                      {selectedTeamMembers.map((member) => (
+                        <label key={member._id} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={editingTask.assigned_to.includes(member._id)}
+                            onChange={() => handleMemberToggle(member._id)}
+                            className="rounded border-[#4b5563] text-[#136dec] focus:ring-[#136dec]"
+                          />
+                          <span className="text-sm text-white">
+                            {member.full_name} ({member.role})
+                            {member._id === user?.id && <span className="text-[#136dec] font-medium"> (You)</span>}
+                          </span>
+                        </label>
+                      ))}
                     </div>
-
-                    {editingTask.team_id && selectedTeamMembers.length > 0 && (
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-2">Assign Team Members</label>
-                        <div className="space-y-2 max-h-40 overflow-y-auto border border-[#282f39] rounded-lg p-3 bg-[#111418]">
-                          {selectedTeamMembers.map((member) => (
-                            <label key={member._id} className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={editingTask.assigned_to.includes(member._id)}
-                                onChange={() => handleMemberToggle(member._id)}
-                                className="rounded border-[#4b5563] text-[#136dec] focus:ring-[#136dec]"
-                              />
-                              <span className="text-sm text-white">
-                                {member.full_name} ({member.role})
-                                {member._id === user?.id && <span className="text-[#136dec] font-medium"> (You)</span>}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
+                  </div>
                 )}
+              </>
+            )}
 
           </form>
         )}
@@ -1121,135 +1121,135 @@ const Tasks = () => {
       >
         {selectedTask && (
           <div className="space-y-6">
+            <div>
+              <p className={`${theme === 'dark' ? 'text-[#d1d5db]' : 'text-gray-700'}`}>{selectedTask.description}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Status</label>
+                {canEditTask(selectedTask) ? (
+                  <select
+                    value={selectedTask.status}
+                    onChange={(e) => handleUpdateTask(selectedTask._id, { status: e.target.value })}
+                    className={`w-full px-4 py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
+                  >
+                    <option value="todo">To Do</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="review">Review</option>
+                    <option value="done">Done</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                ) : (
+                  <span className={`inline-block px-3 py-1 rounded text-sm ${getStatusBadge(selectedTask.status)}`}>
+                    {getStatusLabel(selectedTask.status)}
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Priority</label>
+                <div className="flex items-center gap-2">
+                  <div className={`size-3 rounded-full ${getPriorityDot(selectedTask.priority)}`}></div>
+                  <span className={`${theme === 'dark' ? 'text-[#d1d5db]' : 'text-gray-700'}`}>{getPriorityLabel(selectedTask.priority)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[#d1d5db]">{selectedTask.description}</p>
+                  <p className={`text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
+                    <span className="font-medium">Created by:</span> {selectedTask.created_by?.full_name || 'Unknown'}
+                  </p>
+                  {selectedTask.team_id && (
+                    <p className={`text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
+                      <span className="font-medium">Team:</span> {selectedTask.team_id.name}
+                    </p>
+                  )}
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">Status</label>
-                    {canEditTask(selectedTask) ? (
-                      <select
-                        value={selectedTask.status}
-                        onChange={(e) => handleUpdateTask(selectedTask._id, { status: e.target.value })}
-                        className="w-full px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
-                      >
-                        <option value="todo">To Do</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="review">Review</option>
-                        <option value="done">Done</option>
-                        <option value="archived">Archived</option>
-                      </select>
-                    ) : (
-                      <span className={`inline-block px-3 py-1 rounded text-sm ${getStatusBadge(selectedTask.status)}`}>
-                        {getStatusLabel(selectedTask.status)}
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">Priority</label>
-                    <div className="flex items-center gap-2">
-                      <div className={`size-3 rounded-full ${getPriorityDot(selectedTask.priority)}`}></div>
-                      <span className="text-[#d1d5db]">{getPriorityLabel(selectedTask.priority)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-[#9da8b9]">
-                        <span className="font-medium">Created by:</span> {selectedTask.created_by?.full_name || 'Unknown'}
-                      </p>
-                      {selectedTask.team_id && (
-                        <p className="text-sm text-[#9da8b9]">
-                          <span className="font-medium">Team:</span> {selectedTask.team_id.name}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      {selectedTask.assigned_to && selectedTask.assigned_to.length > 0 && (
-                        <div className="text-sm text-[#9da8b9]">
-                          <span className="font-medium">Assigned to:</span>
-                          <div className="mt-1">
-                            {selectedTask.assigned_to.map((user) => (
-                              <span key={user._id} className="inline-block bg-blue-500/10 text-blue-400 text-xs px-2 py-1 rounded mr-1 mb-1 border border-blue-500/20">
-                                {user.full_name}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-[#9da8b9]">
-                        <span className="font-medium">Created:</span> {new Date(selectedTask.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      {selectedTask.due_date && (
-                        <p className="text-sm text-[#9da8b9]">
-                          <span className="font-medium">Due:</span>
-                          <span className={`font-medium ml-1 ${new Date(selectedTask.due_date) < new Date() ? 'text-red-400' : 'text-orange-400'}`}>
-                            {new Date(selectedTask.due_date).toLocaleString()}
+                <div>
+                  {selectedTask.assigned_to && selectedTask.assigned_to.length > 0 && (
+                    <div className={`text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
+                      <span className="font-medium">Assigned to:</span>
+                      <div className="mt-1">
+                        {selectedTask.assigned_to.map((user) => (
+                          <span key={user._id} className="inline-block bg-blue-500/10 text-blue-400 text-xs px-2 py-1 rounded mr-1 mb-1 border border-blue-500/20">
+                            {user.full_name}
                           </span>
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {selectedTask.updated_at !== selectedTask.created_at && (
-                    <div>
-                      <p className="text-sm text-[#9da8b9]">
-                        <span className="font-medium">Last updated:</span> {new Date(selectedTask.updated_at).toLocaleString()}
-                      </p>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
+              </div>
 
-                <div className="border-t border-[#282f39] pt-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center text-white">
-                    <MessageSquare className="w-5 h-5 mr-2" />
-                    Comments
-                  </h3>
-
-                  <div className="space-y-4 mb-4 max-h-60 overflow-y-auto">
-                    {comments.map((comment) => (
-                      <div key={comment._id} className="bg-[#111418] rounded-lg p-4 border border-[#282f39]">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="font-medium text-sm text-white">{comment.author_id?.full_name || 'Unknown'}</span>
-                          <span className="text-xs text-[#9da8b9]">
-                            {new Date(comment.created_at).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-sm text-[#d1d5db]">{comment.content}</p>
-                      </div>
-                    ))}
-                    {comments.length === 0 && (
-                      <p className="text-[#9da8b9] text-sm">No comments yet</p>
-                    )}
-                  </div>
-
-                  <form onSubmit={handleAddComment} className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="Add a comment..."
-                      className="flex-1 px-4 py-2 bg-[#111418] border border-[#282f39] rounded text-white focus:ring-2 focus:ring-[#136dec] focus:border-transparent"
-                    />
-                    <button
-                      type="submit"
-                      className="px-6 py-2 bg-[#136dec] text-white rounded hover:bg-blue-600 transition-colors font-semibold"
-                    >
-                      Post
-                    </button>
-                  </form>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className={`text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
+                    <span className="font-medium">Created:</span> {new Date(selectedTask.created_at).toLocaleString()}
+                  </p>
                 </div>
+                <div>
+                  {selectedTask.due_date && (
+                    <p className={`text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
+                      <span className="font-medium">Due:</span>
+                      <span className={`font-medium ml-1 ${new Date(selectedTask.due_date) < new Date() ? 'text-red-400' : 'text-orange-400'}`}>
+                        {new Date(selectedTask.due_date).toLocaleString()}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {selectedTask.updated_at !== selectedTask.created_at && (
+                <div>
+                  <p className={`text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
+                    <span className="font-medium">Last updated:</span> {new Date(selectedTask.updated_at).toLocaleString()}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className={`border-t ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} pt-6`}>
+              <h3 className={`text-lg font-semibold mb-4 flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <MessageSquare className="w-5 h-5 mr-2" />
+                Comments
+              </h3>
+
+              <div className="space-y-4 mb-4 max-h-60 overflow-y-auto">
+                {comments.map((comment) => (
+                  <div key={comment._id} className={`rounded-lg p-4 border ${theme === 'dark' ? 'bg-[#111418] border-[#282f39]' : 'bg-gray-50 border-gray-200'}`}>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{comment.author_id?.full_name || 'Unknown'}</span>
+                      <span className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-500'}`}>
+                        {new Date(comment.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-[#d1d5db]' : 'text-gray-700'}`}>{comment.content}</p>
+                  </div>
+                ))}
+                {comments.length === 0 && (
+                  <p className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} text-sm`}>No comments yet</p>
+                )}
+              </div>
+
+              <form onSubmit={handleAddComment} className="flex space-x-2">
+                <input
+                  type="text"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Add a comment..."
+                  className={`flex-1 px-4 py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
+                />
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-[#136dec] text-white rounded hover:bg-blue-600 transition-colors font-semibold"
+                >
+                  Post
+                </button>
+              </form>
+            </div>
           </div>
         )}
       </ResponsiveModal>

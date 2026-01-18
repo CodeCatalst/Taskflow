@@ -17,9 +17,9 @@ import { Menu } from 'lucide-react';
  * - Tablet: 768px - 1024px (sidebar + content)
  * - Desktop: > 1024px (full layout with wider content)
  */
-const ResponsivePageLayout = ({ 
-  children, 
-  title, 
+const ResponsivePageLayout = ({
+  children,
+  title,
   subtitle,
   actions, // Optional action buttons for header
   headerContent, // Optional custom header content
@@ -30,15 +30,15 @@ const ResponsivePageLayout = ({
   const { toggleMobileSidebar, isMobile } = useSidebar();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#111418]">
+    <div className={`flex h-screen overflow-hidden ${theme === 'dark' ? 'bg-[#111418]' : 'bg-gray-50'}`}>
       <Sidebar />
-      
+
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        
+
         {/* Responsive Header */}
         {(title || headerContent) && (
-          <header 
+          <header
             className={`
               flex-none border-b
               ${theme === 'dark' ? 'bg-[#1c2027] border-[#282f39]' : 'bg-white border-gray-200'}
@@ -54,8 +54,8 @@ const ResponsivePageLayout = ({
                     onClick={toggleMobileSidebar}
                     className={`
                       flex-none p-2 rounded-lg
-                      ${theme === 'dark' 
-                        ? 'hover:bg-[#282f39] text-[#9da8b9] hover:text-white' 
+                      ${theme === 'dark'
+                        ? 'hover:bg-[#282f39] text-[#9da8b9] hover:text-white'
                         : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
                       }
                       transition-colors md:hidden
@@ -69,7 +69,7 @@ const ResponsivePageLayout = ({
                 {/* Title Section */}
                 {title && (
                   <div className="min-w-0 flex-1">
-                    <h1 
+                    <h1
                       className={`
                         font-bold truncate
                         ${theme === 'dark' ? 'text-white' : 'text-gray-900'}
@@ -79,7 +79,7 @@ const ResponsivePageLayout = ({
                       {title}
                     </h1>
                     {subtitle && (
-                      <p 
+                      <p
                         className={`
                           text-xs sm:text-sm truncate mt-0.5
                           ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}

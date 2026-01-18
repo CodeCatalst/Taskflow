@@ -8,7 +8,7 @@ import useRealtimeSync from '../hooks/useRealtimeSync';
 import { useConfirmModal } from '../hooks/useConfirmModal';
 import Sidebar from '../components/Sidebar';
 import ConfirmModal from '../components/modals/ConfirmModal';
-import { 
+import {
   Plus, X, Search, Settings, UserPlus, Calendar as CalendarIcon,
   MoreHorizontal, MessageSquare, Menu
 } from 'lucide-react';
@@ -157,7 +157,7 @@ const Kanban = () => {
     try {
       const response = await api.patch(`/tasks/${taskId}`, updates);
       const updatedTask = response.data.task;
-      
+
       setTasks((prev) =>
         prev.map((t) => (t._id === taskId ? updatedTask : t))
       );
@@ -218,9 +218,9 @@ const Kanban = () => {
   const handleDrop = async (e, newStatus) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     setDragOverColumn(null);
-    
+
     if (!draggedTask || draggedTask.status === newStatus) {
       setDraggedTask(null);
       return;
@@ -238,7 +238,7 @@ const Kanban = () => {
   const handleTeamChange = (teamId) => {
     const selectedTeam = teams.find(team => team._id === teamId);
     let members = selectedTeam ? selectedTeam.members : [];
-    
+
     if (selectedTeam && user?.role === 'team_lead') {
       const teamLeadAlreadyIncluded = members.some(member => member._id === user?.id);
       if (!teamLeadAlreadyIncluded && selectedTeam.lead_id?._id === user?.id) {
@@ -253,7 +253,7 @@ const Kanban = () => {
         ];
       }
     }
-    
+
     setSelectedTeamMembers(members);
     setFormData({ ...formData, team_id: teamId, assigned_to: [] });
   };
@@ -302,12 +302,12 @@ const Kanban = () => {
     if (filters.showMyTasksOnly) {
       filtered = filtered.filter((t) => {
         if (!t.assigned_to) return false;
-        const assignedIds = Array.isArray(t.assigned_to) 
+        const assignedIds = Array.isArray(t.assigned_to)
           ? t.assigned_to.map(u => typeof u === 'object' ? u._id : u)
           : [typeof t.assigned_to === 'object' ? t.assigned_to._id : t.assigned_to];
         const isAssignedToUser = assignedIds.includes(user?.id);
         if (user?.role === 'member') {
-          const belongsToUserTeam = user.team_id && t.team_id && 
+          const belongsToUserTeam = user.team_id && t.team_id &&
             (t.team_id._id === user.team_id || t.team_id === user.team_id);
           return isAssignedToUser && belongsToUserTeam;
         }
@@ -390,13 +390,13 @@ const Kanban = () => {
               </div>
             </div>
             <div className="flex gap-2 sm:gap-3 flex-shrink-0">
-              <button 
+              <button
                 onClick={() => navigate('/settings')}
                 className={`hidden sm:flex items-center justify-center rounded h-9 px-3 ${theme === 'dark' ? 'bg-[#282f39]' : 'bg-white'} ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} ${theme === 'dark' ? 'hover:text-white' : 'hover:text-gray-900'} border ${theme === 'dark' ? 'border-[#3e454f]' : 'border-gray-200'} ${theme === 'dark' ? 'hover:border-[#5a6472]' : 'hover:border-gray-300'} transition-colors`}
               >
                 <Settings size={20} />
               </button>
-              <button 
+              <button
                 onClick={() => navigate('/teams')}
                 className={`hidden lg:flex items-center justify-center rounded h-9 px-3 ${theme === 'dark' ? 'bg-[#282f39]' : 'bg-white'} ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} ${theme === 'dark' ? 'hover:text-white' : 'hover:text-gray-900'} border ${theme === 'dark' ? 'border-[#3e454f]' : 'border-gray-200'} ${theme === 'dark' ? 'hover:border-[#5a6472]' : 'hover:border-gray-300'} transition-colors`}
               >
@@ -462,18 +462,17 @@ const Kanban = () => {
           <div className="lg:hidden mb-2 flex items-center gap-2 text-xs text-[#9da8b9]">
             <span>← Swipe to see more columns →</span>
           </div>
-          
+
           <div className="flex h-full gap-3 sm:gap-4 pb-4" style={{ minWidth: 'max-content' }}>
             {columns.map((column) => {
               const columnTasks = getTasksByStatus(column.id);
               const isDragOver = dragOverColumn === column.id;
-              
+
               return (
                 <div
                   key={column.id}
-                  className={`flex flex-col w-[280px] sm:w-[320px] lg:w-1/4 lg:min-w-[280px] ${theme === 'dark' ? 'bg-[#1c2128]' : 'bg-white'} rounded-xl h-full border transition-all duration-200 ${
-                    isDragOver ? 'border-[#136dec] bg-[#136dec]/5 scale-[1.02]' : `${theme === 'dark' ? 'border-[#3e454f]/50' : 'border-gray-200'}`
-                  }`}
+                  className={`flex flex-col w-[280px] sm:w-[320px] lg:w-1/4 lg:min-w-[280px] ${theme === 'dark' ? 'bg-[#1c2128]' : 'bg-white'} rounded-xl h-full border transition-all duration-200 ${isDragOver ? 'border-[#136dec] bg-[#136dec]/5 scale-[1.02]' : `${theme === 'dark' ? 'border-[#3e454f]/50' : 'border-gray-200'}`
+                    }`}
                   onDragOver={handleDragOver}
                   onDragEnter={(e) => handleDragEnter(e, column.id)}
                   onDragLeave={handleDragLeave}
@@ -494,16 +493,15 @@ const Kanban = () => {
                     {columnTasks.map((task) => {
                       const priorityBadge = getPriorityBadge(task.priority);
                       const isDone = task.status === 'done';
-                      
+
                       return (
                         <div
                           key={task._id}
                           draggable={canEditTask(task)}
                           onDragStart={(e) => handleDragStart(e, task)}
                           onDragEnd={handleDragEnd}
-                          className={`group ${theme === 'dark' ? 'bg-gradient-to-br from-[#282f39] to-[#242a35]' : 'bg-gradient-to-br from-gray-50 to-white'} p-3 sm:p-4 rounded-lg border ${theme === 'dark' ? 'border-[#3e454f]' : 'border-gray-200'} hover:border-[#136dec]/50 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 ${
-                            isDone ? 'opacity-70 hover:opacity-100' : ''
-                          }`}
+                          className={`group ${theme === 'dark' ? 'bg-gradient-to-br from-[#282f39] to-[#242a35]' : 'bg-gradient-to-br from-gray-50 to-white'} p-3 sm:p-4 rounded-lg border ${theme === 'dark' ? 'border-[#3e454f]' : 'border-gray-200'} hover:border-[#136dec]/50 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 ${isDone ? 'opacity-70 hover:opacity-100' : ''
+                            }`}
                           onClick={() => setSelectedTask(task)}
                         >
                           <div className="flex justify-between items-start mb-2">
@@ -514,9 +512,8 @@ const Kanban = () => {
                               {priorityBadge.label}
                             </span>
                           </div>
-                          <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-3 leading-snug group-hover:text-[#136dec] transition-colors ${
-                            isDone ? 'line-through decoration-slate-600' : ''
-                          }`}>
+                          <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-3 leading-snug group-hover:text-[#136dec] transition-colors ${isDone ? 'line-through decoration-slate-600' : ''
+                            }`}>
                             {task.title}
                           </p>
                           <div className={`flex items-center justify-between border-t ${theme === 'dark' ? 'border-[#3e454f]/50' : 'border-gray-200'} pt-2 mt-auto`}>
@@ -525,9 +522,8 @@ const Kanban = () => {
                                 task.assigned_to.slice(0, 2).map((assignee, idx) => (
                                   <div
                                     key={assignee._id || idx}
-                                    className={`size-5 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-[8px] text-white font-bold ring-2 ring-[#282f39] ${
-                                      isDone ? 'grayscale' : ''
-                                    }`}
+                                    className={`size-5 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-[8px] text-white font-bold ring-2 ring-[#282f39] ${isDone ? 'grayscale' : ''
+                                      }`}
                                     title={assignee.full_name}
                                   >
                                     {getUserInitials(assignee.full_name)}
@@ -547,7 +543,7 @@ const Kanban = () => {
                             <div className={`flex items-center gap-1 ${isDone ? 'text-green-500' : task.due_date && new Date(task.due_date) < new Date() ? 'text-red-400' : task.due_date && new Date(task.due_date) < new Date(Date.now() + 86400000) ? 'text-[#136dec]' : 'text-[#6b7280]'}`}>
                               <CalendarIcon size={14} />
                               <span className="text-[11px]">
-                                {task.due_date 
+                                {task.due_date
                                   ? new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                                   : 'No date'}
                               </span>
@@ -733,7 +729,7 @@ const Kanban = () => {
 
             <div className="space-y-6">
               <div>
-                <p className="text-[#d1d5db]">{selectedTask.description || 'No description'}</p>
+                <p className={`${theme === 'dark' ? 'text-[#d1d5db]' : 'text-gray-700'}`}>{selectedTask.description || 'No description'}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
