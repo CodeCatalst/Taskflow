@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
+import { requireCoreWorkspace } from '../middleware/workspaceGuard.js';
 import LeaveRequest from '../models/LeaveRequest.js';
 import LeaveBalance from '../models/LeaveBalance.js';
 import LeaveType from '../models/LeaveType.js';
@@ -14,7 +15,7 @@ import HrEventService from '../services/hrEventService.js';
 const router = express.Router();
 
 // Get all leave requests (filtered by status/user)
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
   try {
     const { status, userId } = req.query;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -47,7 +48,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // Create leave request
-router.post('/', authenticate, async (req, res) => {
+router.post('/', authenticate, requireCoreWorkspace, async (req, res) => {
   try {
     const { leaveTypeId, startDate, endDate, reason, days } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -119,7 +120,7 @@ router.post('/', authenticate, async (req, res) => {
 });
 
 // Approve/Reject leave request (HR Action-Driven)
-router.patch('/:id/status', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.patch('/:id/status', authenticate, checkRole(['admin', 'hr']), requireCoreWorkspace, async (req, res) => {
   try {
     const { status, rejectionReason } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -157,7 +158,7 @@ router.patch('/:id/status', authenticate, checkRole(['admin', 'hr']), async (req
 });
 
 // Get leave balance for a user
-router.get('/balance/:userId?', authenticate, async (req, res) => {
+router.get('/balance/:userId?', authenticate, requireCoreWorkspace, async (req, res) => {
   try {
     const targetUserId = req.params.userId || req.user._id;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -183,7 +184,7 @@ router.get('/balance/:userId?', authenticate, async (req, res) => {
 });
 
 // Get all leave balances (for HR/Admin)
-router.get('/balances', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.get('/balances', authenticate, checkRole(['admin', 'hr']), requireCoreWorkspace, async (req, res) => {
   try {
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
     const currentYear = new Date().getFullYear();

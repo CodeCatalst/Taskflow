@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
+import { requireCoreWorkspace } from '../middleware/workspaceGuard.js';
 import LeaveType from '../models/LeaveType.js';
 import LeaveBalance from '../models/LeaveBalance.js';
 import User from '../models/User.js';
@@ -10,7 +11,7 @@ import getClientIP from '../utils/getClientIP.js';
 const router = express.Router();
 
 // Get all leave types
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
   try {
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
 

@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
+import { requireCoreWorkspace } from '../middleware/workspaceGuard.js';
 import Holiday from '../models/Holiday.js';
 import { logChange } from '../utils/changeLogService.js';
 import getClientIP from '../utils/getClientIP.js';
@@ -8,7 +9,7 @@ import getClientIP from '../utils/getClientIP.js';
 const router = express.Router();
 
 // Get all holidays
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
   try {
     const { year } = req.query;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SidebarProvider } from './context/SidebarContext';
+import { WorkspaceProvider } from './context/WorkspaceContext';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import useNotifications from './hooks/useNotifications';
 import Login from './pages/Login';
@@ -83,7 +84,7 @@ function AppContent() {
       <Route
         path="/hr/dashboard"
         element={
-          <ProtectedRoute allowedRoles={['admin', 'hr']}>
+          <ProtectedRoute allowedRoles={['admin', 'hr', 'community_admin']}>
             <HRDashboard />
           </ProtectedRoute>
         }
@@ -198,11 +199,13 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <SidebarProvider>
-          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <AppContent />
-          </BrowserRouter>
-        </SidebarProvider>
+        <WorkspaceProvider>
+          <SidebarProvider>
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <AppContent />
+            </BrowserRouter>
+          </SidebarProvider>
+        </WorkspaceProvider>
       </AuthProvider>
     </ThemeProvider>
   );

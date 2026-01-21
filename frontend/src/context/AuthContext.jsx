@@ -65,6 +65,7 @@ export const AuthProvider = ({ children }) => {
         success: false,
         message: errorData?.message || 'Login failed',
         requiresVerification: errorData?.requiresVerification || false,
+        accountDeactivated: errorData?.accountDeactivated || false,
       };
     }
   };

@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import { logChange } from '../utils/changeLogService.js';
 import getClientIP from '../utils/getClientIP.js';
 import { sendEmail } from '../utils/emailService.js';
+import brevoService from '../services/brevoEmailService.js';
 
 const router = express.Router();
 
@@ -159,14 +160,18 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res)
 // Send test email
 router.post('/test', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
   try {
-    const { to, subject, htmlContent } = req.body;
+    const { to, subject, htmlContent, variables = {} } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
 
     if (!to || !subject || !htmlContent) {
       return res.status(400).json({ message: 'Recipient, subject, and content are required' });
     }
 
-    const result = await sendEmail(to, subject, htmlContent);
+    // Interpolate variables in subject and content
+    const interpolatedSubject = brevoService.interpolateVariables(subject, variables);
+    const interpolatedHtml = brevoService.interpolateVariables(htmlContent, variables);
+
+    const result = await sendEmail(to, interpolatedSubject, interpolatedHtml);
 
     if (result.success) {
       await logChange({
@@ -191,7 +196,7 @@ router.post('/test', authenticate, checkRole(['admin', 'hr']), async (req, res) 
 // Send email to users
 router.post('/send', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
   try {
-    const { recipients, subject, htmlContent, templateId } = req.body;
+    const { recipients, subject, htmlContent, templateId, variables = {} } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
 
     if (!recipients || !subject || !htmlContent) {
@@ -200,7 +205,21 @@ router.post('/send', authenticate, checkRole(['admin', 'hr']), async (req, res) 
 
     // Get recipient emails
     let recipientEmails = [];
-    if (recipients === 'all') {
+    if (Array.isArray(recipients)) {
+      // Check if recipients are user IDs or email objects
+      if (recipients.length > 0 && typeof recipients[0] === 'string' && recipients[0].includes('@')) {
+        // Direct email addresses
+        recipientEmails = recipients.map(email => ({ email, name: '' }));
+      } else {
+        // User IDs - fetch user details
+        const users = await User.find({
+          _id: { $in: recipients },
+          workspaceId,
+          isActive: true
+        }).select('email full_name');
+        recipientEmails = users.map(user => ({ email: user.email, name: user.full_name }));
+      }
+    } else if (recipients === 'all') {
       const users = await User.find({ workspaceId, isActive: true }).select('email full_name');
       recipientEmails = users.map(user => ({ email: user.email, name: user.full_name }));
     } else if (recipients === 'active') {
@@ -215,7 +234,11 @@ router.post('/send', authenticate, checkRole(['admin', 'hr']), async (req, res) 
       return res.status(400).json({ message: 'No valid recipients found' });
     }
 
-    const result = await sendEmail(recipientEmails, subject, htmlContent);
+    // Interpolate variables in subject and content
+    const interpolatedSubject = brevoService.interpolateVariables(subject, variables);
+    const interpolatedHtml = brevoService.interpolateVariables(htmlContent, variables);
+
+    const result = await sendEmail(recipientEmails, interpolatedSubject, interpolatedHtml);
 
     if (result.success) {
       await logChange({
@@ -238,6 +261,92 @@ router.post('/send', authenticate, checkRole(['admin', 'hr']), async (req, res) 
   } catch (error) {
     console.error('Send email error:', error);
     res.status(500).json({ message: 'Failed to send emails' });
+  }
+});
+
+// Get users for email recipient selection with advanced search and filters
+router.get('/users', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+  try {
+    const workspaceId = req.context?.workspaceId || req.user.workspaceId;
+    const {
+      search,
+      role,
+      department,
+      isActive,
+      team,
+      limit = 50,
+      page = 1
+    } = req.query;
+
+    let query = { workspaceId };
+
+    // Add filters
+    if (isActive !== undefined && isActive !== 'all') {
+      query.isActive = isActive === 'true';
+    }
+    if (role && role !== 'all' && Array.isArray(role)) {
+      query.role = { $in: role };
+    } else if (role && role !== 'all') {
+      query.role = role;
+    }
+    if (department && department !== 'all') {
+      query.department = department;
+    }
+    if (team && team !== 'all') {
+      // Assuming users have a teams field or we can join with teams
+      // For now, we'll skip team filtering as it requires team relationship
+    }
+
+    // Add advanced search functionality
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      query.$or = [
+        { full_name: { $regex: searchRegex } },
+        { email: { $regex: searchRegex } },
+        { department: { $regex: searchRegex } }
+      ];
+    }
+
+    // Get total count for pagination
+    const totalCount = await User.countDocuments(query);
+
+    // Get paginated results
+    const users = await User.find(query)
+      .select('full_name email role department isActive profile_picture createdAt')
+      .sort({ full_name: 1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+    // Get unique departments and roles for filter options
+    const departments = await User.distinct('department', { workspaceId, department: { $ne: null, $ne: '' } });
+    const roles = await User.distinct('role', { workspaceId });
+
+    res.json({
+      success: true,
+      users: users.map(user => ({
+        id: user._id,
+        name: user.full_name,
+        email: user.email,
+        role: user.role,
+        department: user.department || 'Not specified',
+        isActive: user.isActive,
+        avatar: user.profile_picture,
+        joinedAt: user.createdAt
+      })),
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalCount,
+        pages: Math.ceil(totalCount / parseInt(limit))
+      },
+      filters: {
+        departments: departments.filter(d => d).sort(),
+        roles: roles.sort()
+      }
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ message: 'Failed to fetch users' });
   }
 });
 

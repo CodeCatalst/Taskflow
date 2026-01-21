@@ -8,6 +8,7 @@ import Team from '../models/Team.js';
 import Workspace from '../models/Workspace.js';
 import { sendCredentialEmail, sendPasswordResetEmail } from '../utils/emailService.js';
 import { logChange } from '../utils/changeLogService.js';
+import HrActionService from '../services/hrActionService.js';
 import multer from 'multer';
 import xlsx from 'xlsx';
 import getClientIP from '../utils/getClientIP.js';
@@ -886,6 +887,76 @@ router.get('/bulk-import/template-json', authenticate, checkRole(['admin', 'hr']
     console.error('JSON template download error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
+});
+
+// Activate employee (HR, Admin, Community Admin)
+router.patch('/:id/activate', authenticate, checkRole(['hr', 'admin', 'community_admin']), async (req, res) => {
+ try {
+   const { id } = req.params;
+   const ipAddress = getClientIP(req);
+
+   const result = await HrActionService.activateEmployee(
+     req.user,
+     id,
+     req.context.workspaceId,
+     ipAddress
+   );
+
+   res.json({
+     message: 'Employee activated successfully',
+     employee: {
+       id: result.data.employeeId,
+       name: result.data.employeeName,
+       email: result.data.employeeEmail
+     }
+   });
+ } catch (error) {
+   console.error('Employee activation error:', error);
+   res.status(400).json({ message: error.message });
+ }
+});
+
+// Deactivate employee (HR, Admin, Community Admin)
+router.patch('/:id/deactivate', authenticate, checkRole(['hr', 'admin', 'community_admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ipAddress = getClientIP(req);
+
+    // Check if target user is an admin - only community_admin can deactivate admins
+    const targetUser = await User.findOne({
+      _id: id,
+      workspaceId: req.context.workspaceId
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (targetUser.role === 'admin' && req.user.role !== 'community_admin') {
+      return res.status(403).json({
+        message: 'Only super administrators can deactivate admin accounts'
+      });
+    }
+
+    const result = await HrActionService.deactivateEmployee(
+      req.user,
+      id,
+      req.context.workspaceId,
+      ipAddress
+    );
+
+   res.json({
+     message: 'Employee deactivated successfully',
+     employee: {
+       id: result.data.employeeId,
+       name: result.data.employeeName,
+       email: result.data.employeeEmail
+     }
+   });
+ } catch (error) {
+   console.error('Employee deactivation error:', error);
+   res.status(400).json({ message: error.message });
+ }
 });
 
 export default router;

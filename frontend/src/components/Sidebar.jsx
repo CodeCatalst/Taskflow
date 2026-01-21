@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
+import { useWorkspace } from '../context/WorkspaceContext';
 import { useConfirmModal } from '../hooks/useConfirmModal';
 import ConfirmModal from './modals/ConfirmModal';
 import {
@@ -33,6 +34,7 @@ const Sidebar = () => {
   const { user, logout } = useAuth();
   const { theme, currentTheme } = useTheme();
   const { isMobileOpen, isMobile, closeMobileSidebar, isCollapsed, toggleCollapse } = useSidebar();
+  const { workspace } = useWorkspace();
   const navigate = useNavigate();
   const location = useLocation();
   const confirmModal = useConfirmModal();
@@ -73,7 +75,7 @@ const Sidebar = () => {
   };
 
   const mainMenuItems = [
-    { path: user?.role === 'admin' || user?.role === 'hr' ? '/hr/dashboard' : '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/tasks', icon: CheckSquare, label: 'My Tasks' },
     { path: '/kanban', icon: Grid3x3, label: 'Kanban Board' },
     { path: '/calendar', icon: Calendar, label: 'Calendar' },
@@ -81,9 +83,12 @@ const Sidebar = () => {
   ];
 
   const hrMenuItems = [
-    { path: '/hr/dashboard', icon: LayoutDashboard, label: 'HR Dashboard', roles: ['admin', 'hr'] },
+    { path: '/hr/dashboard', icon: LayoutDashboard, label: 'HR Dashboard', roles: ['admin', 'hr'], coreWorkspaceOnly: true },
+    { path: '/hr/attendance', icon: Clock, label: 'Attendance', roles: ['admin', 'hr'], coreWorkspaceOnly: true },
+    { path: '/hr/leaves', icon: CalendarDays, label: 'Leave Management', roles: ['admin', 'hr', 'member'], coreWorkspaceOnly: true },
+    { path: '/hr/calendar', icon: Calendar, label: 'HR Calendar', roles: ['admin', 'hr'], coreWorkspaceOnly: true },
     { path: '/teams', icon: Users, label: 'Teams', roles: ['admin', 'hr', 'team_lead', 'community_admin'] },
-    { path: '/users', icon: UserCog, label: 'User Management', roles: ['admin', 'hr'] },
+    { path: '/users', icon: UserCog, label: 'User Management', roles: ['admin', 'hr', 'community_admin'] },
   ];
 
   const adminMenuItems = [
@@ -99,12 +104,17 @@ const Sidebar = () => {
   const canAccess = (item) => {
     if (!item.roles) return true;
     if (!item.roles.includes(user?.role)) return false;
-    
+
     // If systemAdminOnly, check if user is a system admin
     if (item.systemAdminOnly) {
       return user?.isSystemAdmin || (!user?.workspaceId && user?.role === 'admin');
     }
-    
+
+    // Check workspace type restrictions for HR features
+    if (item.coreWorkspaceOnly && workspace?.type !== 'CORE') {
+      return false;
+    }
+
     return true;
   };
 
@@ -188,34 +198,32 @@ const Sidebar = () => {
         )}
 
         {/* Main Menu Items */}
-        <div className={`transition-all duration-200 overflow-hidden ${
-          isCollapsed || openDropdowns.main ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'
+        <div className={`transition-all duration-200 ${
+          isCollapsed || openDropdowns.main ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
         }`}>
-          <div className="max-h-60 overflow-y-auto">
-            {mainMenuItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => handleNavigation(item.path)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-md transition-colors group ${
-                    active
-                      ? isDark
-                        ? 'bg-[#136dec]/10 text-[#136dec]'
-                        : 'bg-blue-50 text-blue-600'
-                      : isDark
-                        ? 'text-[#9da8b9] hover:bg-[#1c2027] hover:text-white'
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                  }`}
-                  title={isCollapsed ? item.label : ''}
-                >
-                  <Icon size={18} className={active ? 'fill-current' : ''} />
-                  {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
-                </button>
-              );
-            })}
-          </div>
+          {mainMenuItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.path);
+            return (
+              <button
+                key={item.path}
+                onClick={() => handleNavigation(item.path)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-md transition-colors group ${
+                  active
+                    ? isDark
+                      ? 'bg-[#136dec]/10 text-[#136dec]'
+                      : 'bg-blue-50 text-blue-600'
+                    : isDark
+                      ? 'text-[#9da8b9] hover:bg-[#1c2027] hover:text-white'
+                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+                title={isCollapsed ? item.label : ''}
+              >
+                <Icon size={18} className={active ? 'fill-current' : ''} />
+                {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+              </button>
+            );
+          })}
         </div>
 
         {/* HR Management Section Dropdown */}
@@ -238,34 +246,32 @@ const Sidebar = () => {
             )}
 
             {/* HR Menu Items */}
-            <div className={`transition-all duration-200 overflow-hidden ${
-              isCollapsed || openDropdowns.hr ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            <div className={`transition-all duration-200 ${
+              isCollapsed || openDropdowns.hr ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
             }`}>
-              <div className="max-h-60 overflow-y-auto">
-                {hrMenuItems.filter(canAccess).map((item) => {
-                  const Icon = item.icon;
-                  const active = isActive(item.path);
-                  return (
-                    <button
-                      key={item.path}
-                      onClick={() => handleNavigation(item.path)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-md transition-colors group ${
-                        active
-                          ? isDark
-                            ? 'bg-[#136dec]/10 text-[#136dec]'
-                            : 'bg-blue-50 text-blue-600'
-                          : isDark
-                            ? 'text-[#9da8b9] hover:bg-[#1c2027] hover:text-white'
-                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                      }`}
-                      title={isCollapsed ? item.label : ''}
-                    >
-                      <Icon size={18} className={active ? 'fill-current' : ''} />
-                      {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
-                    </button>
-                  );
-                })}
-              </div>
+              {hrMenuItems.filter(canAccess).map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => handleNavigation(item.path)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-md transition-colors group ${
+                      active
+                        ? isDark
+                          ? 'bg-[#136dec]/10 text-[#136dec]'
+                          : 'bg-blue-50 text-blue-600'
+                        : isDark
+                          ? 'text-[#9da8b9] hover:bg-[#1c2027] hover:text-white'
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                    title={isCollapsed ? item.label : ''}
+                  >
+                    <Icon size={18} className={active ? 'fill-current' : ''} />
+                    {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
@@ -290,34 +296,32 @@ const Sidebar = () => {
             )}
 
             {/* Management Menu Items */}
-            <div className={`transition-all duration-200 overflow-hidden ${
-              isCollapsed || openDropdowns.management ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            <div className={`transition-all duration-200 ${
+              isCollapsed || openDropdowns.management ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
             }`}>
-              <div className="max-h-60 overflow-y-auto">
-                {adminMenuItems.filter(canAccess).map((item) => {
-                  const Icon = item.icon;
-                  const active = isActive(item.path);
-                  return (
-                    <button
-                      key={item.path}
-                      onClick={() => handleNavigation(item.path)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-md transition-colors group ${
-                        active
-                          ? isDark
-                            ? 'bg-[#136dec]/10 text-[#136dec]'
-                            : 'bg-blue-50 text-blue-600'
-                          : isDark
-                            ? 'text-[#9da8b9] hover:bg-[#1c2027] hover:text-white'
-                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                      }`}
-                      title={isCollapsed ? item.label : ''}
-                    >
-                      <Icon size={18} className={active ? 'fill-current' : ''} />
-                      {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
-                    </button>
-                  );
-                })}
-              </div>
+              {adminMenuItems.filter(canAccess).map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => handleNavigation(item.path)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-md transition-colors group ${
+                      active
+                        ? isDark
+                          ? 'bg-[#136dec]/10 text-[#136dec]'
+                          : 'bg-blue-50 text-blue-600'
+                        : isDark
+                          ? 'text-[#9da8b9] hover:bg-[#1c2027] hover:text-white'
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                    title={isCollapsed ? item.label : ''}
+                  >
+                    <Icon size={18} className={active ? 'fill-current' : ''} />
+                    {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+                  </button>
+                );
+              })}
             </div>
           </>
         )}

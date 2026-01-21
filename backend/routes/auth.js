@@ -151,9 +151,17 @@ router.post('/login', validateLogin, async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Check if user is deactivated
+    if (user.employmentStatus === 'INACTIVE') {
+      return res.status(403).json({
+        message: 'Your account has been deactivated. Please contact your administrator for assistance.',
+        accountDeactivated: true
+      });
+    }
+
     // Check if email is verified (only for community admins)
     if (user.role === 'community_admin' && !user.isEmailVerified) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         message: 'Please verify your email address before logging in. Check your inbox for the verification code.',
         requiresVerification: true,
         email: user.email

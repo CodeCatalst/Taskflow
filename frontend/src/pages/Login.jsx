@@ -16,6 +16,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
   const [needsVerification, setNeedsVerification] = useState(false);
+  const [accountDeactivated, setAccountDeactivated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -32,6 +33,7 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setNeedsVerification(false);
+    setAccountDeactivated(false);
     setLoading(true);
 
     const result = await login(formData.email, formData.password);
@@ -40,10 +42,15 @@ const Login = () => {
       navigate('/dashboard');
     } else {
       setError(result.message);
-      
+
       // Check if verification is required
       if (result.requiresVerification) {
         setNeedsVerification(true);
+      }
+
+      // Check if account is deactivated
+      if (result.accountDeactivated) {
+        setAccountDeactivated(true);
       }
     }
     setLoading(false);
@@ -196,6 +203,31 @@ const Login = () => {
             </div>
           </form>
         </div>
+
+        {/* Account Deactivated Modal */}
+        {accountDeactivated && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className={`${theme === 'dark' ? 'bg-[#1c2027]' : 'bg-white'} rounded border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} p-6 max-w-md w-full`}>
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+                  <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+                <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                  Account Deactivated
+                </h3>
+                <p className={`text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} mb-6`}>
+                  Your account has been deactivated and you are denied access to the system. Please contact your administrator for assistance.
+                </p>
+                <button
+                  onClick={() => setAccountDeactivated(false)}
+                  className="w-full bg-[#136dec] hover:bg-[#1258c4] text-white font-medium py-2 px-4 rounded transition-colors"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Page Footer */}
         <div className="mt-8 flex flex-col items-center gap-4">

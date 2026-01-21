@@ -56,7 +56,7 @@ const changeLogSchema = new mongoose.Schema({
   },
   target_type: {
     type: String,
-    enum: ['task', 'user', 'team', 'report', 'comment', 'system', 'notification', 'automation'],
+    enum: ['task', 'user', 'team', 'report', 'comment', 'system', 'notification', 'automation', 'email'],
     required: false
   },
   target_id: {

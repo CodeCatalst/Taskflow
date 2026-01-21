@@ -30,8 +30,8 @@ class HrActionService {
    * Validate HR permissions
    */
   static async validateHrPermissions(user) {
-    if (!user || user.role !== 'hr') {
-      throw new Error('Unauthorized: HR role required');
+    if (!user || !['hr', 'admin', 'community_admin'].includes(user.role)) {
+      throw new Error('Unauthorized: HR, Admin, or Community Admin role required');
     }
   }
 
@@ -156,13 +156,16 @@ class HrActionService {
 
     // Audit log
     await logChange({
-      userId: hrUser._id,
-      workspaceId,
-      action: 'activate',
-      entity: 'user',
-      entityId: employeeId,
-      details: `Activated employee ${employee.full_name}`,
-      ipAddress
+      event_type: 'user_updated',
+      user: hrUser,
+      user_ip: ipAddress,
+      target_type: 'user',
+      target_id: employeeId,
+      target_name: employee.full_name,
+      action: 'Employee Activated',
+      description: `Activated employee ${employee.full_name}`,
+      metadata: { employmentStatus: 'ACTIVE' },
+      workspaceId
     });
 
     // Emit event
@@ -193,13 +196,16 @@ class HrActionService {
 
     // Audit log
     await logChange({
-      userId: hrUser._id,
-      workspaceId,
-      action: 'deactivate',
-      entity: 'user',
-      entityId: employeeId,
-      details: `Deactivated employee ${employee.full_name}`,
-      ipAddress
+      event_type: 'user_updated',
+      user: hrUser,
+      user_ip: ipAddress,
+      target_type: 'user',
+      target_id: employeeId,
+      target_name: employee.full_name,
+      action: 'Employee Deactivated',
+      description: `Deactivated employee ${employee.full_name}`,
+      metadata: { employmentStatus: 'INACTIVE' },
+      workspaceId
     });
 
     // Emit event

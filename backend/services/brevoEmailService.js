@@ -39,7 +39,13 @@ class BrevoEmailService {
    * @param {Object} options.from - Sender info {email, name}
    * @returns {Object} Send result with success, messageId, etc.
    */
-  async send({ to, subject, htmlContent, params = {}, from = { email: 'updates.codecatalyst@gmail.com', name: 'TaskFlow' } }) {
+  async send({ to, subject, htmlContent, params = {}, from }) {
+    if (!from) {
+      from = {
+        email: process.env.EMAIL_FROM || 'updates.codecatalyst@gmail.com',
+        name: process.env.EMAIL_FROM_NAME || 'TaskFlow'
+      };
+    }
     try {
       const client = this.getClient();
       if (!client) {
