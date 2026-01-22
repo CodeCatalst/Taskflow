@@ -1,394 +1,688 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../api/axios';
+import { useNavigate } from 'react-router-dom';
+import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useWorkspace } from '../context/WorkspaceContext';
+import { useTheme } from '../context/ThemeContext';
 import ResponsivePageLayout from '../components/layouts/ResponsivePageLayout';
-import ResponsiveCard from '../components/layouts/ResponsiveCard';
 import ConfirmModal from '../components/modals/ConfirmModal';
+import { useConfirmModal } from '../hooks/useConfirmModal';
+import {
+  Mail, Send, Users, UserPlus, FileText, CheckCircle, 
+  X, Eye, Code, Layout, ChevronRight, ChevronLeft,
+  Calendar, Clock, MessageSquare, Bell, UserMinus,
+  Settings as SettingsIcon, ExternalLink, Briefcase,
+  AlertCircle
+} from 'lucide-react';
 
 /**
  * Email Center - Professional HR Email Management Interface
  * Handles recipient definition, intent selection, variable resolution, and email dispatch
  */
-const EmailCenter = () => {
-  const { user } = useAuth();
+export default function EmailCenter() {
+  const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  const { currentTheme, currentColorScheme } = useTheme();
+  const confirmModal = useConfirmModal();
 
   // State management
+  const [loading, setLoading] = useState(true);
+  const [emailConfig, setEmailConfig] = useState(null);
   const [templates, setTemplates] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [campaignStep, setCampaignStep] = useState(1);
+  
+  // Selection states
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [recipientMode, setRecipientMode] = useState('USER'); // USER or EXTERNAL
-  const [recipients, setRecipients] = useState([]);
-  const [variables, setVariables] = useState({});
-  const [previewContent, setPreviewContent] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-
-  // Form states
+  const [recipientMode, setRecipientMode] = useState('INTERNAL'); // 'INTERNAL' or 'EXTERNAL'
+  const [emailRecipients, setEmailRecipients] = useState([]);
   const [manualRecipient, setManualRecipient] = useState({ name: '', email: '' });
-  const [csvFile, setCsvFile] = useState(null);
+  
+  // Content states
+  const [emailData, setEmailData] = useState({
+    subject: '',
+    htmlContent: '',
+    variables: {}
+  });
+  const [showHtmlEditor, setShowHtmlEditor] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
-  // Load templates on mount
+  // Load initial data
   useEffect(() => {
-    loadTemplates();
+    fetchInitialData();
   }, [currentWorkspace]);
 
-  const loadTemplates = async () => {
+  const fetchInitialData = async () => {
+    setLoading(true);
     try {
-      const response = await axios.get('/api/email-templates', {
-        params: { category: 'hiring,interview,onboarding,engagement,exit,system' }
-      });
-      setTemplates(response.data.templates);
+      await Promise.all([
+        fetchTemplates(),
+        fetchUsers(),
+        fetchEmailConfig()
+      ]);
+    } catch (error) {
+      console.error('Error fetching initial data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await api.get('/hr/email-templates');
+      setTemplates(response.data.templates || []);
     } catch (error) {
       console.error('Failed to load templates:', error);
     }
   };
 
-    const handleTemplateSelect = (template) => {
-      setSelectedTemplate(template);
-      
-      // Default recipient mode based on category
-      if (template.category === 'hiring' || template.category === 'interview') {
-        setRecipientMode('EXTERNAL');
-      } else {
-        setRecipientMode('USER');
-      }
-
-      // Initialize variables object with empty values
-      const initialVars = {};
-      template.variables.forEach(variable => {
-        initialVars[variable.name] = '';
-      });
-      setVariables(initialVars);
-    };
-
-  const handleVariableChange = (name, value) => {
-    setVariables(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const fetchUsers = async () => {
+    try {
+      const response = await api.get('/users');
+      setUsers(response.data.users || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
   };
 
-  const addManualRecipient = () => {
+  const fetchEmailConfig = async () => {
+    try {
+      const response = await api.get('/hr/email-templates/config');
+      setEmailConfig(response.data.config);
+    } catch (error) {
+      console.error('Error fetching email config:', error);
+    }
+  };
+
+  const handleTemplateSelect = (template) => {
+    setSelectedTemplate(template);
+    
+    // Logic: Recruitment/Interview templates default to External recipients
+    if (template.category === 'hiring' || template.category === 'interview') {
+      setRecipientMode('EXTERNAL');
+    } else {
+      setRecipientMode('INTERNAL');
+    }
+    
+    setCampaignStep(2);
+
+    // Auto-populate system variables
+    const systemVariables = {};
+    if (template.variables) {
+      template.variables.forEach(variable => {
+        switch (variable.name) {
+          case 'workspaceName':
+            systemVariables[variable.name] = currentWorkspace?.name || 'TaskFlow';
+            break;
+          case 'appUrl':
+            systemVariables[variable.name] = window.location.origin;
+            break;
+          case 'currentDate':
+            systemVariables[variable.name] = new Date().toLocaleDateString();
+            break;
+          default:
+            systemVariables[variable.name] = variable.example || '';
+        }
+      });
+    }
+
+    setEmailData({
+      subject: template.subject,
+      htmlContent: template.htmlContent,
+      variables: systemVariables
+    });
+  };
+
+  const handleUserToggle = (userId) => {
+    setEmailRecipients(prev =>
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const addExternalRecipient = () => {
     if (manualRecipient.name && manualRecipient.email) {
-      setRecipients(prev => [...prev, {
+      const newRecipient = {
         ...manualRecipient,
-        source: 'EXTERNAL',
-        id: Date.now() // temporary ID
-      }]);
+        id: `ext-${Date.now()}`,
+        source: 'EXTERNAL'
+      };
+      setEmailRecipients(prev => [...prev, newRecipient]);
       setManualRecipient({ name: '', email: '' });
     }
   };
 
-  const removeRecipient = (index) => {
-    setRecipients(prev => prev.filter((_, i) => i !== index));
+  const removeExternalRecipient = (id) => {
+    setEmailRecipients(prev => prev.filter(r => r.id !== id));
   };
 
-  const handleCsvUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setCsvFile(file);
-      // TODO: Parse CSV and add to recipients
-    }
-  };
+  const sendEmails = async () => {
+    if (!selectedTemplate || emailRecipients.length === 0) return;
 
-  const generatePreview = async () => {
-    if (!selectedTemplate) return;
-
+    setIsSending(true);
     try {
-      // Replace variables in template content
-      let content = selectedTemplate.htmlContent;
-      Object.entries(variables).forEach(([key, value]) => {
-        content = content.replace(new RegExp(`{{${key}}}`, 'g'), value || `[${key}]`);
+      let successCount = 0;
+      let errorCount = 0;
+
+      // Personalized sending loop
+      for (const recipientData of emailRecipients) {
+        let recipientObj;
+        
+        if (recipientMode === 'INTERNAL') {
+          const user = users.find(u => u._id === recipientData);
+          if (!user?.email) {
+            errorCount++;
+            continue;
+          }
+          recipientObj = { email: user.email, name: user.full_name };
+        } else {
+          recipientObj = { email: recipientData.email, name: recipientData.name };
+        }
+
+        // Variable interpolation
+        let content = emailData.htmlContent;
+        let subject = emailData.subject;
+
+        // Custom variables
+        Object.entries(emailData.variables).forEach(([key, value]) => {
+          const regex = new RegExp(`{{${key}}}`, 'g');
+          content = content.replace(regex, value);
+          subject = subject.replace(regex, value);
+        });
+
+        // System personalization
+        content = content.replace(/{{fullName}}/g, recipientObj.name);
+        content = content.replace(/{{email}}/g, recipientObj.email);
+        subject = subject.replace(/{{fullName}}/g, recipientObj.name);
+        subject = subject.replace(/{{email}}/g, recipientObj.email);
+
+        try {
+          await api.post('/hr/email-templates/send', {
+            recipients: [recipientObj],
+            subject,
+            htmlContent: content,
+            templateId: selectedTemplate._id
+          });
+          successCount++;
+        } catch (err) {
+          console.error(`Failed to send to ${recipientObj.email}:`, err);
+          errorCount++;
+        }
+      }
+
+      await confirmModal.show({
+        title: successCount > 0 ? 'Campaign Launched' : 'Campaign Failed',
+        message: `${successCount} emails sent successfully.${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
+        variant: successCount > 0 ? 'info' : 'danger'
       });
-      setPreviewContent(content);
+
+      if (successCount > 0) {
+        setCampaignStep(1);
+        setSelectedTemplate(null);
+        setEmailRecipients([]);
+        setEmailData({ subject: '', htmlContent: '', variables: {} });
+      }
     } catch (error) {
-      console.error('Preview generation failed:', error);
-    }
-  };
-
-  const sendTestEmail = async () => {
-    if (!selectedTemplate || !user?.email) return;
-
-    setIsLoading(true);
-    try {
-      // Send test email to current user
-      const response = await axios.post('/api/email-templates/test-send', {
-        templateId: selectedTemplate._id,
-        variables,
-        testRecipient: user.email
-      });
-
-      alert('Test email sent successfully!');
-    } catch (error) {
-      console.error('Test send failed:', error);
-      alert('Failed to send test email');
+      console.error('Send campaign error:', error);
+      alert('Failed to launch campaign');
     } finally {
-      setIsLoading(false);
+      setIsSending(false);
+      setShowPreview(false);
     }
   };
 
-  const handleSendEmails = async () => {
-    if (!selectedTemplate || recipients.length === 0) return;
+  const generatePreviewHtml = () => {
+    let html = emailData.htmlContent;
+    let subject = emailData.subject;
 
-    setIsLoading(true);
-    try {
-      const response = await axios.post('/api/email-templates/bulk-send', {
-        templateId: selectedTemplate._id,
-        variables,
-        recipients
-      });
+    Object.entries(emailData.variables).forEach(([key, value]) => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      html = html.replace(regex, value || `[${key}]`);
+      subject = subject.replace(regex, value || `[${key}]`);
+    });
 
-      alert(`Emails sent successfully to ${response.data.sentCount} recipients!`);
-      // Reset form
-      setRecipients([]);
-      setSelectedTemplate(null);
-      setVariables({});
-      setPreviewContent('');
-    } catch (error) {
-      console.error('Bulk send failed:', error);
-      alert('Failed to send emails');
-    } finally {
-      setIsLoading(false);
-      setShowConfirmModal(false);
+    if (emailRecipients.length > 0) {
+      const first = recipientMode === 'INTERNAL' 
+        ? users.find(u => u._id === emailRecipients[0]) 
+        : emailRecipients[0];
+      
+      if (first) {
+        const name = recipientMode === 'INTERNAL' ? first.full_name : first.name;
+        html = html.replace(/{{fullName}}/g, name);
+        subject = subject.replace(/{{fullName}}/g, name);
+      }
     }
+
+    return { html, subject };
   };
 
-  const validateForm = () => {
-    if (!selectedTemplate) return false;
-    if (recipients.length === 0) return false;
-
-    // Check required variables
-    const requiredVars = selectedTemplate.variables.filter(v => v.required);
-    return requiredVars.every(variable => variables[variable.name]?.trim());
-  };
+  if (loading) {
+    return (
+      <div className={`min-h-screen ${currentTheme.background} flex items-center justify-center`}>
+        <div className="text-center">
+          <Clock className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+          <p className={currentTheme.textSecondary}>Loading Email Center...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <ResponsivePageLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Email Center
-          </h1>
+    <ResponsivePageLayout 
+      title="Email Center" 
+      subtitle="Professional Communication Engine"
+    >
+      <div className="max-w-[1400px] mx-auto space-y-8">
+        {/* Connectivity Status */}
+        <div className="flex items-center justify-end gap-3 mb-2">
+          <div className={`flex items-center gap-2 px-4 py-2 ${currentTheme.surface} rounded-full border ${currentTheme.border} shadow-sm`}>
+            <div className={`w-2 h-2 rounded-full ${emailConfig?.brevoConfigured ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+            <span className={`text-xs font-bold ${currentTheme.text}`}>
+              {emailConfig?.brevoConfigured ? 'BREVO ACTIVE' : 'BREVO DISCONNECTED'}
+            </span>
+          </div>
         </div>
 
-        {/* Template Selection */}
-        <ResponsiveCard title="Email Intent">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Select Email Type
-              </label>
-              <select
-                value={selectedTemplate?._id || ''}
-                onChange={(e) => {
-                  const template = templates.find(t => t._id === e.target.value);
-                  handleTemplateSelect(template);
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        {/* Campaign Stepper */}
+        <div className="relative flex items-center justify-between max-w-3xl mx-auto mb-12">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 dark:bg-gray-800 -z-10 rounded-full" />
+          <div 
+            className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-blue-500 transition-all duration-700 -z-10 rounded-full" 
+            style={{ width: `${((campaignStep - 1) / 2) * 100}%` }}
+          />
+
+          {[
+            { step: 1, label: 'Template', icon: FileText },
+            { step: 2, label: 'Recipients', icon: Users },
+            { step: 3, label: 'Review', icon: Send }
+          ].map((s) => (
+            <div key={s.step} className="flex flex-col items-center">
+              <button
+                onClick={() => campaignStep > s.step && setCampaignStep(s.step)}
+                disabled={campaignStep < s.step}
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+                  campaignStep >= s.step 
+                    ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/30' 
+                    : `${currentTheme.surfaceSecondary} ${currentTheme.textSecondary} border-2 ${currentTheme.border}`
+                }`}
               >
-                <option value="">Choose an email type...</option>
-                {templates.map(template => (
-                  <option key={template._id} value={template._id}>
-                    {template.name} ({template.category})
-                  </option>
-                ))}
-              </select>
+                <s.icon className="w-6 h-6" />
+              </button>
+              <span className={`text-[10px] font-black uppercase tracking-widest mt-3 ${campaignStep >= s.step ? 'text-blue-500' : 'text-gray-400'}`}>
+                {s.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Step 1: Template Selection */}
+        {campaignStep === 1 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-6 duration-500">
+            {templates.map((template) => (
+              <div
+                key={template._id}
+                onClick={() => handleTemplateSelect(template)}
+                className={`group relative p-6 rounded-2xl border-2 transition-all cursor-pointer ${
+                  selectedTemplate?._id === template._id
+                    ? 'border-blue-500 bg-blue-50/30 dark:bg-blue-900/10'
+                    : `${currentTheme.border} ${currentTheme.surface} hover:border-blue-400 hover:shadow-xl`
+                }`}
+              >
+                <div className="flex items-start gap-5">
+                  <div className={`p-4 rounded-2xl transition-colors ${
+                    template.category === 'hiring' ? 'bg-purple-100 text-purple-600' :
+                    template.category === 'interview' ? 'bg-indigo-100 text-indigo-600' :
+                    template.category === 'leave' ? 'bg-blue-100 text-blue-600' :
+                    template.category === 'attendance' ? 'bg-orange-100 text-orange-600' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {template.category === 'hiring' ? <UserPlus className="w-6 h-6" /> :
+                     template.category === 'interview' ? <MessageSquare className="w-6 h-6" /> :
+                     template.category === 'leave' ? <Calendar className="w-6 h-6" /> :
+                     template.category === 'attendance' ? <Clock className="w-6 h-6" /> :
+                     <FileText className="w-6 h-6" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`font-black ${currentTheme.text} mb-1 truncate text-lg`}>{template.name}</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{template.category}</p>
+                  </div>
+                </div>
+                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {template.isPredefined && (
+                      <span className="px-2 py-0.5 text-[9px] font-black bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md uppercase tracking-wider">
+                        Official
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs font-bold text-gray-400 flex items-center gap-1.5">
+                    <Code className="w-3.5 h-3.5" />
+                    {template.variables?.length || 0} Dynamic Fields
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Step 2: Recipient Selection */}
+        {campaignStep === 2 && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <h2 className={`text-2xl font-black ${currentTheme.text}`}>Target Audience</h2>
+                <p className={currentTheme.textSecondary}>Select the individuals who will receive this communication</p>
+              </div>
+              <div className="flex bg-gray-100 dark:bg-gray-800 p-1.5 rounded-2xl border ${currentTheme.border}">
+                <button
+                  onClick={() => { setRecipientMode('INTERNAL'); setEmailRecipients([]); }}
+                  className={`px-6 py-2 text-xs font-black rounded-xl transition-all ${
+                    recipientMode === 'INTERNAL' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-lg' : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  INTERNAL TEAM
+                </button>
+                <button
+                  onClick={() => { setRecipientMode('EXTERNAL'); setEmailRecipients([]); }}
+                  className={`px-6 py-2 text-xs font-black rounded-xl transition-all ${
+                    recipientMode === 'EXTERNAL' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-lg' : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  EXTERNAL CONTACTS
+                </button>
+              </div>
             </div>
 
-            {selectedTemplate && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                <h3 className="font-medium text-blue-900 dark:text-blue-100">
-                  {selectedTemplate.name}
-                </h3>
-                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                  {selectedTemplate.subject}
-                </p>
+            {recipientMode === 'EXTERNAL' ? (
+              <div className="space-y-8">
+                <div className={`p-8 rounded-3xl border-2 border-dashed ${currentTheme.border} ${currentTheme.surfaceSecondary}`}>
+                  <h3 className={`text-sm font-black ${currentTheme.text} mb-6 uppercase tracking-widest`}>Add New Candidate</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Full Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Alex Rivera"
+                        value={manualRecipient.name}
+                        onChange={(e) => setManualRecipient(prev => ({ ...prev, name: e.target.value }))}
+                        className={`w-full px-5 py-3.5 ${currentTheme.surface} rounded-2xl border ${currentTheme.border} ${currentTheme.text} focus:ring-4 focus:ring-blue-500/20 transition-all`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Email Address</label>
+                      <input
+                        type="email"
+                        placeholder="alex@company.com"
+                        value={manualRecipient.email}
+                        onChange={(e) => setManualRecipient(prev => ({ ...prev, email: e.target.value }))}
+                        className={`w-full px-5 py-3.5 ${currentTheme.surface} rounded-2xl border ${currentTheme.border} ${currentTheme.text} focus:ring-4 focus:ring-blue-500/20 transition-all`}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={addExternalRecipient}
+                        disabled={!manualRecipient.name || !manualRecipient.email}
+                        className={`w-full py-3.5 ${currentColorScheme.primary} text-white rounded-2xl font-black shadow-xl shadow-blue-500/20 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-95`}
+                      >
+                        ADD TO LIST
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {emailRecipients.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {emailRecipients.map((r) => (
+                      <div key={r.id} className="flex items-center justify-between p-4 rounded-2xl border-2 border-blue-500 bg-white dark:bg-gray-800 shadow-xl animate-in zoom-in duration-300">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-xs">
+                            {r.name?.charAt(0)}
+                          </div>
+                          <div className="truncate">
+                            <p className={`text-xs font-black ${currentTheme.text} truncate`}>{r.name}</p>
+                            <p className={`text-[10px] font-bold text-gray-400 truncate`}>{r.email}</p>
+                          </div>
+                        </div>
+                        <button onClick={() => removeExternalRecipient(r.id)} className="p-2 hover:bg-red-50 text-red-500 rounded-xl transition-colors">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-3xl bg-gray-50/50 dark:bg-gray-900/30 border ${currentTheme.border}`}>
+                {users.map((u) => (
+                  <label 
+                    key={u._id}
+                    className={`flex items-center p-4 rounded-2xl cursor-pointer border-2 transition-all ${
+                      emailRecipients.includes(u._id)
+                        ? 'border-blue-500 bg-white dark:bg-gray-800 shadow-xl'
+                        : `${currentTheme.border} ${currentTheme.surface} hover:border-blue-300`
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 font-black text-xs">
+                          {u.full_name?.charAt(0)}
+                        </div>
+                        {emailRecipients.includes(u._id) && (
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center">
+                            <CheckCircle className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="truncate">
+                        <p className={`text-xs font-black ${currentTheme.text} truncate`}>{u.full_name}</p>
+                        <p className={`text-[10px] font-bold text-gray-400 truncate`}>{u.email}</p>
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={emailRecipients.includes(u._id)}
+                      onChange={() => handleUserToggle(u._id)}
+                      className="hidden"
+                    />
+                  </label>
+                ))}
               </div>
             )}
-          </div>
-        </ResponsiveCard>
 
-        {/* Recipient Definition */}
-        <ResponsiveCard title="Recipients">
-          <div className="space-y-4">
-            {/* Mode Selector */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Recipient Type
-              </label>
-              <div className="flex space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="USER"
-                    checked={recipientMode === 'USER'}
-                    onChange={(e) => setRecipientMode(e.target.value)}
-                    className="mr-2"
-                  />
-                  TaskFlow Users
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="EXTERNAL"
-                    checked={recipientMode === 'EXTERNAL'}
-                    onChange={(e) => setRecipientMode(e.target.value)}
-                    className="mr-2"
-                  />
-                  External Contacts
-                </label>
+            <div className="pt-8 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
+              <button onClick={() => setCampaignStep(1)} className={`px-6 py-3 font-black text-xs uppercase tracking-widest ${currentTheme.textSecondary} flex items-center gap-2`}>
+                <ChevronLeft className="w-5 h-5" />
+                Change Template
+              </button>
+              <button
+                onClick={() => setCampaignStep(3)}
+                disabled={emailRecipients.length === 0}
+                className={`px-10 py-4 ${currentColorScheme.primary} text-white rounded-2xl font-black shadow-xl shadow-blue-500/30 flex items-center gap-3 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100`}
+              >
+                CUSTOMIZE CONTENT
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Review & Send */}
+        {campaignStep === 3 && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+            {/* Sidebar: Variables & Config */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className={`${currentTheme.surface} p-8 rounded-3xl border ${currentTheme.border} shadow-sm`}>
+                <h3 className={`text-sm font-black ${currentTheme.text} mb-6 uppercase tracking-widest flex items-center gap-2`}>
+                  <Code className="w-4 h-4 text-blue-500" />
+                  PERSONALIZATION
+                </h3>
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Subject Line</label>
+                    <input
+                      type="text"
+                      value={emailData.subject}
+                      onChange={(e) => setEmailData(p => ({ ...p, subject: e.target.value }))}
+                      className={`w-full px-4 py-3 ${currentTheme.surfaceSecondary} rounded-xl border ${currentTheme.border} ${currentTheme.text} font-bold text-sm`}
+                    />
+                  </div>
+
+                  {selectedTemplate?.variables?.map((v) => (
+                    <div key={v.name}>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                        {v.name} {['fullName', 'email', 'workspaceName', 'appUrl', 'currentDate'].includes(v.name) && '(AUTO)'}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={v.example}
+                        value={emailData.variables[v.name] || ''}
+                        onChange={(e) => setEmailData(p => ({ ...p, variables: { ...p.variables, [v.name]: e.target.value } }))}
+                        disabled={['workspaceName', 'appUrl', 'currentDate'].includes(v.name)}
+                        className={`w-full px-4 py-3 ${currentTheme.surfaceSecondary} rounded-xl border ${currentTheme.border} ${currentTheme.text} text-sm ${
+                          ['workspaceName', 'appUrl', 'currentDate'].includes(v.name) ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className={`p-6 rounded-3xl bg-blue-500 text-white shadow-xl shadow-blue-500/20`}>
+                <h4 className="text-[10px] font-black uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Layout className="w-4 h-4" />
+                  CAMPAIGN SUMMARY
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/10 p-3 rounded-2xl">
+                    <p className="text-[9px] font-bold opacity-70 uppercase mb-1">Recipients</p>
+                    <p className="text-xl font-black">{emailRecipients.length}</p>
+                  </div>
+                  <div className="bg-white/10 p-3 rounded-2xl">
+                    <p className="text-[9px] font-bold opacity-70 uppercase mb-1">Mode</p>
+                    <p className="text-xl font-black">{recipientMode}</p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {recipientMode === 'EXTERNAL' && (
-              <>
-                {/* Manual Entry */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    value={manualRecipient.name}
-                    onChange={(e) => setManualRecipient(prev => ({ ...prev, name: e.target.value }))}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email Address"
-                    value={manualRecipient.email}
-                    onChange={(e) => setManualRecipient(prev => ({ ...prev, email: e.target.value }))}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+            {/* Main: Content Editor */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className={`text-lg font-black ${currentTheme.text}`}>Message Editor</h3>
+                <div className="flex gap-2">
                   <button
-                    onClick={addManualRecipient}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onClick={() => setShowHtmlEditor(!showHtmlEditor)}
+                    className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl border transition-all ${
+                      showHtmlEditor ? 'bg-blue-500 text-white border-blue-500' : `${currentTheme.surface} ${currentTheme.text} ${currentTheme.border}`
+                    }`}
                   >
-                    Add Recipient
+                    {showHtmlEditor ? 'RICH TEXT' : 'HTML SOURCE'}
+                  </button>
+                  <button
+                    onClick={() => setShowPreview(true)}
+                    className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl border ${currentTheme.surface} ${currentTheme.text} ${currentTheme.border}`}
+                  >
+                    PREVIEW
                   </button>
                 </div>
-
-                {/* CSV Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Or upload CSV file
-                  </label>
-                  <input
-                    type="file"
-                    accept=".csv"
-                    onChange={handleCsvUpload}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Recipients List */}
-            {recipients.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="font-medium text-gray-900 dark:text-white">
-                  Recipients ({recipients.length})
-                </h4>
-                {recipients.map((recipient, index) => (
-                  <div key={recipient.id || index} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                    <div>
-                      <span className="font-medium">{recipient.name}</span>
-                      <span className="text-gray-500 ml-2">({recipient.email})</span>
-                      <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                        {recipient.source}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => removeRecipient(index)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </ResponsiveCard>
-
-        {/* Variable Resolver */}
-        {selectedTemplate && (
-          <ResponsiveCard title="Email Variables">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {selectedTemplate.variables.map((variable) => (
-                <div key={variable.name}>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {variable.name} {variable.required && <span className="text-red-500">*</span>}
-                  </label>
-                  <input
-                    type="text"
-                    value={variables[variable.name] || ''}
-                    onChange={(e) => handleVariableChange(variable.name, e.target.value)}
-                    placeholder={variable.example}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">{variable.description}</p>
-                </div>
-              ))}
-            </div>
-          </ResponsiveCard>
-        )}
-
-        {/* Preview & Actions */}
-        {selectedTemplate && (
-          <ResponsiveCard title="Preview & Send">
-            <div className="space-y-4">
-              <div className="flex space-x-4">
-                <button
-                  onClick={generatePreview}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
-                  Generate Preview
-                </button>
-                <button
-                  onClick={sendTestEmail}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
-                >
-                  {isLoading ? 'Sending...' : 'Send Test Email'}
-                </button>
               </div>
 
-              {previewContent && (
-                <div className="border rounded-lg p-4 bg-white dark:bg-gray-800">
-                  <h4 className="font-medium mb-2">Email Preview</h4>
+              <div className={`rounded-3xl border-2 ${currentTheme.border} overflow-hidden bg-white dark:bg-gray-900 shadow-inner min-h-[500px] flex flex-col`}>
+                {showHtmlEditor ? (
+                  <textarea
+                    className="w-full flex-1 p-8 font-mono text-sm bg-transparent outline-none resize-none"
+                    value={emailData.htmlContent}
+                    onChange={(e) => setEmailData(p => ({ ...p, htmlContent: e.target.value }))}
+                  />
+                ) : (
                   <div
-                    className="text-sm"
-                    dangerouslySetInnerHTML={{ __html: previewContent }}
+                    contentEditable
+                    dangerouslySetInnerHTML={{ __html: emailData.htmlContent }}
+                    onInput={(e) => setEmailData(p => ({ ...p, htmlContent: e.target.innerHTML }))}
+                    className="w-full flex-1 p-10 outline-none prose prose-lg dark:prose-invert max-w-none"
                   />
-                </div>
-              )}
+                )}
+              </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-between items-center pt-8 border-t border-gray-100 dark:border-gray-800">
+                <button onClick={() => setCampaignStep(2)} className={`px-6 py-3 font-black text-xs uppercase tracking-widest ${currentTheme.textSecondary} flex items-center gap-2`}>
+                  <ChevronLeft className="w-5 h-5" />
+                  Back to Recipients
+                </button>
                 <button
-                  onClick={() => setShowConfirmModal(true)}
-                  disabled={!validateForm() || isLoading}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={sendEmails}
+                  disabled={isSending || emailRecipients.length === 0}
+                  className={`px-12 py-5 ${currentColorScheme.primary} text-white rounded-2xl font-black shadow-2xl shadow-blue-500/40 flex items-center gap-4 transition-all hover:scale-105 active:scale-95 disabled:opacity-50`}
                 >
-                  {isLoading ? 'Sending...' : `Send to ${recipients.length} Recipients`}
+                  {isSending ? (
+                    <>
+                      <Clock className="w-6 h-6 animate-spin" />
+                      SENDING...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-6 h-6" />
+                      LAUNCH CAMPAIGN
+                    </>
+                  )}
                 </button>
               </div>
             </div>
-          </ResponsiveCard>
+          </div>
         )}
-
-        {/* Confirmation Modal */}
-        <ConfirmModal
-          isOpen={showConfirmModal}
-          onClose={() => setShowConfirmModal(false)}
-          onConfirm={handleSendEmails}
-          title="Send Emails"
-          message={`Are you sure you want to send "${selectedTemplate?.name}" to ${recipients.length} recipients?`}
-          confirmText="Send Emails"
-          cancelText="Cancel"
-        />
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`${currentTheme.surface} rounded-[40px] shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col`}>
+            <div className={`px-10 py-6 border-b ${currentTheme.border} flex items-center justify-between`}>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl">
+                  <Eye className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className={`text-xl font-black ${currentTheme.text}`}>Email Preview</h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">personalized for first recipient</p>
+                </div>
+              </div>
+              <button onClick={() => setShowPreview(false)} className={`p-3 ${currentTheme.surfaceSecondary} rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors`}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-10 overflow-y-auto flex-1">
+              <div className="mb-8 p-6 rounded-3xl bg-gray-50 dark:bg-gray-900 border ${currentTheme.border}">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Subject</p>
+                <p className={`text-lg font-black ${currentTheme.text}`}>{generatePreviewHtml().subject}</p>
+              </div>
+
+              <div className="rounded-3xl border-2 ${currentTheme.border} p-10 bg-white">
+                <div 
+                  className="prose prose-lg max-w-none"
+                  dangerouslySetInnerHTML={{ __html: generatePreviewHtml().html }}
+                />
+              </div>
+            </div>
+
+            <div className={`px-10 py-8 border-t ${currentTheme.border} flex justify-end gap-4 bg-gray-50/50 dark:bg-gray-900/50`}>
+              <button onClick={() => setShowPreview(false)} className={`px-8 py-4 ${currentTheme.surfaceSecondary} ${currentTheme.text} rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-gray-800 transition-all`}>
+                Close
+              </button>
+              <button
+                onClick={sendEmails}
+                className={`px-10 py-4 ${currentColorScheme.primary} text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/30 flex items-center gap-3 transition-all hover:scale-105 active:scale-95`}
+              >
+                <Send className="w-5 h-5" />
+                Send Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ResponsivePageLayout>
   );
-};
-
-export default EmailCenter;
+}

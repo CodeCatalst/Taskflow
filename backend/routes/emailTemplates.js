@@ -206,28 +206,39 @@ router.post('/send', authenticate, checkRole(['admin', 'hr']), async (req, res) 
     // Get recipient emails
     let recipientEmails = [];
     if (Array.isArray(recipients)) {
-      // Check if recipients are user IDs or email objects
-      if (recipients.length > 0 && typeof recipients[0] === 'string' && recipients[0].includes('@')) {
-        // Direct email addresses
-        recipientEmails = recipients.map(email => ({ email, name: '' }));
-      } else {
-        // User IDs - fetch user details
-        const users = await User.find({
-          _id: { $in: recipients },
-          workspaceId,
-          isActive: true
-        }).select('email full_name');
-        recipientEmails = users.map(user => ({ email: user.email, name: user.full_name }));
+      // Check recipient type
+      if (recipients.length > 0) {
+        const firstRecipient = recipients[0];
+        if (typeof firstRecipient === 'string') {
+          if (firstRecipient.includes('@')) {
+            // Direct email addresses
+            recipientEmails = recipients.map(email => ({ email, name: '' }));
+          } else {
+            // User IDs - fetch user details
+            const users = await User.find({
+              _id: { $in: recipients },
+              workspaceId,
+              isActive: true
+            }).select('email fullName');
+            recipientEmails = users.map(user => ({ email: user.email, name: user.fullName }));
+          }
+        } else if (typeof firstRecipient === 'object' && firstRecipient.email) {
+          // Recipient objects with email and name
+          recipientEmails = recipients.map(recipient => ({
+            email: recipient.email,
+            name: recipient.name || recipient.email
+          }));
+        }
       }
     } else if (recipients === 'all') {
-      const users = await User.find({ workspaceId, isActive: true }).select('email full_name');
-      recipientEmails = users.map(user => ({ email: user.email, name: user.full_name }));
+      const users = await User.find({ workspaceId, isActive: true }).select('email fullName');
+      recipientEmails = users.map(user => ({ email: user.email, name: user.fullName }));
     } else if (recipients === 'active') {
-      const users = await User.find({ workspaceId, isActive: true, role: { $ne: 'member' } }).select('email full_name');
-      recipientEmails = users.map(user => ({ email: user.email, name: user.full_name }));
+      const users = await User.find({ workspaceId, isActive: true, role: { $ne: 'member' } }).select('email fullName');
+      recipientEmails = users.map(user => ({ email: user.email, name: user.fullName }));
     } else if (recipients === 'hr') {
-      const users = await User.find({ workspaceId, role: 'hr' }).select('email full_name');
-      recipientEmails = users.map(user => ({ email: user.email, name: user.full_name }));
+      const users = await User.find({ workspaceId, role: 'hr' }).select('email fullName');
+      recipientEmails = users.map(user => ({ email: user.email, name: user.fullName }));
     }
 
     if (recipientEmails.length === 0) {
