@@ -29,6 +29,7 @@ import AttendancePage from './pages/AttendancePage';
 import HRCalendar from './pages/HRCalendar';
 import LeavesPage from './pages/LeavesPage';
 import HRDashboard from './pages/HRDashboard';
+import EmailCenter from './pages/EmailCenter';
 
 function AppContent() {
   // Initialize notifications
@@ -113,6 +114,15 @@ function AppContent() {
         element={
           <ProtectedRoute allowedRoles={['admin', 'hr', 'team_lead', 'member']}>
             <LeavesPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hr/email-center"
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'hr']}>
+            <EmailCenter />
           </ProtectedRoute>
         }
       />

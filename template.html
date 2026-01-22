@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{email_subject}}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: #1a1a1a;
+        }
+
+        .email-wrapper {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            padding: 40px 32px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #60a5fa 50%, #764ba2 100%);
+        }
+
+        .logo-container {
+            margin-bottom: 16px;
+        }
+
+        .logo-container img {
+            max-height: 80px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 16px;
+            color: #9ca3af;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .content {
+            padding: 48px 40px;
+            line-height: 1.7;
+            font-size: 16px;
+            color: #374151;
+        }
+
+        .greeting {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 24px;
+        }
+
+        .content p {
+            margin-bottom: 16px;
+        }
+
+        .content h2 {
+            font-size: 22px;
+            margin: 32px 0 20px 0;
+            color: #1f2937;
+            font-weight: 700;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-left: 4px solid #667eea;
+            padding: 20px 24px;
+            margin: 28px 0;
+            border-radius: 8px;
+            font-size: 15px;
+            color: #4b5563;
+        }
+
+        .details-card {
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            border-radius: 12px;
+            padding: 28px;
+            margin: 28px 0;
+            border: 1px solid #e5e7eb;
+        }
+
+        .details-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 12px;
+        }
+
+        .details-table tr {
+            background: #ffffff;
+            border-radius: 8px;
+        }
+
+        .details-table td {
+            padding: 14px 16px;
+            font-size: 15px;
+        }
+
+        .details-table td:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+
+        .details-table td:last-child {
+            border-radius: 0 8px 8px 0;
+        }
+
+        .details-table td.label {
+            font-weight: 700;
+            color: #667eea;
+            width: 40%;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .details-table td.value {
+            color: #1f2937;
+            font-weight: 500;
+        }
+
+        .button-container {
+            text-align: center;
+            margin: 36px 0;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 16px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            font-weight: 700;
+            border-radius: 50px;
+            font-size: 15px;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+            letter-spacing: 0.5px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(102, 126, 234, 0.5);
+        }
+
+        .signature {
+            margin-top: 40px;
+            padding-top: 28px;
+            border-top: 2px solid #e5e7eb;
+            font-size: 15px;
+            color: #6b7280;
+        }
+
+        .signature strong {
+            color: #1f2937;
+            font-size: 16px;
+        }
+
+        .footer {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            padding: 32px 28px;
+            text-align: center;
+            color: #9ca3af;
+        }
+
+        .social-links {
+            margin-bottom: 20px;
+        }
+
+        .social-links a {
+            display: inline-block;
+            color: #ffffff;
+            text-decoration: none;
+            margin: 0 12px;
+            padding: 8px 18px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .social-links a:hover {
+            background: rgba(102, 126, 234, 0.3);
+        }
+
+        .footer-text {
+            font-size: 12px;
+            line-height: 1.6;
+            margin-top: 16px;
+            color: #6b7280;
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, #e5e7eb 50%, transparent 100%);
+            margin: 24px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-wrapper">
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo-container">
+                    <img src="{{logo_url}}" alt="Code Catalyst Logo" />
+                </div>
+                <h1>{{header_title}}</h1>
+            </div>
+
+            <!-- Main Content -->
+            <div class="content">
+                <p class="greeting">Hi {{recipient_name}},</p>
+
+                <p>{{intro_message}}</p>
+
+                {{#if show_details}}
+                <div class="details-card">
+                    <table class="details-table">
+                        {{#if date}}
+                        <tr>
+                            <td class="label">📅 Date</td>
+                            <td class="value">{{date}}</td>
+                        </tr>
+                        {{/if}}
+                        {{#if time}}
+                        <tr>
+                            <td class="label">🕐 Time</td>
+                            <td class="value">{{time}}</td>
+                        </tr>
+                        {{/if}}
+                        {{#if mode_or_venue}}
+                        <tr>
+                            <td class="label">📍 Mode / Venue</td>
+                            <td class="value">{{mode_or_venue}}</td>
+                        </tr>
+                        {{/if}}
+                        {{#if interviewer_or_team}}
+                        <tr>
+                            <td class="label">👥 Interviewer / Team</td>
+                            <td class="value">{{interviewer_or_team}}</td>
+                        </tr>
+                        {{/if}}
+                    </table>
+                </div>
+                {{/if}}
+
+                {{#if show_highlight}}
+                <div class="highlight">
+                    {{highlight_message}}
+                </div>
+                {{/if}}
+
+                {{#if show_cta}}
+                <div class="button-container">
+                    <a href="{{cta_link}}" class="button">{{cta_text}}</a>
+                </div>
+                {{/if}}
+
+                <p>{{closing_message}}</p>
+
+                <div class="signature">
+                    <p>Best regards,<br />
+                        <strong>{{sender_name}}</strong><br />
+                        {{sender_designation}}<br />
+                        Code Catalyst Team
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <div class="social-links">
+                    <a href="{{website_url}}">Website</a>
+                    <a href="{{discord_url}}">Discord</a>
+                    <a href="{{linkedin_url}}">LinkedIn</a>
+                    <a href="{{instagram_url}}">Instagram</a>
+                </div>
+                <div class="divider"></div>
+                <div class="footer-text">
+                    © {{current_year}} Code Catalyst. All rights reserved.<br />
+                    This is an automated message. Please do not share confidential information via reply.
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

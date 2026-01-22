@@ -366,4 +366,138 @@ router.get('/config', authenticate, checkRole(['admin', 'hr']), async (req, res)
   }
 });
 
+// Test send email using template
+router.post('/test-send', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+  try {
+    const { templateId, variables = {}, testRecipient } = req.body;
+    const workspaceId = req.context?.workspaceId || req.user.workspaceId;
+
+    if (!templateId || !testRecipient) {
+      return res.status(400).json({ message: 'Template ID and test recipient are required' });
+    }
+
+    // Find template
+    const template = await EmailTemplate.findOne({
+      _id: templateId,
+      isActive: true,
+      $or: [
+        { workspaceId },
+        { workspaceId: null, isPredefined: true }
+      ]
+    });
+
+    if (!template) {
+      return res.status(404).json({ message: 'Template not found' });
+    }
+
+    // Send test email
+    const result = await brevoService.send({
+      to: testRecipient,
+      subject: template.subject,
+      htmlContent: template.htmlContent,
+      params: variables
+    });
+
+    if (result.success) {
+      await logChange({
+        userId: req.user._id,
+        workspaceId,
+        action: 'send',
+        entity: 'email',
+        details: { type: 'test', templateId, testRecipient },
+        ipAddress: getClientIP(req)
+      });
+
+      res.json({ success: true, message: 'Test email sent successfully', result });
+    } else {
+      res.status(500).json({ message: 'Failed to send test email', error: result.error });
+    }
+  } catch (error) {
+    console.error('Test send error:', error);
+    res.status(500).json({ message: 'Failed to send test email' });
+  }
+});
+
+// Bulk send emails using template
+router.post('/bulk-send', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+  try {
+    const { templateId, variables = {}, recipients } = req.body;
+    const workspaceId = req.context?.workspaceId || req.user.workspaceId;
+
+    if (!templateId || !recipients || recipients.length === 0) {
+      return res.status(400).json({ message: 'Template ID and recipients are required' });
+    }
+
+    // Find template
+    const template = await EmailTemplate.findOne({
+      _id: templateId,
+      isActive: true,
+      $or: [
+        { workspaceId },
+        { workspaceId: null, isPredefined: true }
+      ]
+    });
+
+    if (!template) {
+      return res.status(404).json({ message: 'Template not found' });
+    }
+
+    const results = [];
+    let sentCount = 0;
+
+    // Send to each recipient
+    for (const recipient of recipients) {
+      try {
+        // Skip if recipient has unsubscribed (for external recipients)
+        if (recipient.source === 'EXTERNAL' && recipient.preferences?.unsubscribe) {
+          results.push({ email: recipient.email, status: 'skipped', reason: 'unsubscribed' });
+          continue;
+        }
+
+        const result = await brevoService.send({
+          to: recipient.email,
+          subject: template.subject,
+          htmlContent: template.htmlContent,
+          params: variables
+        });
+
+        if (result.success) {
+          sentCount++;
+          results.push({ email: recipient.email, status: 'sent', messageId: result.messageId });
+        } else {
+          results.push({ email: recipient.email, status: 'failed', error: result.error });
+        }
+      } catch (error) {
+        console.error(`Failed to send to ${recipient.email}:`, error);
+        results.push({ email: recipient.email, status: 'error', error: error.message });
+      }
+    }
+
+    // Log bulk send
+    await logChange({
+      userId: req.user._id,
+      workspaceId,
+      action: 'send',
+      entity: 'email',
+      details: {
+        type: 'bulk',
+        templateId,
+        totalRecipients: recipients.length,
+        sentCount,
+        templateName: template.name
+      },
+      ipAddress: getClientIP(req)
+    });
+
+    res.json({
+      success: true,
+      message: `Emails processed: ${sentCount} sent, ${recipients.length - sentCount} failed`,
+      results: { sentCount, totalCount: recipients.length, details: results }
+    });
+  } catch (error) {
+    console.error('Bulk send error:', error);
+    res.status(500).json({ message: 'Failed to send emails' });
+  }
+});
+
 export default router;

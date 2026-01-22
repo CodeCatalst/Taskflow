@@ -14,32 +14,64 @@ class HrEventService {
     LEAVE_REJECTED: 'LEAVE_REJECTED',
     ATTENDANCE_OVERRIDDEN: 'ATTENDANCE_REMINDER',
     EMPLOYEE_ACTIVATED: 'EMPLOYEE_ACTIVATED',
-    EMPLOYEE_DEACTIVATED: 'EMPLOYEE_DEACTIVATED'
+    EMPLOYEE_DEACTIVATED: 'EMPLOYEE_DEACTIVATED',
+    // New HR lifecycle events
+    INTERVIEW_SCHEDULED_ONLINE: 'INTERVIEW_ONLINE',
+    INTERVIEW_SCHEDULED_OFFLINE: 'INTERVIEW_OFFLINE',
+    INTERVIEW_RESCHEDULED: 'INTERVIEW_RESCHEDULED',
+    INTERVIEW_NO_SHOW: 'INTERVIEW_NO_SHOW',
+    HIRING_APPLIED: 'HIRING_APPLIED',
+    HIRED: 'HIRED',
+    NOT_HIRED: 'NOT_HIRED',
+    INACTIVITY_WARNING: 'INACTIVITY_WARNING',
+    SERVER_JOIN_REMINDER: 'SERVER_JOIN_REMINDER',
+    TEAM_CHOICE_INTERVIEWED: 'TEAM_CHOICE_INTERVIEWED',
+    TEAM_CHOICE_NOT_INTERVIEWED: 'TEAM_CHOICE_NOT_INTERVIEWED',
+    RESIGNATION_ACK: 'RESIGNATION_ACK',
+    TERMINATION_NOTICE: 'TERMINATION_NOTICE',
+    REJOIN_INVITE: 'REJOIN_INVITE',
+    CONTACT_ACK: 'CONTACT_ACK'
   };
 
   /**
-   * Handle HR event by sending appropriate email
-   * @param {string} event - HR event type
-   * @param {Object} data - Event data
-   * @param {string} workspaceId - Workspace ID
-   */
-  static async handleEvent(event, data, workspaceId) {
-    try {
-      console.log(`🔄 Processing HR event: ${event}`, data);
+    * Handle HR event by sending appropriate email
+    * @param {string} event - HR event type
+    * @param {Object} data - Event data (supports both user and external recipients)
+    * @param {string} workspaceId - Workspace ID
+    */
+   static async handleEvent(event, data, workspaceId) {
+     try {
+       console.log(`🔄 Processing HR event: ${event}`, data);
 
-      // Check if employee is ACTIVE (block send for INACTIVE/EXITED)
-      if (data.employeeId) {
-        const employee = await User.findById(data.employeeId);
-        if (!employee || employee.employmentStatus !== 'ACTIVE') {
-          console.log(`🚫 Skipping email for ${event}: Employee not ACTIVE (status: ${employee?.employmentStatus})`);
-          return {
-            success: false,
-            reason: 'Employee not active',
-            event,
-            employeeStatus: employee?.employmentStatus
-          };
-        }
-      }
+       // Determine recipient type and validate
+       let recipientEmail = data.employeeEmail || data.recipientEmail || data.email;
+       let recipientName = data.employeeName || data.recipientName || data.name;
+
+       if (!recipientEmail) {
+         console.log(`🚫 Skipping email for ${event}: No recipient email provided`);
+         return {
+           success: false,
+           reason: 'No recipient email',
+           event
+         };
+       }
+
+       // For user-based events, check if employee is ACTIVE (skip for external recipients)
+       if (data.employeeId && data.source !== 'EXTERNAL') {
+         const employee = await User.findById(data.employeeId);
+         if (!employee || employee.employmentStatus !== 'ACTIVE') {
+           console.log(`🚫 Skipping email for ${event}: Employee not ACTIVE (status: ${employee?.employmentStatus})`);
+           return {
+             success: false,
+             reason: 'Employee not active',
+             event,
+             employeeStatus: employee?.employmentStatus
+           };
+         }
+         // Use employee data if available
+         recipientEmail = employee.email;
+         recipientName = employee.fullName;
+       }
 
       // Get template code from mapping
       const templateCode = this.EVENT_TEMPLATE_MAP[event];
@@ -68,7 +100,7 @@ class HrEventService {
 
       // Send email
       const emailResult = await brevoEmailService.send({
-        to: data.employeeEmail,
+        to: recipientEmail,
         subject: template.subject,
         htmlContent: template.htmlContent,
         params
@@ -77,8 +109,8 @@ class HrEventService {
       // Log delivery result
       await logChange({
         event_type: 'hr_email_sent',
-        target_type: 'user',
-        target_id: data.employeeId,
+        target_type: data.source === 'EXTERNAL' ? 'external_recipient' : 'user',
+        target_id: data.employeeId || null,
         action: 'send',
         description: `HR email sent for ${event}`,
         metadata: {
@@ -86,7 +118,9 @@ class HrEventService {
           templateCode,
           emailResult,
           messageId: emailResult.messageId,
-          employeeEmail: data.employeeEmail
+          recipientEmail,
+          recipientName,
+          source: data.source || 'USER'
         },
         workspaceId
       });

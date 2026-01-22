@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -12,10 +13,12 @@ import {
   Menu, ChevronLeft, ChevronRight, Briefcase, CalendarDays,
   Users, Plus, Edit2, Save, X, UserCheck, UserX, TrendingUp,
   Filter, Download, Upload, Mail, FileText, Send, Users as UsersIcon,
-  CheckSquare, Eye, Code, Palette
+  CheckSquare, Eye, Code, Palette, UserPlus, MessageSquare, Bell, UserMinus,
+  ExternalLink, Settings as SettingsIcon, Layout, ChevronDown
 } from 'lucide-react';
 
 export default function HRDashboard() {
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const { theme, colorScheme, currentTheme, currentColorScheme } = useTheme();
   const { toggleMobileSidebar } = useSidebar();
@@ -56,8 +59,9 @@ export default function HRDashboard() {
   const [emailConfig, setEmailConfig] = useState(null);
   const [emailTemplates, setEmailTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [emailRecipients, setEmailRecipients] = useState([]);
-  const [emailData, setEmailData] = useState({
+    const [emailRecipients, setEmailRecipients] = useState([]);
+    const [emailCampaignStep, setEmailCampaignStep] = useState(1);
+    const [emailData, setEmailData] = useState({
     subject: '',
     htmlContent: '',
     variables: {}
@@ -424,11 +428,12 @@ export default function HRDashboard() {
     }
   };
 
-  // Handle template selection
-  const handleTemplateSelect = (template) => {
-    setSelectedTemplate(template);
+    // Handle template selection
+    const handleTemplateSelect = (template) => {
+      setSelectedTemplate(template);
+      setEmailCampaignStep(2); // Move to next step
 
-    // Auto-populate system variables
+      // Auto-populate system variables
     const systemVariables = {};
     if (template.variables) {
       template.variables.forEach(variable => {
@@ -1359,383 +1364,368 @@ export default function HRDashboard() {
             </div>
           )}
 
-          {/* Email Tab */}
-          {activeTab === 'email' && (
-            <div className="space-y-6">
-              <div className={`${currentTheme.surface} rounded-lg p-6 border ${currentTheme.border}`}>
-                <h2 className={`text-xl font-bold ${currentTheme.text} mb-4`}>Email Management</h2>
-
-                {/* Brevo Configuration */}
-                <div className="mb-6">
-                  <h3 className={`text-lg font-semibold ${currentTheme.text} mb-3`}>Brevo Configuration</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Email Tab */}
+            {activeTab === 'email' && (
+              <div className="space-y-6">
+                <div className={`${currentTheme.surface} rounded-xl p-6 border ${currentTheme.border} shadow-sm`}>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
-                      <label className={`block text-sm font-medium ${currentTheme.textSecondary} mb-2`}>
-                        API Key Status
-                      </label>
-                      <div className={`px-3 py-2 ${currentTheme.surfaceSecondary} rounded-lg border ${currentTheme.border}`}>
-                        <span className={`text-sm ${emailConfig?.brevoConfigured ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {emailConfig?.brevoConfigured ? '✓ Configured' : '✗ Not Configured'}
+                      <h2 className={`text-2xl font-bold ${currentTheme.text}`}>Email Management</h2>
+                      <p className={`text-sm ${currentTheme.textSecondary} mt-1`}>Create and manage email campaigns for your team</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className={`flex items-center gap-2 px-3 py-1.5 ${currentTheme.surfaceSecondary} rounded-full border ${currentTheme.border}`}>
+                        <div className={`w-2 h-2 rounded-full ${emailConfig?.brevoConfigured ? 'bg-green-500' : 'bg-red-500'}`} />
+                        <span className={`text-xs font-medium ${currentTheme.text}`}>
+                          {emailConfig?.brevoConfigured ? 'Brevo Connected' : 'Brevo Disconnected'}
                         </span>
                       </div>
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${currentTheme.textSecondary} mb-2`}>
-                        Sender Email
-                      </label>
-                      <div className={`px-3 py-2 ${currentTheme.surfaceSecondary} rounded-lg border ${currentTheme.border}`}>
-                        <span className="text-sm">{emailConfig?.senderEmail || 'Loading...'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Email Campaign Builder */}
-                <div className="space-y-6">
-                  {/* Progress Indicator */}
-                  <div className={`${currentTheme.surfaceSecondary} rounded-lg border ${currentTheme.border} p-4`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className={`text-sm font-medium ${currentTheme.text}`}>Email Campaign Progress</h3>
-                      <span className="text-xs text-gray-500">
-                        Step {selectedTemplate ? (emailRecipients.length > 0 ? '3' : '2') : '1'} of 3
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className={`flex-1 h-2 rounded-full ${selectedTemplate ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'}`}></div>
-                      <div className={`flex-1 h-2 rounded-full ${emailRecipients.length > 0 ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'}`}></div>
-                      <div className={`flex-1 h-2 rounded-full ${selectedTemplate && emailRecipients.length > 0 ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'}`}></div>
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span className={selectedTemplate ? 'text-blue-600' : ''}>Template</span>
-                      <span className={emailRecipients.length > 0 ? 'text-blue-600' : ''}>Recipients</span>
-                      <span className={selectedTemplate && emailRecipients.length > 0 ? 'text-blue-600' : ''}>Send</span>
+                      <button
+                        onClick={() => navigate('/hr/email-center')}
+                        className={`inline-flex items-center gap-2 px-4 py-2 ${currentTheme.surfaceSecondary} hover:${currentTheme.hover} ${currentTheme.text} rounded-lg text-sm font-medium border ${currentTheme.border} transition-all`}
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Full Email Center
+                      </button>
                     </div>
                   </div>
-                  {/* Step 1: Template Selection */}
-                  <div className={`${currentTheme.surfaceSecondary} rounded-lg border ${currentTheme.border} p-6`}>
-                    <div className="flex items-center mb-4">
-                      <div className={`w-8 h-8 ${currentColorScheme.primary} text-white rounded-full flex items-center justify-center text-sm font-bold mr-3`}>
-                        1
-                      </div>
-                      <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Choose Email Template</h3>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {emailTemplates.map((template) => (
-                        <div
-                          key={template._id}
-                          className={`p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                            selectedTemplate?._id === template._id
-                              ? `border-blue-500 bg-blue-50 dark:bg-blue-900/20`
-                              : `${currentTheme.border} ${currentTheme.surface} hover:border-gray-300`
+                  {/* Campaign Progress Stepper */}
+                  <div className="mb-10">
+                    <div className="relative flex items-center justify-between max-w-2xl mx-auto">
+                      {/* Progress Line */}
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-gray-200 dark:bg-gray-700 -z-10" />
+                      <div 
+                        className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-blue-500 transition-all duration-500 -z-10" 
+                        style={{ width: `${((emailCampaignStep - 1) / 2) * 100}%` }}
+                      />
+
+                      {/* Step 1 */}
+                      <div className="flex flex-col items-center">
+                        <button 
+                          onClick={() => setEmailCampaignStep(1)}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                            emailCampaignStep >= 1 ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25' : `${currentTheme.surfaceSecondary} ${currentTheme.textSecondary} border-2 ${currentTheme.border}`
                           }`}
-                          onClick={() => handleTemplateSelect(template)}
                         >
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-lg ${
+                          {emailCampaignStep > 1 ? <CheckCircle className="w-6 h-6" /> : <span className="font-bold">1</span>}
+                        </button>
+                        <span className={`text-xs font-medium mt-2 ${emailCampaignStep >= 1 ? 'text-blue-500' : currentTheme.textSecondary}`}>Template</span>
+                      </div>
+
+                      {/* Step 2 */}
+                      <div className="flex flex-col items-center">
+                        <button 
+                          onClick={() => selectedTemplate && setEmailCampaignStep(2)}
+                          disabled={!selectedTemplate}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                            emailCampaignStep >= 2 ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25' : `${currentTheme.surfaceSecondary} ${currentTheme.textSecondary} border-2 ${currentTheme.border}`
+                          } ${!selectedTemplate && 'opacity-50 cursor-not-allowed'}`}
+                        >
+                          {emailCampaignStep > 2 ? <CheckCircle className="w-6 h-6" /> : <span className="font-bold">2</span>}
+                        </button>
+                        <span className={`text-xs font-medium mt-2 ${emailCampaignStep >= 2 ? 'text-blue-500' : currentTheme.textSecondary}`}>Recipients</span>
+                      </div>
+
+                      {/* Step 3 */}
+                      <div className="flex flex-col items-center">
+                        <button 
+                          onClick={() => selectedTemplate && emailRecipients.length > 0 && setEmailCampaignStep(3)}
+                          disabled={!selectedTemplate || emailRecipients.length === 0}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                            emailCampaignStep >= 3 ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25' : `${currentTheme.surfaceSecondary} ${currentTheme.textSecondary} border-2 ${currentTheme.border}`
+                          } ${(!selectedTemplate || emailRecipients.length === 0) && 'opacity-50 cursor-not-allowed'}`}
+                        >
+                          <span className="font-bold">3</span>
+                        </button>
+                        <span className={`text-xs font-medium mt-2 ${emailCampaignStep >= 3 ? 'text-blue-500' : currentTheme.textSecondary}`}>Review & Send</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 1: Template Selection */}
+                  {emailCampaignStep === 1 && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Choose a Template</h3>
+                        <p className={`text-sm ${currentTheme.textSecondary}`}>{emailTemplates.length} templates available</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {emailTemplates.map((template) => (
+                          <div
+                            key={template._id}
+                            className={`group relative p-5 rounded-xl border-2 transition-all cursor-pointer ${
+                              selectedTemplate?._id === template._id
+                                ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10'
+                                : `${currentTheme.border} ${currentTheme.surface} hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md`
+                            }`}
+                            onClick={() => handleTemplateSelect(template)}
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className={`p-3 rounded-xl transition-colors ${
                                 template.category === 'leave' ? 'bg-blue-100 text-blue-600' :
                                 template.category === 'attendance' ? 'bg-orange-100 text-orange-600' :
                                 template.category === 'system' ? 'bg-green-100 text-green-600' :
+                                template.category === 'hiring' ? 'bg-purple-100 text-purple-600' :
+                                template.category === 'interview' ? 'bg-indigo-100 text-indigo-600' :
+                                template.category === 'onboarding' ? 'bg-teal-100 text-teal-600' :
+                                template.category === 'engagement' ? 'bg-pink-100 text-pink-600' :
+                                template.category === 'exit' ? 'bg-red-100 text-red-600' :
                                 'bg-gray-100 text-gray-600'
                               }`}>
-                                {template.category === 'leave' ? <Calendar className="w-4 h-4" /> :
-                                 template.category === 'attendance' ? <Clock className="w-4 h-4" /> :
-                                 template.category === 'system' ? <User className="w-4 h-4" /> :
-                                 <FileText className="w-4 h-4" />}
+                                {template.category === 'leave' ? <Calendar className="w-5 h-5" /> :
+                                 template.category === 'attendance' ? <Clock className="w-5 h-5" /> :
+                                 template.category === 'system' ? <User className="w-5 h-5" /> :
+                                 template.category === 'hiring' ? <UserPlus className="w-5 h-5" /> :
+                                 template.category === 'interview' ? <MessageSquare className="w-5 h-5" /> :
+                                 template.category === 'onboarding' ? <UsersIcon className="w-5 h-5" /> :
+                                 template.category === 'engagement' ? <Bell className="w-5 h-5" /> :
+                                 template.category === 'exit' ? <UserMinus className="w-5 h-5" /> :
+                                 <FileText className="w-5 h-5" />}
                               </div>
-                              <div>
-                                <h4 className={`font-medium ${currentTheme.text} mb-1`}>{template.name}</h4>
-                                <p className={`text-xs ${currentTheme.textSecondary} capitalize`}>{template.category}</p>
+                              <div className="flex-1 min-w-0">
+                                <h4 className={`font-bold ${currentTheme.text} mb-1 truncate`}>{template.name}</h4>
+                                <p className={`text-xs font-medium uppercase tracking-wider ${currentTheme.textSecondary}`}>{template.category}</p>
                               </div>
+                              {selectedTemplate?._id === template._id && (
+                                <div className="absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-sm animate-in zoom-in">
+                                  <CheckCircle className="w-4 h-4" />
+                                </div>
+                              )}
                             </div>
-                            {selectedTemplate?._id === template._id && (
-                              <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                                <CheckCircle className="w-3 h-3 text-white" />
+                            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {template.isPredefined && (
+                                  <span className="px-2 py-0.5 text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md uppercase">
+                                    Official
+                                  </span>
+                                )}
                               </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            {template.isPredefined && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
-                                <CheckSquare className="w-3 h-3" />
-                                Predefined
+                              <span className="text-xs text-gray-400 flex items-center gap-1">
+                                <Code className="w-3 h-3" />
+                                {template.variables?.length || 0} fields
                               </span>
-                            )}
-
-                            {template.variables && template.variables.length > 0 && (
-                              <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                                <Edit2 className="w-3 h-3" />
-                                {template.variables.length} fields
-                              </span>
-                            )}
+                            </div>
                           </div>
+                        ))}
+                      </div>
+                      
+                      {selectedTemplate && (
+                        <div className="mt-8 flex justify-end">
+                          <button
+                            onClick={() => setEmailCampaignStep(2)}
+                            className={`px-8 py-3 ${currentColorScheme.primary} text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 flex items-center gap-2 transition-transform hover:scale-105 active:scale-95`}
+                          >
+                            Next: Select Recipients
+                            <ChevronRight className="w-5 h-5" />
+                          </button>
                         </div>
-                      ))}
+                      )}
                     </div>
-
-                  </div>
+                  )}
 
                   {/* Step 2: Recipient Selection */}
-                  {selectedTemplate && (
-                    <div className={`${currentTheme.surfaceSecondary} rounded-lg border ${currentTheme.border} p-6`}>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center">
-                          <div className={`w-8 h-8 ${currentColorScheme.primary} text-white rounded-full flex items-center justify-center text-sm font-bold mr-3`}>
-                            2
-                          </div>
-                          <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Select Recipients</h3>
+                  {emailCampaignStep === 2 && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Who's receiving this?</h3>
+                          <p className={`text-sm ${currentTheme.textSecondary}`}>Selected {emailRecipients.length} recipients</p>
                         </div>
-                        <div className={`px-3 py-1 ${currentColorScheme.primary} text-white rounded-full text-sm`}>
-                          {emailRecipients.length} selected
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setEmailRecipients(users.map(u => u._id))}
+                            className={`px-3 py-1.5 text-xs font-bold ${currentTheme.surfaceSecondary} ${currentTheme.text} rounded-lg border ${currentTheme.border} hover:${currentTheme.hover}`}
+                          >
+                            Select All
+                          </button>
+                          <button
+                            onClick={() => setEmailRecipients([])}
+                            className={`px-3 py-1.5 text-xs font-bold ${currentTheme.surfaceSecondary} ${currentTheme.text} rounded-lg border ${currentTheme.border} hover:${currentTheme.hover}`}
+                          >
+                            Clear
+                          </button>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-3 mb-4">
-                        <button
-                          onClick={() => setEmailRecipients(users.map(u => u._id))}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg text-sm transition-colors"
-                        >
-                          <CheckSquare className="w-4 h-4" />
-                          Select All
-                        </button>
-                        <button
-                          onClick={() => setEmailRecipients([])}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                          Clear All
-                        </button>
-                        <button
-                          onClick={() => setEmailRecipients(users.filter(u => u.employmentStatus === 'ACTIVE').map(u => u._id))}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-300 rounded-lg text-sm transition-colors"
-                        >
-                          <UserCheck className="w-4 h-4" />
-                          Active Only
-                        </button>
-                      </div>
-
-                      <div className={`max-h-80 overflow-y-auto ${currentTheme.surface} rounded-lg border ${currentTheme.border} p-4`}>
-                        <div className="space-y-3">
-                          {users.map((user) => (
-                            <label key={user._id} className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${
+                      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto p-2 rounded-xl bg-gray-50/50 dark:bg-gray-900/20 border ${currentTheme.border}`}>
+                        {users.map((user) => (
+                          <label 
+                            key={user._id} 
+                            className={`flex items-center p-4 rounded-xl cursor-pointer border-2 transition-all ${
                               emailRecipients.includes(user._id)
-                                ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                                : 'hover:bg-gray-50 dark:hover:bg-gray-700'
-                            }`}>
+                                ? 'border-blue-500 bg-white dark:bg-gray-800 shadow-sm'
+                                : `${currentTheme.border} ${currentTheme.surface} hover:border-gray-300`
+                            }`}
+                          >
+                            <div className="relative flex items-center gap-3 flex-1 min-w-0">
+                              <div className="relative">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                                  {user.full_name?.charAt(0)}
+                                </div>
+                                {emailRecipients.includes(user._id) && (
+                                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center">
+                                    <CheckCircle className="w-2.5 h-2.5 text-white" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="truncate">
+                                <p className={`text-sm font-bold ${currentTheme.text} truncate`}>{user.full_name}</p>
+                                <p className={`text-xs ${currentTheme.textSecondary} truncate`}>{user.email}</p>
+                              </div>
                               <input
                                 type="checkbox"
                                 checked={emailRecipients.includes(user._id)}
                                 onChange={() => handleEmailUserSelect(user._id)}
-                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mr-3"
+                                className="hidden"
                               />
-                              <div className="flex-1 min-w-0">
-                                <div className={`font-medium ${currentTheme.text} truncate`}>{user.full_name}</div>
-                                <div className={`text-sm ${currentTheme.textSecondary} truncate`}>{user.email}</div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                  user.employmentStatus === 'ACTIVE'
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                }`}>
-                                  {user.employmentStatus || 'ACTIVE'}
-                                </span>
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                  user.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
-                                  user.role === 'hr' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                                  'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                                }`}>
-                                  {user.role?.toUpperCase() || 'USER'}
-                                </span>
-                              </div>
-                            </label>
-                          ))}
-                        </div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+
+                      <div className="mt-8 flex justify-between items-center">
+                        <button
+                          onClick={() => setEmailCampaignStep(1)}
+                          className={`px-6 py-3 ${currentTheme.textSecondary} font-bold flex items-center gap-2 hover:${currentTheme.text}`}
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                          Back
+                        </button>
+                        <button
+                          onClick={() => setEmailCampaignStep(3)}
+                          disabled={emailRecipients.length === 0}
+                          className={`px-8 py-3 ${currentColorScheme.primary} text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 flex items-center gap-2 transition-transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed`}
+                        >
+                          Next: Review & Customize
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
                       </div>
                     </div>
                   )}
 
-                  {/* Step 3: Customize & Send */}
-                  {selectedTemplate && emailRecipients.length > 0 && (
-                    <div className={`${currentTheme.surfaceSecondary} rounded-lg border ${currentTheme.border} p-6`}>
-                      <div className="flex items-center mb-6">
-                        <div className={`w-8 h-8 ${currentColorScheme.primary} text-white rounded-full flex items-center justify-center text-sm font-bold mr-3`}>
-                          3
-                        </div>
-                        <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Customize & Send</h3>
-                      </div>
-
-                      <div className="space-y-6">
-                        {/* Template Variables */}
-                        {renderTemplateVariables()}
-
-                        {/* Subject */}
-                        <div>
-                          <label className={`block text-sm font-medium ${currentTheme.textSecondary} mb-2`}>
-                            Email Subject
-                          </label>
-                          <input
-                            type="text"
-                            value={emailData.subject}
-                            onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
-                            className={`w-full px-4 py-3 ${currentTheme.surface} rounded-lg border ${currentTheme.border} ${currentTheme.text} focus:ring-2 ${currentTheme.focus} text-sm`}
-                            placeholder="Enter email subject..."
-                          />
-                        </div>
-
-                        {/* Content Editor */}
-                        <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <label className={`block text-sm font-medium ${currentTheme.textSecondary}`}>
-                              Email Content
-                            </label>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => setShowHtmlEditor(!showHtmlEditor)}
-                                className={`px-3 py-1 text-sm rounded ${
-                                  showHtmlEditor
-                                    ? `${currentColorScheme.primary} text-white`
-                                    : `bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300`
-                                } transition-colors`}
-                              >
-                                {showHtmlEditor ? 'Rich Text' : 'HTML'}
-                              </button>
+                  {/* Step 3: Review & Send */}
+                  {emailCampaignStep === 3 && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                          <div>
+                            <h3 className={`text-lg font-semibold ${currentTheme.text} mb-4`}>Personalization</h3>
+                            <div className={`p-6 rounded-xl border ${currentTheme.border} ${currentTheme.surfaceSecondary} space-y-4`}>
+                              {renderTemplateVariables()}
+                              
+                              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <label className={`block text-sm font-bold ${currentTheme.text} mb-2`}>Email Subject</label>
+                                <input
+                                  type="text"
+                                  value={emailData.subject}
+                                  onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
+                                  className={`w-full px-4 py-3 ${currentTheme.surface} rounded-xl border ${currentTheme.border} ${currentTheme.text} focus:ring-2 focus:ring-blue-500 text-sm font-medium transition-all`}
+                                  placeholder="Campaign subject line..."
+                                />
+                              </div>
                             </div>
                           </div>
 
-                          {showHtmlEditor ? (
-                            <textarea
-                              rows="15"
-                              value={emailData.htmlContent}
-                              onChange={(e) => setEmailData(prev => ({ ...prev, htmlContent: e.target.value }))}
-                              className={`w-full px-4 py-3 font-mono text-sm ${currentTheme.surface} rounded-lg border ${currentTheme.border} ${currentTheme.text} focus:ring-2 ${currentTheme.focus}`}
-                              placeholder="<html>Enter your HTML content here...</html>"
-                            />
-                          ) : (
-                            <div
-                              contentEditable
-                              dangerouslySetInnerHTML={{ __html: emailData.htmlContent }}
-                              onInput={(e) => setEmailData(prev => ({ ...prev, htmlContent: e.target.innerHTML }))}
-                              className={`w-full px-4 py-3 min-h-[300px] ${currentTheme.surface} rounded-lg border ${currentTheme.border} ${currentTheme.text} focus:ring-2 ${currentTheme.focus} prose prose-sm max-w-none overflow-y-auto`}
-                              style={{ whiteSpace: 'pre-wrap' }}
-                            />
-                          )}
-                        </div>
-
-                        {/* Campaign Summary & Send */}
-                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                            <Eye className="w-4 h-4" />
-                            Campaign Summary
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                              <FileText className="w-4 h-4 text-blue-500" />
-                              <span className="text-gray-600 dark:text-gray-400">Template:</span>
-                              <span className="font-medium text-gray-900 dark:text-gray-100">{selectedTemplate?.name}</span>
+                          <div className={`p-6 rounded-xl border ${currentTheme.border} bg-blue-50/30 dark:bg-blue-900/10`}>
+                            <h4 className={`text-sm font-bold ${currentTheme.text} mb-4 flex items-center gap-2`}>
+                              <Layout className="w-4 h-4 text-blue-500" />
+                              Campaign Summary
+                            </h4>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="p-3 rounded-lg bg-white dark:bg-gray-800 border border-blue-100 dark:border-blue-900/50">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Recipients</p>
+                                <p className={`text-lg font-black ${currentTheme.text}`}>{emailRecipients.length}</p>
+                              </div>
+                              <div className="p-3 rounded-lg bg-white dark:bg-gray-800 border border-blue-100 dark:border-blue-900/50">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Template</p>
+                                <p className={`text-sm font-bold ${currentTheme.text} truncate`}>{selectedTemplate?.name}</p>
+                              </div>
                             </div>
-                              <div className="flex items-center gap-2">
-                                <UsersIcon className="w-4 h-4 text-green-500" />
-                                <span className="text-gray-600 dark:text-gray-400">Recipients:</span>
-                                <span className="font-medium text-gray-900 dark:text-gray-100">{emailRecipients.length}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Send className="w-4 h-4 text-purple-500" />
-                                <span className="text-gray-600 dark:text-gray-400">Subject:</span>
-                                <span className="font-medium text-gray-900 dark:text-gray-100 truncate">{generatePreviewHtml().subject || 'Not set'}</span>
-                              </div>
                           </div>
                         </div>
 
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Ready to send email campaign
+                        <div className="space-y-6">
+                          <div className="flex items-center justify-between">
+                            <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Content Editor</h3>
+                            <button
+                              onClick={() => setShowHtmlEditor(!showHtmlEditor)}
+                              className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${
+                                showHtmlEditor 
+                                  ? 'bg-blue-500 text-white border-blue-500' 
+                                  : `${currentTheme.surfaceSecondary} ${currentTheme.text} ${currentTheme.border} hover:${currentTheme.hover}`
+                              }`}
+                            >
+                              {showHtmlEditor ? 'Switch to Rich Text' : 'Switch to HTML Source'}
+                            </button>
+                          </div>
+
+                          <div className={`rounded-xl border ${currentTheme.border} overflow-hidden bg-white dark:bg-gray-900 shadow-inner`}>
+                            {showHtmlEditor ? (
+                              <textarea
+                                rows="15"
+                                value={emailData.htmlContent}
+                                onChange={(e) => setEmailData(prev => ({ ...prev, htmlContent: e.target.value }))}
+                                className={`w-full p-6 font-mono text-sm bg-transparent outline-none resize-none ${currentTheme.text}`}
+                              />
+                            ) : (
+                              <div
+                                contentEditable
+                                dangerouslySetInnerHTML={{ __html: emailData.htmlContent }}
+                                onInput={(e) => setEmailData(prev => ({ ...prev, htmlContent: e.target.innerHTML }))}
+                                className={`w-full p-6 min-h-[400px] outline-none prose prose-sm dark:prose-invert max-w-none ${currentTheme.text}`}
+                              />
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex gap-3">
+
+                      <div className="mt-10 flex justify-between items-center pt-6 border-t border-gray-100 dark:border-gray-800">
                         <button
-                          onClick={() => setShowPreview(true)}
-                          className={`px-6 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg flex items-center gap-2 font-medium transition-all`}
+                          onClick={() => setEmailCampaignStep(2)}
+                          className={`px-6 py-3 ${currentTheme.textSecondary} font-bold flex items-center gap-2 hover:${currentTheme.text}`}
                         >
-                          <Eye className="w-5 h-5" />
-                          Preview
+                          <ChevronLeft className="w-5 h-5" />
+                          Back
                         </button>
-                        <button
-                          onClick={sendTemplateEmail}
-                          className={`px-8 py-3 ${currentColorScheme.primary} text-white ${currentColorScheme.primaryHover} rounded-lg flex items-center gap-2 font-medium shadow-lg hover:shadow-xl transition-all`}
-                        >
-                          <Send className="w-5 h-5" />
-                          Send Email Campaign
-                        </button>
-                      </div>
-                    </div>
+                        <div className="flex gap-4">
+                          <button
+                            onClick={() => setShowPreview(true)}
+                            className={`px-6 py-3 ${currentTheme.surfaceSecondary} ${currentTheme.text} rounded-xl font-bold border ${currentTheme.border} hover:${currentTheme.hover} flex items-center gap-2 transition-all`}
+                          >
+                            <Eye className="w-5 h-5" />
+                            Preview
+                          </button>
+                          <button
+                            onClick={sendTemplateEmail}
+                            className={`px-10 py-3 ${currentColorScheme.primary} text-white rounded-xl font-bold shadow-xl shadow-blue-500/25 flex items-center gap-2 transition-all hover:scale-105 active:scale-95`}
+                          >
+                            <Send className="w-5 h-5" />
+                            Launch Campaign
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Quick Send (Legacy Interface) */}
-                <div className="border-t pt-6 mt-8">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Quick Send</h3>
-                    <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">Legacy</span>
-                  </div>
-                  <div className={`p-4 ${currentTheme.surfaceSecondary} rounded-lg border ${currentTheme.border}`}>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <label className={`block text-xs font-medium ${currentTheme.textSecondary} mb-1`}>
-                          Recipients
-                        </label>
-                        <select
-                          value={bulkEmailData.recipients}
-                          onChange={(e) => setBulkEmailData({...bulkEmailData, recipients: e.target.value})}
-                          className={`w-full px-3 py-2 text-sm ${currentTheme.surface} rounded border ${currentTheme.border} ${currentTheme.text} focus:ring-2 ${currentTheme.focus}`}
-                        >
-                          <option value="all">All Users</option>
-                          <option value="active">Active Users</option>
-                          <option value="hr">HR Team</option>
-                        </select>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className={`block text-xs font-medium ${currentTheme.textSecondary} mb-1`}>
-                          Subject
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Quick email subject"
-                          value={bulkEmailData.subject}
-                          onChange={(e) => setBulkEmailData({...bulkEmailData, subject: e.target.value})}
-                          className={`w-full px-3 py-2 text-sm ${currentTheme.surface} rounded border ${currentTheme.border} ${currentTheme.text} focus:ring-2 ${currentTheme.focus}`}
-                        />
-                      </div>
+                {/* Legacy Interface - Hidden by default or collapsible */}
+                <div className={`rounded-xl border ${currentTheme.border} ${currentTheme.surface} overflow-hidden opacity-50 hover:opacity-100 transition-opacity`}>
+                  <button 
+                    onClick={() => {}} // Could add state for collapse
+                    className="w-full px-6 py-4 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/50"
+                  >
+                    <div className="flex items-center gap-2">
+                      <SettingsIcon className={`w-4 h-4 ${currentTheme.textSecondary}`} />
+                      <span className={`text-sm font-bold ${currentTheme.textSecondary}`}>Quick Send & Legacy Tools</span>
                     </div>
-                    <div className="mb-4">
-                      <label className={`block text-xs font-medium ${currentTheme.textSecondary} mb-1`}>
-                        Message
-                      </label>
-                      <textarea
-                        rows="3"
-                        placeholder="Quick email content"
-                        value={bulkEmailData.content}
-                        onChange={(e) => setBulkEmailData({...bulkEmailData, content: e.target.value})}
-                        className={`w-full px-3 py-2 text-sm ${currentTheme.surface} rounded border ${currentTheme.border} ${currentTheme.text} focus:ring-2 ${currentTheme.focus}`}
-                      />
-                    </div>
-                    <button
-                      onClick={sendBulkEmail}
-                      className={`px-4 py-2 ${currentColorScheme.primary} text-white ${currentColorScheme.primaryHover} rounded-lg text-sm flex items-center gap-2`}
-                    >
-                      <Mail className="w-4 h-4" />
-                      Send Quick Email
-                    </button>
-                  </div>
+                    <ChevronDown className={`w-4 h-4 ${currentTheme.textSecondary}`} />
+                  </button>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Users Tab */}
+            {/* Users Tab */}
           {activeTab === 'users' && (
             <div className="space-y-6">
               <div className={`${currentTheme.surface} rounded-lg border ${currentTheme.border} overflow-hidden`}>

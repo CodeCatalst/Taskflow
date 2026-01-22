@@ -32,7 +32,7 @@ const emailTemplateSchema = new mongoose.Schema({
   }],
   category: {
     type: String,
-    enum: ['leave', 'attendance', 'system', 'custom'],
+    enum: ['leave', 'attendance', 'system', 'custom', 'hiring', 'interview', 'onboarding', 'engagement', 'exit'],
     default: 'custom'
   },
   isActive: {
