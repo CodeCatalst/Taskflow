@@ -239,72 +239,90 @@ export default function EmailCenter() {
     ));
   };
 
-  const sendEmails = async () => {
-    if (!selectedTemplate || emailRecipients.length === 0) return;
+    const sendEmails = async () => {
+      if (!selectedTemplate || emailRecipients.length === 0) return;
 
-    setIsSending(true);
-    try {
-      let successCount = 0;
-      let errorCount = 0;
+      setIsSending(true);
+      
+      // Initialize statuses
+      setEmailRecipients(prev => prev.map(r => ({ ...r, status: 'pending' })));
 
-      // Personalized sending loop
-      for (const recipientData of emailRecipients) {
-        const recipientObj = { email: recipientData.email, name: recipientData.name };
+      try {
+        let successCount = 0;
+        let errorCount = 0;
 
-        // Variable interpolation
-        let content = emailData.htmlContent;
-        let subject = emailData.subject;
+        // Personalized sending loop
+        for (let i = 0; i < emailRecipients.length; i++) {
+          const recipientData = emailRecipients[i];
+          const recipientObj = { email: recipientData.email, name: recipientData.name };
 
-        // MERGE VARIABLES: Global Defaults < Recipient Specific Overrides
-        const mergedVariables = {
-          ...emailData.variables,
-          ...recipientData.variables,
-          fullName: recipientObj.name,
-          email: recipientObj.email
-        };
+          // Update individual recipient status to sending
+          setEmailRecipients(prev => prev.map((r, idx) => idx === i ? { ...r, status: 'sending' } : r));
 
-        // Custom variables interpolation
-        Object.entries(mergedVariables).forEach(([key, value]) => {
-          const regex = new RegExp(`{{${key}}}`, 'g');
-          content = content.replace(regex, value);
-          subject = subject.replace(regex, value);
+          // Variable interpolation
+          let content = emailData.htmlContent;
+          let subject = emailData.subject;
+
+          // MERGE VARIABLES: Global Defaults < Recipient Specific Overrides
+          const mergedVariables = {
+            ...emailData.variables,
+            ...recipientData.variables,
+            fullName: recipientObj.name,
+            email: recipientObj.email
+          };
+
+          // Custom variables interpolation
+          Object.entries(mergedVariables).forEach(([key, value]) => {
+            const regex = new RegExp(`{{${key}}}`, 'g');
+            content = content.replace(regex, value);
+            subject = subject.replace(regex, value);
+          });
+
+          try {
+            await api.post('/hr/email-templates/send', {
+              recipients: [recipientObj],
+              subject,
+              htmlContent: content,
+              templateId: selectedTemplate._id,
+              variables: mergedVariables
+            });
+            
+            successCount++;
+            setEmailRecipients(prev => prev.map((r, idx) => idx === i ? { ...r, status: 'sent' } : r));
+          } catch (err) {
+            console.error(`Failed to send to ${recipientObj.email}:`, err);
+            errorCount++;
+            setEmailRecipients(prev => prev.map((r, idx) => idx === i ? { ...r, status: 'failed' } : r));
+          }
+        }
+
+        // Stop loading before showing the result modal
+        setIsSending(false);
+        setShowPreview(false);
+
+        await confirmModal.show({
+          title: successCount === emailRecipients.length ? 'Campaign Complete' : 'Campaign Finished with Issues',
+          message: `${successCount} emails sent successfully.${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
+          confirmText: 'Dismiss',
+          variant: successCount === emailRecipients.length ? 'info' : 'warning'
         });
 
-        try {
-          await api.post('/hr/email-templates/send', {
-            recipients: [recipientObj],
-            subject,
-            htmlContent: content,
-            templateId: selectedTemplate._id,
-            variables: mergedVariables
-          });
-          successCount++;
-        } catch (err) {
-          console.error(`Failed to send to ${recipientObj.email}:`, err);
-          errorCount++;
+        if (successCount > 0) {
+          // Optional: We can choose to stay on the page to let them see the statuses
+          // but for now let's stick to the existing flow of resetting.
+          // Or wait for them to click "Confirm" then reset.
+          setCampaignStep(1);
+          setSelectedTemplate(null);
+          setEmailRecipients([]);
+          setEmailData({ subject: '', htmlContent: '', variables: {} });
         }
+      } catch (error) {
+        console.error('Send campaign error:', error);
+        setIsSending(false);
+        alert('An unexpected error occurred during the campaign.');
       }
+    };
 
-      await confirmModal.show({
-        title: successCount > 0 ? 'Campaign Launched' : 'Campaign Failed',
-        message: `${successCount} emails sent successfully.${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
-        variant: successCount > 0 ? 'info' : 'danger'
-      });
-
-      if (successCount > 0) {
-        setCampaignStep(1);
-        setSelectedTemplate(null);
-        setEmailRecipients([]);
-        setEmailData({ subject: '', htmlContent: '', variables: {} });
-      }
-    } catch (error) {
-      console.error('Send campaign error:', error);
-      alert('Failed to launch campaign');
-    } finally {
-      setIsSending(false);
-      setShowPreview(false);
-    }
-  };
 
   const generatePreviewHtml = () => {
     let html = emailData.htmlContent;
@@ -643,20 +661,32 @@ export default function EmailCenter() {
                     <button
                       key={r.id}
                       onClick={() => setActiveRecipientIndex(idx)}
-                      className={`w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between ${
-                        activeRecipientIndex === idx 
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' 
-                          : `${currentTheme.border} hover:border-blue-300`
-                      }`}
-                    >
-                      <div className="min-w-0">
-                        <p className={`text-xs font-black ${currentTheme.text} truncate`}>{r.name}</p>
-                        <p className="text-[9px] text-gray-400 font-bold truncate">{r.email}</p>
-                      </div>
-                      {Object.keys(r.variables).length > 0 && (
-                        <div className="w-2 h-2 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50" />
-                      )}
-                    </button>
+                        className={`w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between ${
+                          activeRecipientIndex === idx 
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' 
+                            : `${currentTheme.border} hover:border-blue-300`
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {r.status === 'sending' ? (
+                            <Clock className="w-4 h-4 text-blue-500 animate-spin shrink-0" />
+                          ) : r.status === 'sent' ? (
+                            <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                          ) : r.status === 'failed' ? (
+                            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                          ) : (
+                            <div className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <p className={`text-xs font-black ${currentTheme.text} truncate`}>{r.name}</p>
+                            <p className="text-[9px] text-gray-400 font-bold truncate">{r.email}</p>
+                          </div>
+                        </div>
+                        {Object.keys(r.variables).length > 0 && !r.status && (
+                          <div className="w-2 h-2 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50" />
+                        )}
+                      </button>
+
                   ))}
                 </div>
               </div>
