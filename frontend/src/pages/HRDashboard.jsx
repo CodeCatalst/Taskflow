@@ -60,6 +60,8 @@ export default function HRDashboard() {
   const [emailTemplates, setEmailTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
     const [emailRecipients, setEmailRecipients] = useState([]);
+    const [recipientMode, setRecipientMode] = useState('INTERNAL'); // 'INTERNAL' or 'EXTERNAL'
+    const [manualRecipient, setManualRecipient] = useState({ name: '', email: '' });
     const [emailCampaignStep, setEmailCampaignStep] = useState(1);
     const [emailData, setEmailData] = useState({
     subject: '',
@@ -431,6 +433,14 @@ export default function HRDashboard() {
     // Handle template selection
     const handleTemplateSelect = (template) => {
       setSelectedTemplate(template);
+      
+      // Default recipient mode based on category
+      if (template.category === 'hiring' || template.category === 'interview') {
+        setRecipientMode('EXTERNAL');
+      } else {
+        setRecipientMode('INTERNAL');
+      }
+      
       setEmailCampaignStep(2); // Move to next step
 
       // Auto-populate system variables
@@ -460,14 +470,32 @@ export default function HRDashboard() {
     });
   };
 
-  // Handle user selection for email
-  const handleEmailUserSelect = (userId) => {
-    setEmailRecipients(prev =>
-      prev.includes(userId)
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
-  };
+    // Handle user selection for email
+    const handleEmailUserSelect = (userId) => {
+      if (recipientMode === 'EXTERNAL') return; // Should not happen in UI
+      
+      setEmailRecipients(prev =>
+        prev.includes(userId)
+          ? prev.filter(id => id !== userId)
+          : [...prev, userId]
+      );
+    };
+
+    const addExternalRecipient = () => {
+      if (manualRecipient.name && manualRecipient.email) {
+        const newRecipient = {
+          ...manualRecipient,
+          id: `ext-${Date.now()}`,
+          source: 'EXTERNAL'
+        };
+        setEmailRecipients(prev => [...prev, newRecipient]);
+        setManualRecipient({ name: '', email: '' });
+      }
+    };
+
+    const removeExternalRecipient = (id) => {
+      setEmailRecipients(prev => prev.filter(r => r.id !== id));
+    };
 
   // Send email using template
   const sendTemplateEmail = async () => {
@@ -503,12 +531,19 @@ export default function HRDashboard() {
       let errorCount = 0;
 
       // Send personalized email to each recipient
-      for (const userId of emailRecipients) {
-        const user = users.find(u => u._id === userId);
-        if (!user?.email) {
-          console.warn(`Skipping user ${userId}: no email address`);
-          errorCount++;
-          continue;
+      for (const recipientData of emailRecipients) {
+        let recipientObj;
+        
+        if (recipientMode === 'INTERNAL') {
+          const user = users.find(u => u._id === recipientData);
+          if (!user?.email) {
+            console.warn(`Skipping user ${recipientData}: no email address`);
+            errorCount++;
+            continue;
+          }
+          recipientObj = { email: user.email, name: user.full_name };
+        } else {
+          recipientObj = { email: recipientData.email, name: recipientData.name };
         }
 
         // Create personalized content for this user
@@ -523,23 +558,23 @@ export default function HRDashboard() {
         });
 
         // Replace recipient-specific variables
-        personalizedContent = personalizedContent.replace(/{{fullName}}/g, user.full_name);
-        personalizedContent = personalizedContent.replace(/{{email}}/g, user.email);
-        personalizedSubject = personalizedSubject.replace(/{{fullName}}/g, user.full_name);
-        personalizedSubject = personalizedSubject.replace(/{{email}}/g, user.email);
+        personalizedContent = personalizedContent.replace(/{{fullName}}/g, recipientObj.name);
+        personalizedContent = personalizedContent.replace(/{{email}}/g, recipientObj.email);
+        personalizedSubject = personalizedSubject.replace(/{{fullName}}/g, recipientObj.name);
+        personalizedSubject = personalizedSubject.replace(/{{email}}/g, recipientObj.email);
 
         try {
           const response = await api.post('/hr/email-templates/send', {
-            recipients: [{ email: user.email, name: user.full_name }], // Send to one recipient at a time
+            recipients: [recipientObj], // Send to one recipient at a time
             subject: personalizedSubject,
             htmlContent: personalizedContent,
             templateId: selectedTemplate._id
           });
 
           successCount++;
-          console.log(`Email sent to ${user.email}`);
+          console.log(`Email sent to ${recipientObj.email}`);
         } catch (emailError) {
-          console.error(`Failed to send email to ${user.email}:`, emailError);
+          console.error(`Failed to send email to ${recipientObj.email}:`, emailError);
           errorCount++;
         }
       }
@@ -635,33 +670,41 @@ export default function HRDashboard() {
     );
   };
 
-  // Generate preview HTML with variables replaced
-  const generatePreviewHtml = () => {
-    let previewHtml = emailData.htmlContent;
-    let previewSubject = emailData.subject;
+    // Generate preview HTML with variables replaced
+    const generatePreviewHtml = () => {
+      let previewHtml = emailData.htmlContent;
+      let previewSubject = emailData.subject;
 
-    // Replace system variables
-    Object.entries(emailData.variables).forEach(([key, value]) => {
-      if (value) {
-        const regex = new RegExp(`{{${key}}}`, 'g');
-        previewHtml = previewHtml.replace(regex, value);
-        previewSubject = previewSubject.replace(regex, value);
+      // Replace system variables
+      Object.entries(emailData.variables).forEach(([key, value]) => {
+        if (value) {
+          const regex = new RegExp(`{{${key}}}`, 'g');
+          previewHtml = previewHtml.replace(regex, value);
+          previewSubject = previewSubject.replace(regex, value);
+        }
+      });
+
+      // Use first selected recipient for personalization preview
+      if (emailRecipients.length > 0) {
+        let firstRecipient;
+        if (recipientMode === 'INTERNAL') {
+          firstRecipient = users.find(u => u._id === emailRecipients[0]);
+        } else {
+          firstRecipient = emailRecipients[0];
+        }
+
+        if (firstRecipient) {
+          const name = recipientMode === 'INTERNAL' ? firstRecipient.full_name : firstRecipient.name;
+          const email = recipientMode === 'INTERNAL' ? firstRecipient.email : firstRecipient.email;
+          previewHtml = previewHtml.replace(/{{fullName}}/g, name);
+          previewHtml = previewHtml.replace(/{{email}}/g, email);
+          previewSubject = previewSubject.replace(/{{fullName}}/g, name);
+          previewSubject = previewSubject.replace(/{{email}}/g, email);
+        }
       }
-    });
 
-    // Use first selected recipient for personalization preview
-    if (emailRecipients.length > 0) {
-      const firstRecipient = users.find(u => u._id === emailRecipients[0]);
-      if (firstRecipient) {
-        previewHtml = previewHtml.replace(/{{fullName}}/g, firstRecipient.full_name);
-        previewHtml = previewHtml.replace(/{{email}}/g, firstRecipient.email);
-        previewSubject = previewSubject.replace(/{{fullName}}/g, firstRecipient.full_name);
-        previewSubject = previewSubject.replace(/{{email}}/g, firstRecipient.email);
-      }
-    }
-
-    return { html: previewHtml, subject: previewSubject };
-  };
+      return { html: previewHtml, subject: previewSubject };
+    };
 
   // Email Preview Modal Component
   const EmailPreviewModal = () => {
@@ -1524,85 +1567,199 @@ export default function HRDashboard() {
                     </div>
                   )}
 
-                  {/* Step 2: Recipient Selection */}
-                  {emailCampaignStep === 2 && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                      <div className="flex items-center justify-between mb-6">
-                        <div>
-                          <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Who's receiving this?</h3>
-                          <p className={`text-sm ${currentTheme.textSecondary}`}>Selected {emailRecipients.length} recipients</p>
+                    {/* Step 2: Recipient Selection */}
+                    {emailCampaignStep === 2 && (
+                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                          <div>
+                            <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Who's receiving this?</h3>
+                            <p className={`text-sm ${currentTheme.textSecondary}`}>
+                              {recipientMode === 'INTERNAL' ? 'Internal Team Members' : 'External Candidates/Contacts'}
+                              {' • '} 
+                              Selected {emailRecipients.length} recipients
+                            </p>
+                          </div>
+                          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <button
+                              onClick={() => {
+                                setRecipientMode('INTERNAL');
+                                setEmailRecipients([]);
+                              }}
+                              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                                recipientMode === 'INTERNAL' 
+                                  ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' 
+                                  : 'text-gray-500 hover:text-gray-700'
+                              }`}
+                            >
+                              Internal
+                            </button>
+                            <button
+                              onClick={() => {
+                                setRecipientMode('EXTERNAL');
+                                setEmailRecipients([]);
+                              }}
+                              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                                recipientMode === 'EXTERNAL' 
+                                  ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' 
+                                  : 'text-gray-500 hover:text-gray-700'
+                              }`}
+                            >
+                              External
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setEmailRecipients(users.map(u => u._id))}
-                            className={`px-3 py-1.5 text-xs font-bold ${currentTheme.surfaceSecondary} ${currentTheme.text} rounded-lg border ${currentTheme.border} hover:${currentTheme.hover}`}
-                          >
-                            Select All
-                          </button>
-                          <button
-                            onClick={() => setEmailRecipients([])}
-                            className={`px-3 py-1.5 text-xs font-bold ${currentTheme.surfaceSecondary} ${currentTheme.text} rounded-lg border ${currentTheme.border} hover:${currentTheme.hover}`}
-                          >
-                            Clear
-                          </button>
-                        </div>
-                      </div>
 
-                      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto p-2 rounded-xl bg-gray-50/50 dark:bg-gray-900/20 border ${currentTheme.border}`}>
-                        {users.map((user) => (
-                          <label 
-                            key={user._id} 
-                            className={`flex items-center p-4 rounded-xl cursor-pointer border-2 transition-all ${
-                              emailRecipients.includes(user._id)
-                                ? 'border-blue-500 bg-white dark:bg-gray-800 shadow-sm'
-                                : `${currentTheme.border} ${currentTheme.surface} hover:border-gray-300`
-                            }`}
-                          >
-                            <div className="relative flex items-center gap-3 flex-1 min-w-0">
-                              <div className="relative">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-                                  {user.full_name?.charAt(0)}
+                        {recipientMode === 'EXTERNAL' ? (
+                          <div className="space-y-6">
+                            {/* Manual Entry Form */}
+                            <div className={`p-6 rounded-xl border-2 border-dashed ${currentTheme.border} ${currentTheme.surfaceSecondary}`}>
+                              <h4 className={`text-sm font-bold ${currentTheme.text} mb-4 flex items-center gap-2`}>
+                                <UserPlus className="w-4 h-4 text-blue-500" />
+                                Add External Recipient
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">Full Name</label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. John Doe"
+                                    value={manualRecipient.name}
+                                    onChange={(e) => setManualRecipient(prev => ({ ...prev, name: e.target.value }))}
+                                    className={`w-full px-4 py-2.5 ${currentTheme.surface} rounded-xl border ${currentTheme.border} ${currentTheme.text} focus:ring-2 focus:ring-blue-500 transition-all`}
+                                  />
                                 </div>
-                                {emailRecipients.includes(user._id) && (
-                                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center">
-                                    <CheckCircle className="w-2.5 h-2.5 text-white" />
-                                  </div>
-                                )}
+                                <div>
+                                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">Email Address</label>
+                                  <input
+                                    type="email"
+                                    placeholder="e.g. john@example.com"
+                                    value={manualRecipient.email}
+                                    onChange={(e) => setManualRecipient(prev => ({ ...prev, email: e.target.value }))}
+                                    className={`w-full px-4 py-2.5 ${currentTheme.surface} rounded-xl border ${currentTheme.border} ${currentTheme.text} focus:ring-2 focus:ring-blue-500 transition-all`}
+                                  />
+                                </div>
+                                <div className="flex items-end">
+                                  <button
+                                    onClick={addExternalRecipient}
+                                    disabled={!manualRecipient.name || !manualRecipient.email}
+                                    className={`w-full py-2.5 ${currentColorScheme.primary} text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-95`}
+                                  >
+                                    Add Recipient
+                                  </button>
+                                </div>
                               </div>
-                              <div className="truncate">
-                                <p className={`text-sm font-bold ${currentTheme.text} truncate`}>{user.full_name}</p>
-                                <p className={`text-xs ${currentTheme.textSecondary} truncate`}>{user.email}</p>
-                              </div>
-                              <input
-                                type="checkbox"
-                                checked={emailRecipients.includes(user._id)}
-                                onChange={() => handleEmailUserSelect(user._id)}
-                                className="hidden"
-                              />
                             </div>
-                          </label>
-                        ))}
-                      </div>
 
-                      <div className="mt-8 flex justify-between items-center">
-                        <button
-                          onClick={() => setEmailCampaignStep(1)}
-                          className={`px-6 py-3 ${currentTheme.textSecondary} font-bold flex items-center gap-2 hover:${currentTheme.text}`}
-                        >
-                          <ChevronLeft className="w-5 h-5" />
-                          Back
-                        </button>
-                        <button
-                          onClick={() => setEmailCampaignStep(3)}
-                          disabled={emailRecipients.length === 0}
-                          className={`px-8 py-3 ${currentColorScheme.primary} text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 flex items-center gap-2 transition-transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed`}
-                        >
-                          Next: Review & Customize
-                          <ChevronRight className="w-5 h-5" />
-                        </button>
+                            {/* External Recipients List */}
+                            {emailRecipients.length > 0 && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {emailRecipients.map((recipient) => (
+                                  <div 
+                                    key={recipient.id} 
+                                    className={`flex items-center justify-between p-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-800 shadow-sm animate-in zoom-in duration-300`}
+                                  >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                                        {recipient.name?.charAt(0)}
+                                      </div>
+                                      <div className="truncate">
+                                        <p className={`text-sm font-bold ${currentTheme.text} truncate`}>{recipient.name}</p>
+                                        <p className={`text-xs ${currentTheme.textSecondary} truncate`}>{recipient.email}</p>
+                                      </div>
+                                    </div>
+                                    <button 
+                                      onClick={() => removeExternalRecipient(recipient.id)}
+                                      className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {emailRecipients.length === 0 && (
+                              <div className="py-12 text-center">
+                                <UsersIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                                <p className={currentTheme.textSecondary}>No external recipients added yet.</p>
+                                <p className="text-xs text-gray-400 mt-1">Add candidates manually above for interview/hiring emails.</p>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-end mb-4 gap-2">
+                              <button
+                                onClick={() => setEmailRecipients(users.map(u => u._id))}
+                                className={`px-3 py-1.5 text-xs font-bold ${currentTheme.surfaceSecondary} ${currentTheme.text} rounded-lg border ${currentTheme.border} hover:${currentTheme.hover}`}
+                              >
+                                Select All
+                              </button>
+                              <button
+                                onClick={() => setEmailRecipients([])}
+                                className={`px-3 py-1.5 text-xs font-bold ${currentTheme.surfaceSecondary} ${currentTheme.text} rounded-lg border ${currentTheme.border} hover:${currentTheme.hover}`}
+                              >
+                                Clear
+                              </button>
+                            </div>
+
+                            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto p-2 rounded-xl bg-gray-50/50 dark:bg-gray-900/20 border ${currentTheme.border}`}>
+                              {users.map((user) => (
+                                <label 
+                                  key={user._id} 
+                                  className={`flex items-center p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                                    emailRecipients.includes(user._id)
+                                      ? 'border-blue-500 bg-white dark:bg-gray-800 shadow-sm'
+                                      : `${currentTheme.border} ${currentTheme.surface} hover:border-gray-300`
+                                  }`}
+                                >
+                                  <div className="relative flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="relative">
+                                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                                        {user.full_name?.charAt(0)}
+                                      </div>
+                                      {emailRecipients.includes(user._id) && (
+                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center">
+                                          <CheckCircle className="w-2.5 h-2.5 text-white" />
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="truncate">
+                                      <p className={`text-sm font-bold ${currentTheme.text} truncate`}>{user.full_name}</p>
+                                      <p className={`text-xs ${currentTheme.textSecondary} truncate`}>{user.email}</p>
+                                    </div>
+                                    <input
+                                      type="checkbox"
+                                      checked={emailRecipients.includes(user._id)}
+                                      onChange={() => handleEmailUserSelect(user._id)}
+                                      className="hidden"
+                                    />
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        <div className="mt-8 flex justify-between items-center">
+                          <button
+                            onClick={() => setEmailCampaignStep(1)}
+                            className={`px-6 py-3 ${currentTheme.textSecondary} font-bold flex items-center gap-2 hover:${currentTheme.text}`}
+                          >
+                            <ChevronLeft className="w-5 h-5" />
+                            Back
+                          </button>
+                          <button
+                            onClick={() => setEmailCampaignStep(3)}
+                            disabled={emailRecipients.length === 0}
+                            className={`px-8 py-3 ${currentColorScheme.primary} text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 flex items-center gap-2 transition-transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed`}
+                          >
+                            Next: Review & Customize
+                            <ChevronRight className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Step 3: Review & Send */}
                   {emailCampaignStep === 3 && (

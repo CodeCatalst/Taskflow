@@ -44,15 +44,23 @@ const EmailCenter = () => {
     }
   };
 
-  const handleTemplateSelect = (template) => {
-    setSelectedTemplate(template);
-    // Initialize variables object with empty values
-    const initialVars = {};
-    template.variables.forEach(variable => {
-      initialVars[variable.name] = '';
-    });
-    setVariables(initialVars);
-  };
+    const handleTemplateSelect = (template) => {
+      setSelectedTemplate(template);
+      
+      // Default recipient mode based on category
+      if (template.category === 'hiring' || template.category === 'interview') {
+        setRecipientMode('EXTERNAL');
+      } else {
+        setRecipientMode('USER');
+      }
+
+      // Initialize variables object with empty values
+      const initialVars = {};
+      template.variables.forEach(variable => {
+        initialVars[variable.name] = '';
+      });
+      setVariables(initialVars);
+    };
 
   const handleVariableChange = (name, value) => {
     setVariables(prev => ({
