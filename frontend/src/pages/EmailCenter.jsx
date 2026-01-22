@@ -447,7 +447,7 @@ export default function EmailCenter() {
                 <h2 className={`text-2xl font-black ${currentTheme.text}`}>Target Audience</h2>
                 <p className={currentTheme.textSecondary}>Select the individuals who will receive this communication</p>
               </div>
-              <div className="flex bg-gray-100 dark:bg-gray-800 p-1.5 rounded-2xl border ${currentTheme.border}">
+              <div className={`flex bg-gray-100 dark:bg-gray-800 p-1.5 rounded-2xl border ${currentTheme.border}`}>
                 <button
                   onClick={() => { setRecipientMode('INTERNAL'); setEmailRecipients([]); }}
                   className={`px-6 py-2 text-xs font-black rounded-xl transition-all ${
@@ -824,12 +824,12 @@ export default function EmailCenter() {
             </div>
 
             <div className="p-10 overflow-y-auto flex-1 bg-gray-100 dark:bg-gray-950">
-              <div className="mb-8 p-6 rounded-3xl bg-white dark:bg-gray-900 border ${currentTheme.border} shadow-sm">
+              <div className={`mb-8 p-6 rounded-3xl bg-white dark:bg-gray-900 border ${currentTheme.border} shadow-sm`}>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Subject</p>
                 <p className={`text-lg font-black ${currentTheme.text}`}>{generatePreviewHtml().subject}</p>
               </div>
 
-              <div className="rounded-3xl border-2 ${currentTheme.border} p-10 bg-white min-h-[400px]">
+              <div className={`rounded-3xl border-2 ${currentTheme.border} p-10 bg-white min-h-[400px]`}>
                 <div 
                   className="prose prose-lg max-w-none dark:prose-invert"
                   dangerouslySetInnerHTML={{ __html: generatePreviewHtml().html }}
