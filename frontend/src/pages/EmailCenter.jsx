@@ -12,7 +12,7 @@ import {
   X, Eye, Code, Layout, ChevronRight, ChevronLeft,
   Calendar, Clock, MessageSquare, Bell, UserMinus,
   Settings as SettingsIcon, ExternalLink, Briefcase,
-  AlertCircle
+  AlertCircle, Edit3
 } from 'lucide-react';
 
 /**
@@ -48,6 +48,7 @@ export default function EmailCenter() {
   const [showHtmlEditor, setShowHtmlEditor] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [activeRecipientIndex, setActiveRecipientIndex] = useState(0);
 
   // Load initial data
   useEffect(() => {
@@ -136,19 +137,31 @@ export default function EmailCenter() {
   };
 
   const handleUserToggle = (userId) => {
-    setEmailRecipients(prev =>
-      prev.includes(userId)
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
+    setEmailRecipients(prev => {
+      const exists = prev.find(r => r.id === userId);
+      if (exists) {
+        return prev.filter(r => r.id !== userId);
+      } else {
+        const user = users.find(u => u._id === userId);
+        return [...prev, {
+          id: userId,
+          name: user.full_name,
+          email: user.email,
+          source: 'INTERNAL',
+          variables: {}
+        }];
+      }
+    });
   };
 
   const addExternalRecipient = () => {
     if (manualRecipient.name && manualRecipient.email) {
       const newRecipient = {
-        ...manualRecipient,
         id: `ext-${Date.now()}`,
-        source: 'EXTERNAL'
+        name: manualRecipient.name,
+        email: manualRecipient.email,
+        source: 'EXTERNAL',
+        variables: {}
       };
       setEmailRecipients(prev => [...prev, newRecipient]);
       setManualRecipient({ name: '', email: '' });
@@ -157,6 +170,14 @@ export default function EmailCenter() {
 
   const removeExternalRecipient = (id) => {
     setEmailRecipients(prev => prev.filter(r => r.id !== id));
+  };
+
+  const updateRecipientVariable = (recipientId, varName, value) => {
+    setEmailRecipients(prev => prev.map(r => 
+      r.id === recipientId 
+        ? { ...r, variables: { ...r.variables, [varName]: value } }
+        : r
+    ));
   };
 
   const sendEmails = async () => {
@@ -169,42 +190,34 @@ export default function EmailCenter() {
 
       // Personalized sending loop
       for (const recipientData of emailRecipients) {
-        let recipientObj;
-        
-        if (recipientMode === 'INTERNAL') {
-          const user = users.find(u => u._id === recipientData);
-          if (!user?.email) {
-            errorCount++;
-            continue;
-          }
-          recipientObj = { email: user.email, name: user.full_name };
-        } else {
-          recipientObj = { email: recipientData.email, name: recipientData.name };
-        }
+        const recipientObj = { email: recipientData.email, name: recipientData.name };
 
         // Variable interpolation
         let content = emailData.htmlContent;
         let subject = emailData.subject;
 
-        // Custom variables
-        Object.entries(emailData.variables).forEach(([key, value]) => {
+        // MERGE VARIABLES: Global Defaults < Recipient Specific Overrides
+        const mergedVariables = {
+          ...emailData.variables,
+          ...recipientData.variables,
+          fullName: recipientObj.name,
+          email: recipientObj.email
+        };
+
+        // Custom variables interpolation
+        Object.entries(mergedVariables).forEach(([key, value]) => {
           const regex = new RegExp(`{{${key}}}`, 'g');
           content = content.replace(regex, value);
           subject = subject.replace(regex, value);
         });
-
-        // System personalization
-        content = content.replace(/{{fullName}}/g, recipientObj.name);
-        content = content.replace(/{{email}}/g, recipientObj.email);
-        subject = subject.replace(/{{fullName}}/g, recipientObj.name);
-        subject = subject.replace(/{{email}}/g, recipientObj.email);
 
         try {
           await api.post('/hr/email-templates/send', {
             recipients: [recipientObj],
             subject,
             htmlContent: content,
-            templateId: selectedTemplate._id
+            templateId: selectedTemplate._id,
+            variables: mergedVariables
           });
           successCount++;
         } catch (err) {
@@ -238,23 +251,22 @@ export default function EmailCenter() {
     let html = emailData.htmlContent;
     let subject = emailData.subject;
 
-    Object.entries(emailData.variables).forEach(([key, value]) => {
+    // Get current preview recipient
+    const recipient = emailRecipients[activeRecipientIndex] || emailRecipients[0];
+    
+    // Merge variables for preview
+    const mergedVariables = {
+      ...emailData.variables,
+      ...(recipient?.variables || {}),
+      fullName: recipient?.name || '[Full Name]',
+      email: recipient?.email || '[Email]'
+    };
+
+    Object.entries(mergedVariables).forEach(([key, value]) => {
       const regex = new RegExp(`{{${key}}}`, 'g');
       html = html.replace(regex, value || `[${key}]`);
       subject = subject.replace(regex, value || `[${key}]`);
     });
-
-    if (emailRecipients.length > 0) {
-      const first = recipientMode === 'INTERNAL' 
-        ? users.find(u => u._id === emailRecipients[0]) 
-        : emailRecipients[0];
-      
-      if (first) {
-        const name = recipientMode === 'INTERNAL' ? first.full_name : first.name;
-        html = html.replace(/{{fullName}}/g, name);
-        subject = subject.replace(/{{fullName}}/g, name);
-      }
-    }
 
     return { html, subject };
   };
@@ -456,39 +468,42 @@ export default function EmailCenter() {
               </div>
             ) : (
               <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-3xl bg-gray-50/50 dark:bg-gray-900/30 border ${currentTheme.border}`}>
-                {users.map((u) => (
-                  <label 
-                    key={u._id}
-                    className={`flex items-center p-4 rounded-2xl cursor-pointer border-2 transition-all ${
-                      emailRecipients.includes(u._id)
-                        ? 'border-blue-500 bg-white dark:bg-gray-800 shadow-xl'
-                        : `${currentTheme.border} ${currentTheme.surface} hover:border-blue-300`
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="relative">
-                        <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 font-black text-xs">
-                          {u.full_name?.charAt(0)}
-                        </div>
-                        {emailRecipients.includes(u._id) && (
-                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center">
-                            <CheckCircle className="w-2.5 h-2.5 text-white" />
+                {users.map((u) => {
+                  const isSelected = emailRecipients.some(r => r.id === u._id);
+                  return (
+                    <label 
+                      key={u._id}
+                      className={`flex items-center p-4 rounded-2xl cursor-pointer border-2 transition-all ${
+                        isSelected
+                          ? 'border-blue-500 bg-white dark:bg-gray-800 shadow-xl'
+                          : `${currentTheme.border} ${currentTheme.surface} hover:border-blue-300`
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="relative">
+                          <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 font-black text-xs">
+                            {u.full_name?.charAt(0)}
                           </div>
-                        )}
+                          {isSelected && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center">
+                              <CheckCircle className="w-2.5 h-2.5 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="truncate">
+                          <p className={`text-xs font-black ${currentTheme.text} truncate`}>{u.full_name}</p>
+                          <p className={`text-[10px] font-bold text-gray-400 truncate`}>{u.email}</p>
+                        </div>
                       </div>
-                      <div className="truncate">
-                        <p className={`text-xs font-black ${currentTheme.text} truncate`}>{u.full_name}</p>
-                        <p className={`text-[10px] font-bold text-gray-400 truncate`}>{u.email}</p>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={emailRecipients.includes(u._id)}
-                      onChange={() => handleUserToggle(u._id)}
-                      className="hidden"
-                    />
-                  </label>
-                ))}
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleUserToggle(u._id)}
+                        className="hidden"
+                      />
+                    </label>
+                  );
+                })}
               </div>
             )}
 
@@ -511,13 +526,13 @@ export default function EmailCenter() {
 
         {/* Step 3: Review & Send */}
         {campaignStep === 3 && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
-            {/* Sidebar: Variables & Config */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+            {/* Left Sidebar: Global Variables */}
             <div className="lg:col-span-1 space-y-6">
-              <div className={`${currentTheme.surface} p-8 rounded-3xl border ${currentTheme.border} shadow-sm`}>
+              <div className={`${currentTheme.surface} p-6 rounded-3xl border ${currentTheme.border} shadow-sm`}>
                 <h3 className={`text-sm font-black ${currentTheme.text} mb-6 uppercase tracking-widest flex items-center gap-2`}>
-                  <Code className="w-4 h-4 text-blue-500" />
-                  PERSONALIZATION
+                  <Layout className="w-4 h-4 text-blue-500" />
+                  GLOBAL DEFAULTS
                 </h3>
                 <div className="space-y-5">
                   <div>
@@ -526,14 +541,14 @@ export default function EmailCenter() {
                       type="text"
                       value={emailData.subject}
                       onChange={(e) => setEmailData(p => ({ ...p, subject: e.target.value }))}
-                      className={`w-full px-4 py-3 ${currentTheme.surfaceSecondary} rounded-xl border ${currentTheme.border} ${currentTheme.text} font-bold text-sm`}
+                      className={`w-full px-4 py-3 ${currentTheme.surfaceSecondary} rounded-xl border ${currentTheme.border} ${currentTheme.text} font-bold text-xs`}
                     />
                   </div>
 
-                  {selectedTemplate?.variables?.map((v) => (
+                  {selectedTemplate?.variables?.filter(v => !['fullName', 'email'].includes(v.name)).map((v) => (
                     <div key={v.name}>
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
-                        {v.name} {['fullName', 'email', 'workspaceName', 'appUrl', 'currentDate'].includes(v.name) && '(AUTO)'}
+                        {v.name} {['workspaceName', 'appUrl', 'currentDate'].includes(v.name) && '(AUTO)'}
                       </label>
                       <input
                         type="text"
@@ -541,7 +556,7 @@ export default function EmailCenter() {
                         value={emailData.variables[v.name] || ''}
                         onChange={(e) => setEmailData(p => ({ ...p, variables: { ...p.variables, [v.name]: e.target.value } }))}
                         disabled={['workspaceName', 'appUrl', 'currentDate'].includes(v.name)}
-                        className={`w-full px-4 py-3 ${currentTheme.surfaceSecondary} rounded-xl border ${currentTheme.border} ${currentTheme.text} text-sm ${
+                        className={`w-full px-4 py-3 ${currentTheme.surfaceSecondary} rounded-xl border ${currentTheme.border} ${currentTheme.text} text-xs ${
                           ['workspaceName', 'appUrl', 'currentDate'].includes(v.name) ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                       />
@@ -550,25 +565,38 @@ export default function EmailCenter() {
                 </div>
               </div>
 
-              <div className={`p-6 rounded-3xl bg-blue-500 text-white shadow-xl shadow-blue-500/20`}>
-                <h4 className="text-[10px] font-black uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Layout className="w-4 h-4" />
-                  CAMPAIGN SUMMARY
-                </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/10 p-3 rounded-2xl">
-                    <p className="text-[9px] font-bold opacity-70 uppercase mb-1">Recipients</p>
-                    <p className="text-xl font-black">{emailRecipients.length}</p>
-                  </div>
-                  <div className="bg-white/10 p-3 rounded-2xl">
-                    <p className="text-[9px] font-bold opacity-70 uppercase mb-1">Mode</p>
-                    <p className="text-xl font-black">{recipientMode}</p>
-                  </div>
+              {/* Recipient Overrides Selector */}
+              <div className={`${currentTheme.surface} p-6 rounded-3xl border ${currentTheme.border} shadow-sm`}>
+                <h3 className={`text-sm font-black ${currentTheme.text} mb-4 uppercase tracking-widest flex items-center gap-2`}>
+                  <Users className="w-4 h-4 text-blue-500" />
+                  RECIPIENTS ({emailRecipients.length})
+                </h3>
+                <p className="text-[10px] text-gray-400 font-bold uppercase mb-4">Click to edit individual data</p>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  {emailRecipients.map((r, idx) => (
+                    <button
+                      key={r.id}
+                      onClick={() => setActiveRecipientIndex(idx)}
+                      className={`w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between ${
+                        activeRecipientIndex === idx 
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' 
+                          : `${currentTheme.border} hover:border-blue-300`
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <p className={`text-xs font-black ${currentTheme.text} truncate`}>{r.name}</p>
+                        <p className="text-[9px] text-gray-400 font-bold truncate">{r.email}</p>
+                      </div>
+                      {Object.keys(r.variables).length > 0 && (
+                        <div className="w-2 h-2 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50" />
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
 
-            {/* Main: Content Editor */}
+            {/* Middle: Content Editor */}
             <div className="lg:col-span-2 space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className={`text-lg font-black ${currentTheme.text}`}>Message Editor</h3>
@@ -631,6 +659,60 @@ export default function EmailCenter() {
                 </button>
               </div>
             </div>
+
+            {/* Right Sidebar: Recipient Overrides */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className={`${currentTheme.surface} p-6 rounded-3xl border ${currentTheme.border} shadow-sm border-l-4 border-l-blue-500`}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">
+                    {emailRecipients[activeRecipientIndex]?.name?.charAt(0) || '?'}
+                  </div>
+                  <div>
+                    <h4 className={`text-xs font-black ${currentTheme.text} truncate max-w-[150px]`}>
+                      {emailRecipients[activeRecipientIndex]?.name || 'Select Recipient'}
+                    </h4>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase">INDIVIDUAL OVERRIDES</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {selectedTemplate?.variables?.filter(v => !['fullName', 'email', 'workspaceName', 'appUrl', 'currentDate'].includes(v.name)).map((v) => (
+                    <div key={v.name}>
+                      <label className="block text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1.5 ml-1">
+                        {v.name}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder={emailData.variables[v.name] || v.example}
+                          value={emailRecipients[activeRecipientIndex]?.variables[v.name] || ''}
+                          onChange={(e) => updateRecipientVariable(emailRecipients[activeRecipientIndex]?.id, v.name, e.target.value)}
+                          className={`w-full px-4 py-3 ${currentTheme.surfaceSecondary} rounded-xl border-2 ${
+                            emailRecipients[activeRecipientIndex]?.variables[v.name] ? 'border-blue-500' : currentTheme.border
+                          } ${currentTheme.text} text-xs font-bold transition-all`}
+                        />
+                        {!emailRecipients[activeRecipientIndex]?.variables[v.name] && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-gray-300 uppercase">Default</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {selectedTemplate?.variables?.filter(v => !['fullName', 'email', 'workspaceName', 'appUrl', 'currentDate'].includes(v.name)).length === 0 && (
+                    <div className="py-10 text-center">
+                      <AlertCircle className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+                      <p className="text-[10px] text-gray-400 font-bold uppercase px-4">No custom variables available for this template</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-8 p-4 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase leading-relaxed">
+                    Personalized data here will override the global default values ONLY for this specific recipient.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -646,7 +728,9 @@ export default function EmailCenter() {
                 </div>
                 <div>
                   <h3 className={`text-xl font-black ${currentTheme.text}`}>Email Preview</h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">personalized for first recipient</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    viewing as: {emailRecipients[activeRecipientIndex]?.name || 'Candidate'}
+                  </p>
                 </div>
               </div>
               <button onClick={() => setShowPreview(false)} className={`p-3 ${currentTheme.surfaceSecondary} rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors`}>
@@ -654,21 +738,37 @@ export default function EmailCenter() {
               </button>
             </div>
 
-            <div className="p-10 overflow-y-auto flex-1">
-              <div className="mb-8 p-6 rounded-3xl bg-gray-50 dark:bg-gray-900 border ${currentTheme.border}">
+            <div className="p-10 overflow-y-auto flex-1 bg-gray-100 dark:bg-gray-950">
+              <div className="mb-8 p-6 rounded-3xl bg-white dark:bg-gray-900 border ${currentTheme.border} shadow-sm">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Subject</p>
                 <p className={`text-lg font-black ${currentTheme.text}`}>{generatePreviewHtml().subject}</p>
               </div>
 
-              <div className="rounded-3xl border-2 ${currentTheme.border} p-10 bg-white">
+              <div className="rounded-3xl border-2 ${currentTheme.border} p-10 bg-white min-h-[400px]">
                 <div 
-                  className="prose prose-lg max-w-none"
+                  className="prose prose-lg max-w-none dark:prose-invert"
                   dangerouslySetInnerHTML={{ __html: generatePreviewHtml().html }}
                 />
               </div>
             </div>
 
             <div className={`px-10 py-8 border-t ${currentTheme.border} flex justify-end gap-4 bg-gray-50/50 dark:bg-gray-900/50`}>
+              <div className="flex-1 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                {emailRecipients.slice(0, 5).map((r, idx) => (
+                  <button
+                    key={r.id}
+                    onClick={() => setActiveRecipientIndex(idx)}
+                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black whitespace-nowrap transition-all ${
+                      activeRecipientIndex === idx 
+                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' 
+                        : 'bg-gray-200 dark:bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {r.name}
+                  </button>
+                ))}
+                {emailRecipients.length > 5 && <span className="text-[9px] text-gray-400 font-bold">+{emailRecipients.length - 5} MORE</span>}
+              </div>
               <button onClick={() => setShowPreview(false)} className={`px-8 py-4 ${currentTheme.surfaceSecondary} ${currentTheme.text} rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-gray-800 transition-all`}>
                 Close
               </button>
@@ -677,7 +777,7 @@ export default function EmailCenter() {
                 className={`px-10 py-4 ${currentColorScheme.primary} text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/30 flex items-center gap-3 transition-all hover:scale-105 active:scale-95`}
               >
                 <Send className="w-5 h-5" />
-                Send Now
+                Launch Now
               </button>
             </div>
           </div>

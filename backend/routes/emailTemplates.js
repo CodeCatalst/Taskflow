@@ -233,23 +233,30 @@ router.post('/send', authenticate, checkRole(['admin', 'hr']), async (req, res) 
     } else if (recipients === 'all') {
       const users = await User.find({ workspaceId, isActive: true }).select('email fullName');
       recipientEmails = users.map(user => ({ email: user.email, name: user.fullName }));
-    } else if (recipients === 'active') {
-      const users = await User.find({ workspaceId, isActive: true, role: { $ne: 'member' } }).select('email fullName');
-      recipientEmails = users.map(user => ({ email: user.email, name: user.fullName }));
-    } else if (recipients === 'hr') {
-      const users = await User.find({ workspaceId, role: 'hr' }).select('email fullName');
-      recipientEmails = users.map(user => ({ email: user.email, name: user.fullName }));
     }
 
     if (recipientEmails.length === 0) {
       return res.status(400).json({ message: 'No valid recipients found' });
     }
 
-    // Interpolate variables in subject and content
-    const interpolatedSubject = brevoService.interpolateVariables(subject, variables);
-    const interpolatedHtml = brevoService.interpolateVariables(htmlContent, variables);
+    // Find template if templateId provided to get sender info
+    let template = null;
+    if (templateId) {
+      template = await EmailTemplate.findById(templateId);
+    }
 
-    const result = await sendEmail(recipientEmails, interpolatedSubject, interpolatedHtml);
+    // Use brevoService for layout and sender name support
+    const result = await brevoService.send({
+      to: recipientEmails.map(r => r.email),
+      subject: subject,
+      htmlContent: htmlContent,
+      params: variables,
+      from: template ? {
+        name: template.senderName || process.env.BREVO_SENDER_NAME || 'TaskFlow',
+        email: template.senderEmail || process.env.BREVO_SENDER_EMAIL || 'updates.codecatalyst@gmail.com'
+      } : null,
+      useLayout: true // Always use layout for professional look
+    });
 
     if (result.success) {
       await logChange({
@@ -257,7 +264,7 @@ router.post('/send', authenticate, checkRole(['admin', 'hr']), async (req, res) 
         workspaceId,
         action: 'send',
         entity: 'email',
-        details: { type: 'bulk', recipients: recipients, count: recipientEmails.length, subject },
+        details: { type: 'custom', count: recipientEmails.length, subject, templateId },
         ipAddress: getClientIP(req)
       });
 
