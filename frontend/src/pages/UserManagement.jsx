@@ -37,7 +37,9 @@ export default function UserManagement() {
     email: '',
     password: '',
     role: 'member',
-    team_id: ''
+    team_id: '',
+    teams: [],
+    employmentStatus: 'ACTIVE'
   });
 
   const hasPermission = user && (user.role === 'admin' || user.role === 'hr');
@@ -84,7 +86,8 @@ export default function UserManagement() {
       filtered = filtered.filter(usr => 
         usr.full_name.toLowerCase().includes(query) ||
         usr.email.toLowerCase().includes(query) ||
-        (usr.team_id?.name && usr.team_id.name.toLowerCase().includes(query))
+        (usr.team_id?.name && usr.team_id.name.toLowerCase().includes(query)) ||
+        (usr.teams && usr.teams.some(t => t.name && t.name.toLowerCase().includes(query)))
       );
     }
     if (roleFilter !== 'all') {
@@ -92,9 +95,12 @@ export default function UserManagement() {
     }
     if (teamFilter !== 'all') {
       if (teamFilter === 'no_team') {
-        filtered = filtered.filter(usr => !usr.team_id);
+        filtered = filtered.filter(usr => !usr.team_id && (!usr.teams || usr.teams.length === 0));
       } else {
-        filtered = filtered.filter(usr => usr.team_id?._id === teamFilter);
+        filtered = filtered.filter(usr => 
+          usr.team_id?._id === teamFilter ||
+          (usr.teams && usr.teams.some(t => (t._id || t) === teamFilter))
+        );
       }
     }
     return filtered;
@@ -103,15 +109,28 @@ export default function UserManagement() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     if (name === 'role' && value === 'admin') {
-      setFormData(prev => ({ ...prev, [name]: value, team_id: '' }));
+      setFormData(prev => ({ ...prev, [name]: value, team_id: '', teams: [] }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
+  const handleTeamToggle = (teamId) => {
+    setFormData(prev => {
+      const teams = prev.teams || [];
+      const isSelected = teams.includes(teamId);
+      const newTeams = isSelected 
+        ? teams.filter(id => id !== teamId)
+        : [...teams, teamId];
+      // Set primary team_id to first team if not set
+      const newTeamId = newTeams.length > 0 && !prev.team_id ? newTeams[0] : prev.team_id;
+      return { ...prev, teams: newTeams, team_id: newTeamId };
+    });
+  };
+
   const openCreateModal = () => {
     setModalMode('create');
-    setFormData({ full_name: '', email: '', password: '', role: 'member', team_id: '' });
+    setFormData({ full_name: '', email: '', password: '', role: 'member', team_id: '', teams: [], employmentStatus: 'ACTIVE' });
     setShowModal(true);
     setError('');
     setSuccess('');
@@ -120,7 +139,18 @@ export default function UserManagement() {
   const openEditModal = (usr) => {
     setModalMode('edit');
     setSelectedUser(usr);
-    setFormData({ full_name: usr.full_name, email: usr.email, password: '', role: usr.role, team_id: usr.team_id?._id || '' });
+    const userTeamIds = usr.teams && usr.teams.length > 0 
+      ? usr.teams.map(t => t._id || t)
+      : (usr.team_id ? [usr.team_id._id || usr.team_id] : []);
+    setFormData({ 
+      full_name: usr.full_name, 
+      email: usr.email, 
+      password: '', 
+      role: usr.role, 
+      team_id: usr.team_id?._id || '',
+      teams: userTeamIds,
+      employmentStatus: usr.employmentStatus || 'ACTIVE'
+    });
     setShowModal(true);
     setError('');
     setSuccess('');
@@ -135,8 +165,20 @@ export default function UserManagement() {
         await api.post('/users', formData);
         setSuccess('User created successfully');
       } else {
-        const updateData = { ...formData };
-        delete updateData.password;
+        const updateData = { 
+          full_name: formData.full_name,
+          email: formData.email,
+          role: formData.role,
+          employmentStatus: formData.employmentStatus
+        };
+        // Only include team data if not admin
+        if (formData.role !== 'admin') {
+          updateData.team_id = formData.team_id;
+          // For Core Workspace, send teams array if available
+          if (formData.teams && formData.teams.length > 0) {
+            updateData.teams = formData.teams;
+          }
+        }
         await api.put(`/users/${selectedUser._id}`, updateData);
         setSuccess('User updated successfully');
       }
@@ -329,7 +371,7 @@ export default function UserManagement() {
 
   if (loading) {
     return (
-      <div className={`${theme === 'dark' ? 'bg-[#111418]' : 'bg-gray-50'} ${theme === 'dark' ? 'text-white' : 'text-gray-900'} h-screen flex items-center justify-center`}>
+      <div className={`${currentTheme.background} ${currentTheme.text} h-screen flex items-center justify-center`}>
         <div className="flex flex-col items-center gap-6">
           <div className="flex gap-3">
             {[0, 1, 2, 3].map((i) => (
@@ -487,7 +529,7 @@ export default function UserManagement() {
                     <th className={`px-4 py-3 text-left text-[10px] font-bold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider`}>User</th>
                     <th className={`px-4 py-3 text-left text-[10px] font-bold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider`}>Role</th>
                     <th className={`px-4 py-3 text-left text-[10px] font-bold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider`}>Status</th>
-                    <th className={`px-4 py-3 text-left text-[10px] font-bold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider`}>Team</th>
+                    <th className={`px-4 py-3 text-left text-[10px] font-bold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider`}>Teams</th>
                     <th className={`px-4 py-3 text-left text-[10px] font-bold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider hidden lg:table-cell`}>Created</th>
                     <th className={`px-4 py-3 text-right text-[10px] font-bold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider`}>Actions</th>
                   </tr>
@@ -528,8 +570,25 @@ export default function UserManagement() {
                               {statusBadge.label}
                             </span>
                           </td>
-                          <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
-                            {usr.team_id?.name || 'No Team'}
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-1.5">
+                              {usr.teams && usr.teams.length > 0 ? (
+                                usr.teams.map((team, idx) => (
+                                  <span
+                                    key={idx}
+                                    className={`inline-flex px-2 py-0.5 text-xs rounded ${theme === 'dark' ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-100 text-blue-700'}`}
+                                  >
+                                    {team.name || team}
+                                  </span>
+                                ))
+                              ) : usr.team_id?.name ? (
+                                <span className={`inline-flex px-2 py-0.5 text-xs rounded ${theme === 'dark' ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>
+                                  {usr.team_id.name}
+                                </span>
+                              ) : (
+                                <span className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-500'}`}>No Team</span>
+                              )}
+                            </div>
                           </td>
                           <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} hidden lg:table-cell`}>
                             {new Date(usr.created_at).toLocaleDateString()}
@@ -600,9 +659,24 @@ export default function UserManagement() {
                           </span>
                         </div>
                         <div className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} mb-3`}>
-                          <div className="flex items-center gap-1.5">
-                            <UsersIcon size={12} />
-                            <span>{usr.team_id?.name || 'No Team'}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <UsersIcon size={12} className="shrink-0" />
+                            {usr.teams && usr.teams.length > 0 ? (
+                              usr.teams.map((team, idx) => (
+                                <span
+                                  key={idx}
+                                  className={`inline-flex px-1.5 py-0.5 text-xs rounded ${theme === 'dark' ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-100 text-blue-700'}`}
+                                >
+                                  {team.name || team}
+                                </span>
+                              ))
+                            ) : usr.team_id?.name ? (
+                              <span className={`inline-flex px-1.5 py-0.5 text-xs rounded ${theme === 'dark' ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>
+                                {usr.team_id.name}
+                              </span>
+                            ) : (
+                              <span>No Team</span>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -642,96 +716,225 @@ export default function UserManagement() {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className={`${theme === 'dark' ? 'bg-[#1c2027]' : 'bg-white'} rounded border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} p-5 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto`}>
+          <div className={`${currentTheme.surface} rounded border ${currentTheme.border} p-5 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
             <div className="flex justify-between items-center mb-4 sm:mb-6">
-              <h2 className={`text-lg sm:text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {modalMode === 'create' ? 'Create New User' : 'Edit User'}
+              <h2 className={`text-lg sm:text-2xl font-bold ${currentTheme.text}`}>
+                {modalMode === 'create' ? 'Create New User' : `Edit User: ${selectedUser?.full_name}`}
               </h2>
-              <button onClick={() => setShowModal(false)} className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} ${theme === 'dark' ? 'hover:text-white' : 'hover:text-gray-900'}`}>
+              <button onClick={() => setShowModal(false)} className={`${currentTheme.textSecondary} hover:${currentTheme.text}`}>
                 <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Full Name *</label>
-                <input
-                  type="text"
-                  name="full_name"
-                  value={formData.full_name}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-2 ${theme === 'dark' ? 'bg-[#111418]' : 'bg-white'} border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} rounded ${theme === 'dark' ? 'text-white' : 'text-gray-900'} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
-                  required
-                />
-              </div>
+              {/* Basic Information Section */}
+              <div className={`p-4 rounded-lg ${currentTheme.surfaceSecondary} border ${currentTheme.border}`}>
+                <h3 className={`text-sm font-bold ${currentTheme.text} uppercase tracking-wider mb-3`}>Basic Information</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>Full Name *</label>
+                    <input
+                      type="text"
+                      name="full_name"
+                      value={formData.full_name}
+                      onChange={handleInputChange}
+                      className={`w-full px-4 py-2 ${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded ${currentTheme.text} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
+                      required
+                    />
+                  </div>
 
-              <div>
-                <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Email *</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-2 ${theme === 'dark' ? 'bg-[#111418]' : 'bg-white'} border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} rounded ${theme === 'dark' ? 'text-white' : 'text-gray-900'} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
-                  required
-                />
-              </div>
+                  <div>
+                    <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>Email *</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className={`w-full px-4 py-2 ${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded ${currentTheme.text} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
+                      required
+                    />
+                  </div>
 
-              {modalMode === 'create' && (
-                <div>
-                  <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Password *</label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    className={`w-full px-4 py-2 ${theme === 'dark' ? 'bg-[#111418]' : 'bg-white'} border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} rounded ${theme === 'dark' ? 'text-white' : 'text-gray-900'} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
-                    required
-                  />
+                  {modalMode === 'create' && (
+                    <div>
+                      <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>Password *</label>
+                      <input
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className={`w-full px-4 py-2 ${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded ${currentTheme.text} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
+                        required
+                        minLength={6}
+                      />
+                      <p className={`text-xs ${currentTheme.textSecondary} mt-1`}>Minimum 6 characters</p>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              <div>
-                <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Role *</label>
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-2 ${theme === 'dark' ? 'bg-[#111418]' : 'bg-white'} border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} rounded ${theme === 'dark' ? 'text-white' : 'text-gray-900'} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
-                  required
-                >
-                  <option value="member">Member</option>
-                  <option value="team_lead">Team Lead</option>
-                  <option value="hr">HR</option>
-                  <option value="admin">Admin</option>
-                </select>
               </div>
 
+              {/* Role & Status Section */}
+              <div className={`p-4 rounded-lg ${currentTheme.surfaceSecondary} border ${currentTheme.border}`}>
+                <h3 className={`text-sm font-bold ${currentTheme.text} uppercase tracking-wider mb-3`}>Role & Status</h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>Role *</label>
+                    <select
+                      name="role"
+                      value={formData.role}
+                      onChange={handleInputChange}
+                      className={`w-full px-4 py-2 ${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded ${currentTheme.text} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
+                      required
+                    >
+                      <option value="member">Member</option>
+                      <option value="team_lead">Team Lead</option>
+                      <option value="hr">HR</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+
+                  {modalMode === 'edit' && (
+                    <div>
+                      <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>Employment Status *</label>
+                      <select
+                        name="employmentStatus"
+                        value={formData.employmentStatus}
+                        onChange={handleInputChange}
+                        className={`w-full px-4 py-2 ${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded ${currentTheme.text} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
+                        required
+                      >
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Inactive</option>
+                        <option value="ON_NOTICE">On Notice</option>
+                        <option value="EXITED">Exited</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Teams Section */}
               {formData.role !== 'admin' && (
-                <div>
-                  <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>Team</label>
-                  <select
-                    name="team_id"
-                    value={formData.team_id}
-                    onChange={handleInputChange}
-                    className={`w-full px-4 py-2 ${theme === 'dark' ? 'bg-[#111418]' : 'bg-white'} border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} rounded ${theme === 'dark' ? 'text-white' : 'text-gray-900'} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
-                  >
-                    <option value="">No Team</option>
-                    {teams.map(team => (
-                      <option key={team._id} value={team._id}>{team.name}</option>
-                    ))}
-                  </select>
+                <div className={`p-4 rounded-lg ${currentTheme.surfaceSecondary} border ${currentTheme.border}`}>
+                  <h3 className={`text-sm font-bold ${currentTheme.text} uppercase tracking-wider mb-3 flex items-center gap-2`}>
+                    <UsersIcon size={16} />
+                    Team Assignments
+                  </h3>
+                  
+                  {modalMode === 'edit' ? (
+                    <>
+                      <p className={`text-xs ${currentTheme.textSecondary} mb-3`}>
+                        Select multiple teams for this user (Core Workspace feature)
+                      </p>
+                      
+                      {teams.length === 0 ? (
+                        <p className={`text-sm ${currentTheme.textSecondary} py-4 text-center`}>No teams available</p>
+                      ) : (
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {teams.map(team => {
+                            const isSelected = formData.teams?.includes(team._id);
+                            const isPrimary = formData.team_id === team._id;
+                            return (
+                              <label
+                                key={team._id}
+                                className={`flex items-center justify-between p-3 rounded border cursor-pointer transition-colors ${
+                                  isSelected 
+                                    ? 'bg-blue-500/10 border-blue-500/30' 
+                                    : `${currentTheme.surface} border-${currentTheme.border}`
+                                } hover:bg-blue-500/5`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => handleTeamToggle(team._id)}
+                                    className="rounded border-gray-500 text-[#136dec] focus:ring-[#136dec]"
+                                  />
+                                  <div>
+                                    <span className={`text-sm font-medium ${currentTheme.text}`}>{team.name}</span>
+                                    {isPrimary && (
+                                      <span className="ml-2 text-xs px-2 py-0.5 bg-blue-500 text-white rounded">Primary</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <span className={`text-xs ${currentTheme.textSecondary}`}>
+                                  {team.members?.length || 0} members
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {formData.teams && formData.teams.length > 0 && (
+                        <div className="mt-3 p-3 bg-blue-500/5 border border-blue-500/20 rounded">
+                          <p className={`text-xs ${currentTheme.text} font-medium mb-2`}>
+                            Selected Teams: {formData.teams.length}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {formData.teams.map(teamId => {
+                              const team = teams.find(t => t._id === teamId);
+                              return team ? (
+                                <span key={teamId} className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded">
+                                  {team.name}
+                                  {formData.team_id === teamId && <span className="text-xs">(Primary)</span>}
+                                </span>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {formData.teams && formData.teams.length > 1 && (
+                        <div className="mt-3">
+                          <label className={`block text-xs font-medium ${currentTheme.text} mb-2`}>
+                            Primary Team (Used for legacy features)
+                          </label>
+                          <select
+                            name="team_id"
+                            value={formData.team_id}
+                            onChange={handleInputChange}
+                            className={`w-full px-3 py-2 text-sm ${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded ${currentTheme.text} focus:ring-2 focus:ring-[#136dec]`}
+                          >
+                            {formData.teams.map(teamId => {
+                              const team = teams.find(t => t._id === teamId);
+                              return team ? (
+                                <option key={teamId} value={teamId}>{team.name}</option>
+                              ) : null;
+                            })}
+                          </select>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div>
+                      <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>Team (Optional)</label>
+                      <select
+                        name="team_id"
+                        value={formData.team_id}
+                        onChange={handleInputChange}
+                        className={`w-full px-4 py-2 ${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded ${currentTheme.text} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
+                      >
+                        <option value="">No Team</option>
+                        {teams.map(team => (
+                          <option key={team._id} value={team._id}>{team.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               )}
 
               {error && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded p-2 text-sm text-red-400">
+                <div className="bg-red-500/10 border border-red-500/30 rounded p-3 text-sm text-red-400">
                   {error}
                 </div>
               )}
 
               {success && (
-                <div className="bg-green-500/10 border border-green-500/30 rounded p-2 text-sm text-green-400">
+                <div className="bg-green-500/10 border border-green-500/30 rounded p-3 text-sm text-green-400">
                   {success}
                 </div>
               )}
@@ -759,69 +962,148 @@ export default function UserManagement() {
       {/* Bulk Import Modal */}
       {showBulkImportModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className={`${theme === 'dark' ? 'bg-[#1c2027]' : 'bg-white'} rounded border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} p-5 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+          <div className={`${currentTheme.surface} rounded border ${currentTheme.border} p-5 sm:p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto`}>
             <div className="flex justify-between items-center mb-4 sm:mb-6">
-              <h2 className={`text-lg sm:text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Bulk Import Users</h2>
-              <button onClick={() => { setShowBulkImportModal(false); setBulkImportFile(null); setBulkImportResults(null); }} className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} ${theme === 'dark' ? 'hover:text-white' : 'hover:text-gray-900'}`}>
+              <h2 className={`text-lg sm:text-2xl font-bold ${currentTheme.text}`}>Bulk Import Users</h2>
+              <button onClick={() => { setShowBulkImportModal(false); setBulkImportFile(null); setBulkImportResults(null); }} className={`${currentTheme.textSecondary} hover:${currentTheme.text}`}>
                 <X size={20} />
               </button>
             </div>
 
             <div className="space-y-5 sm:space-y-6">
-              <div>
-                <h3 className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} uppercase tracking-wider mb-3`}>Step 1: Download Template</h3>
+              {/* Instructions */}
+              <div className={`p-4 rounded-lg ${currentTheme.surfaceSecondary} border ${currentTheme.border}`}>
+                <h3 className={`text-xs sm:text-sm font-bold ${currentTheme.text} uppercase tracking-wider mb-2`}>📋 Import Instructions</h3>
+                <ul className={`text-xs sm:text-sm ${currentTheme.textSecondary} space-y-1.5 list-disc list-inside`}>
+                  <li><strong>Required fields:</strong> full_name, email, password, role</li>
+                  <li><strong>Optional fields:</strong> team (single), teams (multiple, comma-separated), employment_status</li>
+                  <li><strong>Roles:</strong> admin, hr, team_lead, member</li>
+                  <li><strong>Employment Status:</strong> ACTIVE, INACTIVE, ON_NOTICE, EXITED (default: ACTIVE)</li>
+                  <li><strong>Multiple Teams:</strong> Use "teams" field with comma-separated team names (e.g., "Development, QA")</li>
+                  <li><strong>Team Creation:</strong> Teams that don't exist will be created automatically</li>
+                </ul>
+              </div>
+
+              {/* Step 1: Download Template */}
+              <div className={`p-4 rounded-lg ${currentTheme.surfaceSecondary} border ${currentTheme.border}`}>
+                <h3 className={`text-xs sm:text-sm font-bold ${currentTheme.text} uppercase tracking-wider mb-3`}>Step 1: Download Template</h3>
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <button
                     onClick={() => downloadTemplate('excel')}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-medium"
                   >
                     <FileSpreadsheet size={16} />
-                    Excel Template
+                    Excel Template (.xlsx)
                   </button>
                   <button
                     onClick={() => downloadTemplate('json')}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium"
                   >
                     <FileJson size={16} />
-                    JSON Template
+                    JSON Template (.json)
                   </button>
                 </div>
+                <p className={`text-xs ${currentTheme.textSecondary} mt-2`}>
+                  Templates include sample data with all supported fields
+                </p>
               </div>
 
-              <div>
-                <h3 className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} uppercase tracking-wider mb-3`}>Step 2: Upload File</h3>
+              {/* Step 2: Upload File */}
+              <div className={`p-4 rounded-lg ${currentTheme.surfaceSecondary} border ${currentTheme.border}`}>
+                <h3 className={`text-xs sm:text-sm font-bold ${currentTheme.text} uppercase tracking-wider mb-3`}>Step 2: Upload Completed File</h3>
                 <input
                   type="file"
                   accept=".json,.xlsx,.xls"
                   onChange={handleFileSelect}
-                  className={`w-full px-3 py-2 text-sm ${theme === 'dark' ? 'bg-[#111418]' : 'bg-white'} border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} rounded ${theme === 'dark' ? 'text-white' : 'text-gray-900'} file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-[#136dec] file:text-white file:cursor-pointer file:text-sm hover:file:bg-blue-600`}
+                  className={`w-full px-3 py-2 text-sm ${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded ${currentTheme.text} file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-[#136dec] file:text-white file:cursor-pointer file:text-sm hover:file:bg-blue-600`}
                 />
                 {bulkImportFile && (
-                  <p className={`text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} mt-2`}>Selected: {bulkImportFile.name}</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded">
+                      {bulkImportFile.name}
+                    </span>
+                    <span className={`text-xs ${currentTheme.textSecondary}`}>
+                      ({(bulkImportFile.size / 1024).toFixed(1)} KB)
+                    </span>
+                  </div>
                 )}
               </div>
 
+              {/* Results Section */}
               {bulkImportResults && (
-                <div className="space-y-3">
-                  <h3 className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} uppercase tracking-wider`}>Import Results</h3>
-                  <div className="space-y-2">
-                    <div className="bg-green-500/10 border border-green-500/30 rounded p-3">
-                      <p className="text-sm text-green-400">✓ Successfully imported: {bulkImportResults.successful.length} users</p>
+                <div className={`p-4 rounded-lg ${currentTheme.surfaceSecondary} border ${currentTheme.border} space-y-3`}>
+                  <h3 className={`text-xs sm:text-sm font-bold ${currentTheme.text} uppercase tracking-wider`}>📊 Import Results</h3>
+                  
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="text-center p-3 bg-blue-500/10 border border-blue-500/30 rounded">
+                      <div className={`text-2xl font-bold ${currentTheme.text}`}>{bulkImportResults.total}</div>
+                      <div className="text-xs text-blue-400">Total</div>
                     </div>
-                    {bulkImportResults.failed.length > 0 && (
-                      <div className="bg-red-500/10 border border-red-500/30 rounded p-3">
-                        <p className="text-sm text-red-400 font-medium mb-2">✗ Failed: {bulkImportResults.failed.length} users</p>
-                        <div className="space-y-1 max-h-40 overflow-y-auto">
-                          {bulkImportResults.failed.map((fail, idx) => (
-                            <p key={idx} className="text-xs text-red-300">{fail.email}: {fail.reason}</p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <div className="text-center p-3 bg-green-500/10 border border-green-500/30 rounded">
+                      <div className="text-2xl font-bold text-green-400">{bulkImportResults.successful.length}</div>
+                      <div className="text-xs text-green-400">Success</div>
+                    </div>
+                    <div className="text-center p-3 bg-red-500/10 border border-red-500/30 rounded">
+                      <div className="text-2xl font-bold text-red-400">{bulkImportResults.failed.length}</div>
+                      <div className="text-xs text-red-400">Failed</div>
+                    </div>
                   </div>
+
+                  {/* Teams Created */}
+                  {bulkImportResults.teamsCreated && bulkImportResults.teamsCreated.length > 0 && (
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded p-3">
+                      <p className="text-sm text-purple-400 font-medium mb-2">
+                        ✨ Created {bulkImportResults.teamsCreated.length} new team(s):
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {bulkImportResults.teamsCreated.map((team, idx) => (
+                          <span key={idx} className="text-xs px-2 py-1 bg-purple-500/20 text-purple-300 rounded">
+                            {team.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Success Details */}
+                  {bulkImportResults.successful.length > 0 && (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded p-3">
+                      <p className="text-sm text-green-400 font-medium mb-2">✓ Successfully Imported Users:</p>
+                      <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                        {bulkImportResults.successful.slice(0, 5).map((user, idx) => (
+                          <div key={idx} className="text-xs text-green-300 flex justify-between gap-2">
+                            <span>{user.full_name} ({user.email})</span>
+                            <span className="text-green-400/70">{user.teams || 'No team'}</span>
+                          </div>
+                        ))}
+                        {bulkImportResults.successful.length > 5 && (
+                          <p className="text-xs text-green-400/70 italic">
+                            ...and {bulkImportResults.successful.length - 5} more
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Failed Details */}
+                  {bulkImportResults.failed.length > 0 && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded p-3">
+                      <p className="text-sm text-red-400 font-medium mb-2">✗ Failed Imports:</p>
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                        {bulkImportResults.failed.map((fail, idx) => (
+                          <div key={idx} className="text-xs">
+                            <span className="text-red-300">{fail.email || `Row ${fail.row}`}</span>
+                            <span className="text-red-400/70 ml-2">- {fail.reason}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
+              {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-4">
                 <button
                   onClick={() => { setShowBulkImportModal(false); setBulkImportFile(null); setBulkImportResults(null); }}
@@ -832,9 +1114,19 @@ export default function UserManagement() {
                 <button
                   onClick={handleBulkImport}
                   disabled={!bulkImportFile || bulkImportLoading}
-                  className="px-4 sm:px-6 py-2.5 bg-[#136dec] text-white rounded hover:bg-blue-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                  className="px-4 sm:px-6 py-2.5 bg-[#136dec] text-white rounded hover:bg-blue-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base flex items-center justify-center gap-2"
                 >
-                  {bulkImportLoading ? 'Importing...' : 'Import Users'}
+                  {bulkImportLoading ? (
+                    <>
+                      <span className="animate-spin">⏳</span>
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={16} />
+                      Import Users
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -858,7 +1150,7 @@ export default function UserManagement() {
       {/* Password Reset Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className={`${theme === 'dark' ? 'bg-[#1c2027]' : 'bg-white'} rounded-lg shadow-xl max-w-md w-full p-6`}>
+          <div className={`${currentTheme.surface} rounded-lg shadow-xl max-w-md w-full p-6`}>
             <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-4`}>
               Reset Password
             </h3>
@@ -875,7 +1167,7 @@ export default function UserManagement() {
                   value={passwordResetData.newPassword}
                   onChange={(e) => setPasswordResetData({ ...passwordResetData, newPassword: e.target.value })}
                   placeholder="Enter new password (min 6 characters)"
-                  className={`w-full p-3 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white placeholder:text-[#58606e]' : 'bg-white border-gray-300 text-gray-900'} border rounded-lg focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
+                  className={`w-full p-3 ${currentTheme.surfaceSecondary} border ${currentTheme.border} ${currentTheme.text} placeholder:text-[#58606e] rounded-lg focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
                   required
                   minLength={6}
                   autoFocus

@@ -50,7 +50,8 @@ router.get('/me', authenticate, async (req, res) => {
       workspaceId: req.context.workspaceId
     })
       .select('-password_hash')
-      .populate('team_id');
+      .populate('team_id')
+      .populate('teams', 'name');
     
     res.json({ user });
   } catch (error) {
@@ -202,6 +203,7 @@ router.get('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), asy
     const users = await User.find({ workspaceId: req.context.workspaceId })
       .select('-password_hash')
       .populate('team_id')
+      .populate('teams', 'name')
       .sort({ created_at: -1 });
 
     res.json({ users, count: users.length });
@@ -227,7 +229,10 @@ router.get('/team-members', authenticate, checkRole(['team_lead']), async (req, 
     // Add the team lead to the list if not already included
     const teamLeadIncluded = users.some(member => member._id.toString() === req.user._id.toString());
     if (!teamLeadIncluded) {
-      const teamLead = await User.findById(req.user._id).select('-password_hash').populate('team_id');
+      const teamLead = await User.findById(req.user._id)
+        .select('-password_hash')
+        .populate('team_id')
+        .populate('teams', 'name');
       if (teamLead) {
         users = [teamLead, ...users];
       }
@@ -249,7 +254,8 @@ router.get('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
       workspaceId: req.context.workspaceId 
     })
       .select('-password_hash')
-      .populate('team_id', 'name');
+      .populate('team_id', 'name')
+      .populate('teams', 'name');
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -333,7 +339,8 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
     // Get user response immediately
     const userResponse = await User.findById(user._id)
       .select('-password_hash')
-      .populate('team_id');
+      .populate('team_id')
+      .populate('teams', 'name');
 
     // Log user creation
     const user_ip = getClientIP(req);
@@ -380,8 +387,8 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
   }
 });
 
-// Bulk delete users (Admin only) - MUST be before /:id routes
-router.post('/bulk-delete', authenticate, checkRole(['admin']), ...requireBulkImport, async (req, res) => {
+// Bulk delete users (Admin & HR) - MUST be before /:id routes
+router.post('/bulk-delete', authenticate, checkRole(['admin', 'hr']), ...requireBulkImport, async (req, res) => {
   try {
     const { userIds } = req.body;
 
@@ -396,7 +403,42 @@ router.post('/bulk-delete', authenticate, checkRole(['admin']), ...requireBulkIm
       return res.status(400).json({ message: 'Cannot delete your own account' });
     }
 
-    const result = await User.deleteMany({ _id: { $in: idsToDelete } });
+    // WORKSPACE SUPPORT: Only delete users in current workspace
+    const usersToDelete = await User.find({ 
+      _id: { $in: idsToDelete },
+      workspaceId: req.context.workspaceId 
+    });
+
+    // MULTIPLE TEAMS SUPPORT: Remove users from all teams
+    const isCoreWorkspace = req.context.workspaceType === 'CORE';
+    
+    for (const user of usersToDelete) {
+      if (isCoreWorkspace && user.teams && user.teams.length > 0) {
+        // Remove user from all teams' members arrays in Core Workspace
+        await Team.updateMany(
+          { _id: { $in: user.teams }, workspaceId: req.context.workspaceId },
+          { $pull: { members: user._id } }
+        );
+      } else if (user.team_id) {
+        // Community Workspace: remove from single team
+        await Team.findByIdAndUpdate(
+          user.team_id,
+          { $pull: { members: user._id } }
+        );
+      }
+    }
+
+    // Delete the users
+    const result = await User.deleteMany({ 
+      _id: { $in: idsToDelete },
+      workspaceId: req.context.workspaceId 
+    });
+
+    // Update workspace user count
+    await Workspace.findByIdAndUpdate(
+      req.context.workspaceId,
+      { $inc: { 'usage.userCount': -result.deletedCount } }
+    );
 
     // Emit socket event for bulk user deletion
     if (req.app.get('io')) {
@@ -472,15 +514,24 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
       // Automatically remove team if upgrading to admin
       if (role === 'admin') {
         updates.team_id = null;
+        updates.teams = [];  // Clear teams array for admins
       }
     }
-    if (finalTeamId !== undefined && role !== 'admin') updates.team_id = finalTeamId;
+    if (finalTeamId !== undefined && role !== 'admin') {
+      updates.team_id = finalTeamId;
+      // MULTIPLE TEAMS SUPPORT: For Core Workspace, also update teams array
+      const isCoreWorkspace = req.context.workspaceType === 'CORE';
+      if (isCoreWorkspace && finalTeamId) {
+        // Note: This sets team_id and adds to teams array if not already present
+        updates.$addToSet = { teams: finalTeamId };
+      }
+    }
 
     const user = await User.findOneAndUpdate(
       { _id: id, workspaceId: req.context.workspaceId },
       updates,
       { new: true, runValidators: true }
-    ).select('-password_hash').populate('team_id', 'name');
+    ).select('-password_hash').populate('team_id', 'name').populate('teams', 'name');
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -498,8 +549,8 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
   }
 });
 
-// Delete user (Admin only)
-router.delete('/:id', authenticate, checkRole(['admin']), async (req, res) => {
+// Delete user (Admin & HR)
+router.delete('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -508,11 +559,40 @@ router.delete('/:id', authenticate, checkRole(['admin']), async (req, res) => {
       return res.status(400).json({ message: 'You cannot delete your own account' });
     }
 
-    const user = await User.findByIdAndDelete(id);
+    // WORKSPACE SUPPORT: Find and delete user only within current workspace
+    const user = await User.findOne({ 
+      _id: id, 
+      workspaceId: req.context.workspaceId 
+    });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    // MULTIPLE TEAMS SUPPORT: Remove user from all teams in Core Workspace
+    const isCoreWorkspace = req.context.workspaceType === 'CORE';
+    if (isCoreWorkspace && user.teams && user.teams.length > 0) {
+      // Remove user from all teams' members arrays
+      await Team.updateMany(
+        { _id: { $in: user.teams }, workspaceId: req.context.workspaceId },
+        { $pull: { members: user._id } }
+      );
+    } else if (user.team_id) {
+      // Community Workspace: remove from single team
+      await Team.findByIdAndUpdate(
+        user.team_id,
+        { $pull: { members: user._id } }
+      );
+    }
+
+    // Delete the user
+    await User.findByIdAndDelete(id);
+
+    // Update workspace user count
+    await Workspace.findByIdAndUpdate(
+      req.context.workspaceId,
+      { $inc: { 'usage.userCount': -1 } }
+    );
 
     // Emit socket event for user deletion
     if (req.app.get('io')) {
@@ -718,54 +798,94 @@ async function processBulkUsers(usersData, currentUser) {
         continue;
       }
 
-      // Handle team assignment
+      // Handle team assignment - support both single team and multiple teams
       let teamId = null;
-      if (userData.team || userData.team_name) {
-        const teamName = userData.team || userData.team_name;
-        
+      let teamIds = [];
+      
+      // Parse teams - can be comma-separated string or array
+      let teamNames = [];
+      if (userData.teams) {
+        if (Array.isArray(userData.teams)) {
+          teamNames = userData.teams;
+        } else if (typeof userData.teams === 'string') {
+          // Split comma-separated string and trim
+          teamNames = userData.teams.split(',').map(t => t.trim()).filter(t => t);
+        }
+      } else if (userData.team || userData.team_name) {
+        // Fallback to single team field for backward compatibility
+        teamNames = [userData.team || userData.team_name];
+      }
+      
+      // Process each team
+      for (const teamName of teamNames) {
         // Try to find existing team in current user's workspace
         let team = await Team.findOne({ 
           name: teamName,
           workspaceId: currentUser.workspaceId 
         });
         
-        // If team doesn't exist, create it with the importing user as both lead and HR
+        // If team doesn't exist, create it
         if (!team) {
           team = new Team({
             name: teamName,
             description: `Auto-created during bulk user import`,
-            hr_id: currentUser._id, // Set importing admin/HR as HR
-            lead_id: currentUser._id, // Set importing admin/HR as team lead temporarily
+            hr_id: currentUser._id,
+            lead_id: currentUser._id,
             members: [],
-            workspaceId: currentUser.workspaceId // Add workspace from current user
+            workspaceId: currentUser.workspaceId
           });
           await team.save();
           
-          results.teamsCreated.push({
-            name: teamName,
-            id: team._id
-          });
+          // Track created teams
+          if (!results.teamsCreated.find(t => t.name === teamName)) {
+            results.teamsCreated.push({
+              name: teamName,
+              id: team._id
+            });
+          }
         }
         
-        teamId = team._id;
+        teamIds.push(team._id);
+      }
+      
+      // Set primary team (first team or fallback to single team field)
+      if (teamIds.length > 0) {
+        teamId = teamIds[0];
+      }
+      
+      // Validate employment status
+      const validStatuses = ['ACTIVE', 'INACTIVE', 'ON_NOTICE', 'EXITED'];
+      const employmentStatus = userData.employment_status 
+        ? userData.employment_status.toUpperCase() 
+        : 'ACTIVE';
+      
+      if (!validStatuses.includes(employmentStatus)) {
+        results.failed.push({
+          row: rowNumber,
+          email: userData.email,
+          reason: `Invalid employment_status. Must be one of: ${validStatuses.join(', ')}`
+        });
+        continue;
       }
 
-      // Create user
+      // Create user with teams array
       const newUser = new User({
         full_name: userData.full_name,
         email: userData.email.toLowerCase(),
         password_hash: userData.password,
         role: role,
         team_id: teamId,
-        workspaceId: currentUser.workspaceId // Add workspace from current user
+        teams: teamIds,
+        employment_status: employmentStatus,
+        workspaceId: currentUser.workspaceId
       });
 
       await newUser.save();
 
-      // If user was assigned to a team, add them to team's members
-      if (teamId) {
+      // Add user to all assigned teams' members
+      for (const tId of teamIds) {
         await Team.findByIdAndUpdate(
-          teamId,
+          tId,
           { $addToSet: { members: newUser._id } },
           { new: true }
         );
@@ -783,7 +903,8 @@ async function processBulkUsers(usersData, currentUser) {
         email: userData.email,
         full_name: userData.full_name,
         role: role,
-        team: userData.team || userData.team_name || 'None'
+        teams: teamNames.length > 0 ? teamNames.join(', ') : 'None',
+        employment_status: employmentStatus
       });
 
     } catch (error) {
@@ -808,21 +929,27 @@ router.get('/bulk-import/template', authenticate, checkRole(['admin', 'hr']), ..
         email: 'john.doe@example.com',
         password: 'password123',
         role: 'member',
-        team: 'Development'
+        team: 'Development',
+        teams: 'Development, QA',
+        employment_status: 'ACTIVE'
       },
       {
         full_name: 'Jane Smith',
         email: 'jane.smith@example.com',
         password: 'password456',
         role: 'team_lead',
-        team: 'Design'
+        team: 'Design',
+        teams: 'Design, Marketing',
+        employment_status: 'ACTIVE'
       },
       {
         full_name: 'Bob Johnson',
         email: 'bob.johnson@example.com',
         password: 'password789',
         role: 'hr',
-        team: 'Human Resources'
+        team: 'Human Resources',
+        teams: 'Human Resources',
+        employment_status: 'ACTIVE'
       }
     ];
 
@@ -837,7 +964,9 @@ router.get('/bulk-import/template', authenticate, checkRole(['admin', 'hr']), ..
       { wch: 30 },  // email
       { wch: 15 },  // password
       { wch: 12 },  // role
-      { wch: 20 }   // team
+      { wch: 20 },  // team (primary/legacy)
+      { wch: 30 },  // teams (comma-separated)
+      { wch: 18 }   // employment_status
     ];
 
     // Generate buffer
@@ -862,21 +991,27 @@ router.get('/bulk-import/template-json', authenticate, checkRole(['admin', 'hr']
         email: 'john.doe@example.com',
         password: 'password123',
         role: 'member',
-        team: 'Development'
+        team: 'Development',
+        teams: ['Development', 'QA'],
+        employment_status: 'ACTIVE'
       },
       {
         full_name: 'Jane Smith',
         email: 'jane.smith@example.com',
         password: 'password456',
         role: 'team_lead',
-        team: 'Design'
+        team: 'Design',
+        teams: ['Design', 'Marketing'],
+        employment_status: 'ACTIVE'
       },
       {
         full_name: 'Bob Johnson',
         email: 'bob.johnson@example.com',
         password: 'password789',
         role: 'hr',
-        team: 'Human Resources'
+        team: 'Human Resources',
+        teams: ['Human Resources'],
+        employment_status: 'ACTIVE'
       }
     ];
 

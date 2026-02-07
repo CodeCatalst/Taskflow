@@ -85,16 +85,25 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
       { $inc: { 'usage.teamCount': 1 } }
     );
 
+    // MULTIPLE TEAMS SUPPORT: For Core Workspace, add to teams array; maintain team_id for backward compatibility
+    const isCoreWorkspace = req.context.workspaceType === 'CORE';
+    
     // Update team lead's team_id (if lead exists)
     if (finalLeadId) {
-      await User.findByIdAndUpdate(finalLeadId, { team_id: team._id });
+      const updateData = isCoreWorkspace 
+        ? { team_id: team._id, $addToSet: { teams: team._id } }
+        : { team_id: team._id };
+      await User.findByIdAndUpdate(finalLeadId, updateData);
     }
 
-    // Update members' team_id
+    // Update members' team assignments
     if (members && members.length > 0) {
+      const updateData = isCoreWorkspace
+        ? { team_id: team._id, $addToSet: { teams: team._id } }
+        : { team_id: team._id };
       await User.updateMany(
         { _id: { $in: members } },
-        { team_id: team._id }
+        updateData
       );
     }
 
@@ -331,10 +340,15 @@ router.post('/:id/members', authenticate, checkRole(['admin', 'hr', 'community_a
     team.members.push(userId);
     await team.save();
 
-    // Update user's team_id (already verified user is in same workspace)
+    // MULTIPLE TEAMS SUPPORT: For Core Workspace, add to teams array; Community uses single team_id
+    const isCoreWorkspace = req.context.workspaceType === 'CORE';
+    const updateData = isCoreWorkspace
+      ? { team_id: teamId, $addToSet: { teams: teamId } }
+      : { team_id: teamId };
+    
     await User.findOneAndUpdate(
       { _id: userId, workspaceId: req.context.workspaceId },
-      { team_id: teamId }
+      updateData
     );
 
     const updatedTeam = await Team.findOne({ _id: teamId, workspaceId: req.context.workspaceId })
@@ -387,10 +401,15 @@ router.post('/:id/members/bulk', authenticate, checkRole(['admin', 'hr', 'commun
         // Add to team
         team.members.push(userId);
         
-        // Update user's team_id
+        // MULTIPLE TEAMS SUPPORT: For Core Workspace, add to teams array
+        const isCoreWorkspace = req.context.workspaceType === 'CORE';
+        const updateData = isCoreWorkspace
+          ? { team_id: teamId, $addToSet: { teams: teamId } }
+          : { team_id: teamId };
+        
         await User.findOneAndUpdate(
           { _id: userId, workspaceId: req.context.workspaceId },
-          { team_id: teamId }
+          updateData
         );
 
         results.added.push({ userId, name: user.full_name });
@@ -431,11 +450,34 @@ router.delete('/:id/members/:userId', authenticate, checkRole(['admin', 'hr', 'c
     team.members = team.members.filter(m => m.toString() !== userId);
     await team.save();
 
-    // Update user's team_id (scoped by workspace)
-    await User.findOneAndUpdate(
-      { _id: userId, workspaceId: req.context.workspaceId },
-      { team_id: null }
-    );
+    // MULTIPLE TEAMS SUPPORT: For Core Workspace, remove from teams array and update team_id
+    const isCoreWorkspace = req.context.workspaceType === 'CORE';
+    const user = await User.findOne({ _id: userId, workspaceId: req.context.workspaceId });
+    
+    if (isCoreWorkspace && user) {
+      // Remove this team from teams array
+      await User.findOneAndUpdate(
+        { _id: userId, workspaceId: req.context.workspaceId },
+        { $pull: { teams: id } }
+      );
+      
+      // Update team_id: set to another team if user has other teams, else null
+      const updatedUser = await User.findOne({ _id: userId, workspaceId: req.context.workspaceId });
+      const newTeamId = updatedUser.teams && updatedUser.teams.length > 0 
+        ? updatedUser.teams[0] 
+        : null;
+      
+      await User.findOneAndUpdate(
+        { _id: userId, workspaceId: req.context.workspaceId },
+        { team_id: newTeamId }
+      );
+    } else {
+      // Community Workspace: just set team_id to null
+      await User.findOneAndUpdate(
+        { _id: userId, workspaceId: req.context.workspaceId },
+        { team_id: null }
+      );
+    }
 
     const updatedTeam = await Team.findOne({ _id: id, workspaceId: req.context.workspaceId })
       .populate('hr_id lead_id members');
@@ -462,11 +504,39 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']
     // Get team name for response
     const teamName = team.name;
 
-    // Remove team reference from all users in this team (scoped by workspace)
-    await User.updateMany(
-      { team_id: id, workspaceId: req.context.workspaceId },
-      { $set: { team_id: null, updated_at: new Date() } }
-    );
+    // MULTIPLE TEAMS SUPPORT: Handle team removal based on workspace type
+    const isCoreWorkspace = req.context.workspaceType === 'CORE';
+    
+    if (isCoreWorkspace) {
+      // For Core Workspace: remove team from teams array and update team_id if needed
+      const usersInTeam = await User.find({ 
+        teams: id, 
+        workspaceId: req.context.workspaceId 
+      });
+      
+      for (const user of usersInTeam) {
+        // Remove this team from teams array
+        await User.findByIdAndUpdate(user._id, {
+          $pull: { teams: id },
+          updated_at: new Date()
+        });
+        
+        // Update team_id if this was the user's primary team
+        const updatedUser = await User.findById(user._id);
+        if (updatedUser.team_id && updatedUser.team_id.toString() === id.toString()) {
+          const newTeamId = updatedUser.teams && updatedUser.teams.length > 0
+            ? updatedUser.teams[0]
+            : null;
+          await User.findByIdAndUpdate(user._id, { team_id: newTeamId });
+        }
+      }
+    } else {
+      // For Community Workspace: just set team_id to null
+      await User.updateMany(
+        { team_id: id, workspaceId: req.context.workspaceId },
+        { $set: { team_id: null, updated_at: new Date() } }
+      );
+    }
 
     // Delete the team
     await Team.findOneAndDelete({ _id: id, workspaceId: req.context.workspaceId });
@@ -508,11 +578,24 @@ router.delete('/bulk/all', authenticate, checkRole(['admin', 'hr', 'community_ad
     const teamIds = teams.map(t => t._id);
     const teamCount = teams.length;
 
-    // Remove team reference from all users in these teams
-    await User.updateMany(
-      { team_id: { $in: teamIds }, workspaceId: req.context.workspaceId },
-      { $set: { team_id: null, updated_at: new Date() } }
-    );
+    // MULTIPLE TEAMS SUPPORT: Handle team removal based on workspace type
+    const isCoreWorkspace = req.context.workspaceType === 'CORE';
+    
+    if (isCoreWorkspace) {
+      // For Core Workspace: remove all teams from teams array and clear team_id
+      await User.updateMany(
+        { workspaceId: req.context.workspaceId },
+        { 
+          $set: { team_id: null, teams: [], updated_at: new Date() }
+        }
+      );
+    } else {
+      // For Community Workspace: just set team_id to null
+      await User.updateMany(
+        { team_id: { $in: teamIds }, workspaceId: req.context.workspaceId },
+        { $set: { team_id: null, updated_at: new Date() } }
+      );
+    }
 
     // Delete all teams in this workspace
     await Team.deleteMany({ workspaceId: req.context.workspaceId });

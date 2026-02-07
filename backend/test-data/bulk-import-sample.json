@@ -1,0 +1,42 @@
+[
+  {
+    "full_name": "Alice Johnson",
+    "email": "alice.johnson@example.com",
+    "password": "SecurePass123!",
+    "role": "member",
+    "teams": ["Development", "QA"],
+    "employment_status": "ACTIVE"
+  },
+  {
+    "full_name": "Bob Martinez",
+    "email": "bob.martinez@example.com",
+    "password": "SecurePass456!",
+    "role": "team_lead",
+    "teams": ["Design", "Marketing"],
+    "employment_status": "ACTIVE"
+  },
+  {
+    "full_name": "Carol Williams",
+    "email": "carol.williams@example.com",
+    "password": "SecurePass789!",
+    "role": "member",
+    "teams": ["Development"],
+    "employment_status": "ACTIVE"
+  },
+  {
+    "full_name": "David Chen",
+    "email": "david.chen@example.com",
+    "password": "SecurePass321!",
+    "role": "hr",
+    "teams": ["Human Resources"],
+    "employment_status": "ACTIVE"
+  },
+  {
+    "full_name": "Emma Davis",
+    "email": "emma.davis@example.com",
+    "password": "SecurePass654!",
+    "role": "member",
+    "teams": ["QA", "Development", "Design"],
+    "employment_status": "ACTIVE"
+  }
+]

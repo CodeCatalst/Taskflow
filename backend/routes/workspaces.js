@@ -506,7 +506,11 @@ router.get('/:id/users', requireAdmin, async (req, res) => {
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
-    const users = await User.find({ workspaceId: workspace._id }).select('-password_hash').populate('team_id', 'name').sort({ created_at: -1 });
+    const users = await User.find({ workspaceId: workspace._id })
+      .select('-password_hash')
+      .populate('team_id', 'name')
+      .populate('teams', 'name')
+      .sort({ created_at: -1 });
     res.json({ workspace: { id: workspace._id, name: workspace.name, type: workspace.type }, users, count: users.length });
   } catch (error) {
     console.error('Error fetching workspace users:', error);

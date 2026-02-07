@@ -38,6 +38,11 @@ const userSchema = new mongoose.Schema({
     ref: 'Team',
     default: null
   },
+  // MULTIPLE TEAMS SUPPORT: Users in Core Workspace can be part of multiple teams
+  teams: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Team'
+  }],
   // WORKSPACE SUPPORT: All users belong to a workspace (optional for admins)
   workspaceId: {
     type: mongoose.Schema.Types.ObjectId,

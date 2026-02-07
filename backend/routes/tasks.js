@@ -149,14 +149,32 @@ router.get('/', authenticate, async (req, res) => {
 
     // Role-based filtering
     if (req.user.role === 'member') {
-      // Members only see their own tasks
+      // MULTIPLE TEAMS SUPPORT: Members see tasks from all their teams OR tasks assigned to them
+      const userTeams = req.user.teams && req.user.teams.length > 0 
+        ? req.user.teams.map(t => t._id || t)
+        : (req.user.team_id ? [req.user.team_id] : []);
+      
       query.$or = [
         { created_by: req.user._id },
         { assigned_to: req.user._id }
       ];
+      
+      // Also include tasks from user's teams (if they have any)
+      if (userTeams.length > 0) {
+        query.$or.push({ team_id: { $in: userTeams } });
+      }
     } else if (req.user.role === 'team_lead') {
-      // Team leads see their team's tasks
-      query.team_id = req.user.team_id;
+      // MULTIPLE TEAMS SUPPORT: Team leads see tasks from all teams they lead
+      const userTeams = req.user.teams && req.user.teams.length > 0 
+        ? req.user.teams.map(t => t._id || t)
+        : (req.user.team_id ? [req.user.team_id] : []);
+      
+      if (userTeams.length > 0) {
+        query.team_id = { $in: userTeams };
+      } else {
+        // Fallback to primary team if no teams array
+        query.team_id = req.user.team_id;
+      }
     }
     // HR and Admin see all tasks (within their workspace)
 
@@ -199,8 +217,30 @@ router.get('/:id', authenticate, async (req, res) => {
     if (req.user.role === 'member') {
       const isCreator = task.created_by._id.toString() === req.user._id.toString();
       const isAssigned = task.assigned_to?.some(userId => userId.toString() === req.user._id.toString());
-      if (!isCreator && !isAssigned) {
+      
+      // MULTIPLE TEAMS SUPPORT: Members can view tasks from their teams
+      let isFromUserTeam = false;
+      if (task.team_id) {
+        const userTeams = req.user.teams && req.user.teams.length > 0 
+          ? req.user.teams.map(t => (t._id || t).toString())
+          : (req.user.team_id ? [req.user.team_id.toString()] : []);
+        isFromUserTeam = userTeams.includes(task.team_id._id ? task.team_id._id.toString() : task.team_id.toString());
+      }
+      
+      if (!isCreator && !isAssigned && !isFromUserTeam) {
         return res.status(403).json({ message: 'Access denied' });
+      }
+    } else if (req.user.role === 'team_lead') {
+      // MULTIPLE TEAMS SUPPORT: Team leads can view tasks from any of their teams
+      if (task.team_id) {
+        const userTeams = req.user.teams && req.user.teams.length > 0 
+          ? req.user.teams.map(t => (t._id || t).toString())
+          : (req.user.team_id ? [req.user.team_id.toString()] : []);
+        const isFromUserTeam = userTeams.includes(task.team_id._id ? task.team_id._id.toString() : task.team_id.toString());
+        
+        if (!isFromUserTeam) {
+          return res.status(403).json({ message: 'Access denied' });
+        }
       }
     }
 
@@ -227,7 +267,17 @@ router.patch('/:id', authenticate, async (req, res) => {
     // Check permissions
     const isCreator = task.created_by.toString() === req.user._id.toString();
     const isAssigned = task.assigned_to?.some(userId => userId.toString() === req.user._id.toString());
-    const canEdit = ['admin', 'hr', 'team_lead', 'community_admin'].includes(req.user.role) || isCreator || isAssigned;
+    
+    // MULTIPLE TEAMS SUPPORT: Team leads can edit tasks from any of their teams
+    let isTeamLead = false;
+    if (req.user.role === 'team_lead' && task.team_id) {
+      const userTeams = req.user.teams && req.user.teams.length > 0 
+        ? req.user.teams.map(t => (t._id || t).toString())
+        : (req.user.team_id ? [req.user.team_id.toString()] : []);
+      isTeamLead = userTeams.includes(task.team_id.toString());
+    }
+    
+    const canEdit = ['admin', 'hr', 'community_admin'].includes(req.user.role) || isCreator || isAssigned || isTeamLead;
 
     if (!canEdit) {
       return res.status(403).json({ message: 'Access denied' });
@@ -428,7 +478,17 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     // Check permissions
     const isCreator = task.created_by.toString() === req.user._id.toString();
-    const canDelete = req.context?.isSystemAdmin || ['admin', 'hr', 'team_lead', 'community_admin'].includes(req.user.role) || isCreator;
+    
+    // MULTIPLE TEAMS SUPPORT: Team leads can delete tasks from any of their teams
+    let isTeamLead = false;
+    if (req.user.role === 'team_lead' && task.team_id) {
+      const userTeams = req.user.teams && req.user.teams.length > 0 
+        ? req.user.teams.map(t => (t._id || t).toString())
+        : (req.user.team_id ? [req.user.team_id.toString()] : []);
+      isTeamLead = userTeams.includes(task.team_id.toString());
+    }
+    
+    const canDelete = req.context?.isSystemAdmin || ['admin', 'hr', 'community_admin'].includes(req.user.role) || isCreator || isTeamLead;
 
     if (!canDelete) {
       return res.status(403).json({ message: 'Access denied' });

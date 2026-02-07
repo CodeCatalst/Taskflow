@@ -145,6 +145,7 @@ router.post('/login', validateLogin, async (req, res) => {
     // Find user with team and workspace populated
     const user = await User.findOne({ email })
       .populate('team_id', 'name description')
+      .populate('teams', 'name')
       .populate('workspaceId', 'name type settings');
     
     if (!user) {
@@ -263,6 +264,7 @@ router.post('/refresh', async (req, res) => {
     // Get user with team and workspace populated
     const user = await User.findById(decoded.userId)
       .populate('team_id', 'name description')
+      .populate('teams', 'name')
       .populate('workspaceId', 'name type settings');
     
     if (!user) {
