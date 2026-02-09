@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import LeaveRequest from '../models/LeaveRequest.js';
+import LeaveBalance from '../models/LeaveBalance.js';
 import Attendance from '../models/Attendance.js';
 import { logChange } from '../utils/changeLogService.js';
 
@@ -55,17 +56,32 @@ class HrActionService {
   static async approveLeave(hrUser, leaveId, workspaceId, ipAddress) {
     await this.validateHrPermissions(hrUser);
 
-    const leave = await LeaveRequest.findById(leaveId).populate('user_id');
+    const leave = await LeaveRequest.findById(leaveId).populate('userId');
     if (!leave) {
       throw new Error('Leave request not found');
     }
 
-    await this.validateEmployeeStatus(leave.user_id._id);
+    await this.validateEmployeeStatus(leave.userId._id);
+
+    // Update leave balance: move from pending to used
+    const currentYear = new Date().getFullYear();
+    const balance = await LeaveBalance.findOne({
+      userId: leave.userId._id,
+      leaveTypeId: leave.leaveTypeId,
+      year: currentYear
+    });
+
+    if (balance) {
+      balance.pending -= leave.days;
+      balance.used += leave.days;
+      // available is calculated automatically by the model's pre-save hook
+      await balance.save();
+    }
 
     // Apply state mutation
     leave.status = 'approved';
-    leave.approved_by = hrUser._id;
-    leave.approved_at = new Date();
+    leave.approvedBy = hrUser._id;
+    leave.approvedAt = new Date();
     await leave.save();
 
     // Audit log
@@ -75,7 +91,7 @@ class HrActionService {
       action: 'approve',
       entity: 'leave_request',
       entityId: leaveId,
-      details: `Approved leave request for ${leave.user_id.full_name}`,
+      details: `Approved leave request for ${leave.userId.full_name}`,
       ipAddress
     });
 
@@ -84,9 +100,9 @@ class HrActionService {
       event: HR_EVENTS.LEAVE_APPROVED,
       data: {
         leaveId,
-        employeeId: leave.user_id._id,
-        employeeEmail: leave.user_id.email,
-        employeeName: leave.user_id.full_name
+        employeeId: leave.userId._id,
+        employeeEmail: leave.userId.email,
+        employeeName: leave.userId.full_name
       }
     };
   }
@@ -101,18 +117,32 @@ class HrActionService {
       throw new Error('Rejection reason is required');
     }
 
-    const leave = await LeaveRequest.findById(leaveId).populate('user_id');
+    const leave = await LeaveRequest.findById(leaveId).populate('userId');
     if (!leave) {
       throw new Error('Leave request not found');
     }
 
-    await this.validateEmployeeStatus(leave.user_id._id);
+    await this.validateEmployeeStatus(leave.userId._id);
+
+    // Restore leave balance: move from pending back to available
+    const currentYear = new Date().getFullYear();
+    const balance = await LeaveBalance.findOne({
+      userId: leave.userId._id,
+      leaveTypeId: leave.leaveTypeId,
+      year: currentYear
+    });
+
+    if (balance) {
+      balance.pending -= leave.days;
+      // available is calculated automatically by the model's pre-save hook
+      await balance.save();
+    }
 
     // Apply state mutation
     leave.status = 'rejected';
-    leave.rejected_by = hrUser._id;
-    leave.rejected_at = new Date();
-    leave.rejection_reason = reason;
+    leave.approvedBy = hrUser._id;  // Track who rejected it
+    leave.approvedAt = new Date();   // Track when it was rejected
+    leave.rejectionReason = reason;
     await leave.save();
 
     // Audit log
@@ -122,7 +152,7 @@ class HrActionService {
       action: 'reject',
       entity: 'leave_request',
       entityId: leaveId,
-      details: `Rejected leave request for ${leave.user_id.full_name}: ${reason}`,
+      details: `Rejected leave request for ${leave.userId.full_name}: ${reason}`,
       ipAddress
     });
 
@@ -131,9 +161,9 @@ class HrActionService {
       event: HR_EVENTS.LEAVE_REJECTED,
       data: {
         leaveId,
-        employeeId: leave.user_id._id,
-        employeeEmail: leave.user_id.email,
-        employeeName: leave.user_id.full_name,
+        employeeId: leave.userId._id,
+        employeeEmail: leave.userId.email,
+        employeeName: leave.userId.full_name,
         reason
       }
     };
@@ -225,18 +255,18 @@ class HrActionService {
   static async overrideAttendance(hrUser, attendanceId, overrideData, workspaceId, ipAddress) {
     await this.validateHrPermissions(hrUser);
 
-    const attendance = await Attendance.findById(attendanceId).populate('user_id');
+    const attendance = await Attendance.findById(attendanceId).populate('userId');
     if (!attendance) {
       throw new Error('Attendance record not found');
     }
 
-    await this.validateEmployeeStatus(attendance.user_id._id);
+    await this.validateEmployeeStatus(attendance.userId._id);
 
     // Apply state mutation (example: update check_in_time, etc.)
-    // Assuming overrideData has fields like check_in_time, check_out_time, etc.
+    // Assuming overrideData has fields like checkIn, checkOut, status, etc.
     Object.assign(attendance, overrideData);
-    attendance.overridden_by = hrUser._id;
-    attendance.overridden_at = new Date();
+    attendance.overrideBy = hrUser._id;
+    attendance.isOverride = true;
     await attendance.save();
 
     // Audit log
@@ -246,7 +276,7 @@ class HrActionService {
       action: 'override',
       entity: 'attendance',
       entityId: attendanceId,
-      details: `Overrode attendance for ${attendance.user_id.full_name}`,
+      details: `Overrode attendance for ${attendance.userId.full_name}`,
       ipAddress
     });
 
@@ -255,9 +285,9 @@ class HrActionService {
       event: HR_EVENTS.ATTENDANCE_OVERRIDDEN,
       data: {
         attendanceId,
-        employeeId: attendance.user_id._id,
-        employeeEmail: attendance.user_id.email,
-        employeeName: attendance.user_id.full_name
+        employeeId: attendance.userId._id,
+        employeeEmail: attendance.userId.email,
+        employeeName: attendance.userId.full_name
       }
     };
   }

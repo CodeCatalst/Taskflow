@@ -287,7 +287,7 @@ export default function HRDashboard() {
         status,
         rejectionReason: reason
       });
-      fetchLeaveRequests();
+      await fetchLeaveRequests();
       alert(`Leave ${status} successfully!`);
     } catch (error) {
       alert(error.response?.data?.message || `Failed to ${status} leave`);

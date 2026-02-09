@@ -57,12 +57,12 @@ export default function LeavesPage() {
 
       if (response.data.success) {
         setSuccess(`Leave request ${status} successfully!`);
-        fetchData();
+        await fetchData();
         setTimeout(() => setSuccess(''), 5000);
       }
     } catch (error) {
       console.error('Error updating leave status:', error);
-      setError('Failed to update leave status');
+      setError(error.response?.data?.message || 'Failed to update leave status');
     }
   };
 
@@ -77,7 +77,7 @@ export default function LeavesPage() {
       });
 
       if (response.data.success) {
-        fetchData();
+        await fetchData();
         setShowNotesModal(false);
         setSelectedRequest(null);
         setHrNotes('');
@@ -86,7 +86,7 @@ export default function LeavesPage() {
       }
     } catch (error) {
       console.error('Error updating notes:', error);
-      setError('Failed to update notes');
+      setError(error.response?.data?.message || 'Failed to update notes');
     }
   };
 
@@ -101,9 +101,9 @@ export default function LeavesPage() {
     setShowDetailsModal(true);
   };
 
-  const handleRejectSubmit = () => {
+  const handleRejectSubmit = async () => {
     if (rejectionReason.trim()) {
-      handleApproveReject(rejectingRequestId, 'rejected', rejectionReason);
+      await handleApproveReject(rejectingRequestId, 'rejected', rejectionReason);
       setShowRejectModal(false);
       setRejectingRequestId(null);
       setRejectionReason('');
@@ -154,7 +154,7 @@ export default function LeavesPage() {
       setShowModal(false);
       setFormData({ leaveTypeId: '', startDate: '', endDate: '', days: 1, reason: '' });
       setSuccess('Leave request submitted successfully!');
-      fetchData();
+      await fetchData();
       // Auto-clear success message after 5 seconds
       setTimeout(() => setSuccess(''), 5000);
     } catch (error) {
