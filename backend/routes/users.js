@@ -459,12 +459,17 @@ router.post('/bulk-delete', authenticate, checkRole(['admin', 'hr']), ...require
 // Update user (Admin, HR & Community Admin)
 router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), async (req, res) => {
   try {
-    const { full_name, email, role, team_id } = req.body;
+    const { full_name, email, role, team_id, teams, employmentStatus } = req.body;
     const { id } = req.params;
 
     // Validate role if provided
-    if (role && !['admin', 'hr', 'team_lead', 'member'].includes(role)) {
+    if (role && !['admin', 'hr', 'team_lead', 'member', 'community_admin'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role' });
+    }
+
+    // Validate employment status if provided
+    if (employmentStatus && !['ACTIVE', 'INACTIVE', 'ON_NOTICE', 'EXITED'].includes(employmentStatus)) {
+      return res.status(400).json({ message: 'Invalid employment status' });
     }
 
     // WORKSPACE SUPPORT: Verify user exists in current workspace
@@ -509,6 +514,7 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
 
     if (full_name) updates.full_name = full_name;
     if (email) updates.email = email;
+    if (employmentStatus) updates.employmentStatus = employmentStatus;
     if (role) {
       updates.role = role;
       // Automatically remove team if upgrading to admin
@@ -517,21 +523,47 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
         updates.teams = [];  // Clear teams array for admins
       }
     }
+    
+    // Handle team assignment separately to avoid operator conflicts
     if (finalTeamId !== undefined && role !== 'admin') {
-      updates.team_id = finalTeamId;
-      // MULTIPLE TEAMS SUPPORT: For Core Workspace, also update teams array
-      const isCoreWorkspace = req.context.workspaceType === 'CORE';
-      if (isCoreWorkspace && finalTeamId) {
-        // Note: This sets team_id and adds to teams array if not already present
-        updates.$addToSet = { teams: finalTeamId };
-      }
+      updates.team_id = finalTeamId || null;
+    }
+    
+    // Handle teams array for Core Workspace
+    const isCoreWorkspace = req.context.workspaceType === 'CORE';
+    if (isCoreWorkspace && teams !== undefined && role !== 'admin') {
+      updates.teams = teams || [];
     }
 
+    // First, update the basic fields
     const user = await User.findOneAndUpdate(
       { _id: id, workspaceId: req.context.workspaceId },
       updates,
       { new: true, runValidators: true }
     ).select('-password_hash').populate('team_id', 'name').populate('teams', 'name');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // MULTIPLE TEAMS SUPPORT: For Core Workspace, also add team_id to teams array if specified
+    if (isCoreWorkspace && finalTeamId && role !== 'admin' && teams === undefined) {
+      // Only add to teams array if teams wasn't explicitly provided
+      await User.findOneAndUpdate(
+        { _id: id, workspaceId: req.context.workspaceId },
+        { $addToSet: { teams: finalTeamId } }
+      );
+      
+      // Refresh user data with updated teams array
+      const updatedUser = await User.findOne({ _id: id, workspaceId: req.context.workspaceId })
+        .select('-password_hash')
+        .populate('team_id', 'name')
+        .populate('teams', 'name');
+      
+      if (updatedUser) {
+        Object.assign(user, updatedUser.toObject());
+      }
+    }
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });

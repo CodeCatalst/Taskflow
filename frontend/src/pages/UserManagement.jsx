@@ -189,52 +189,55 @@ export default function UserManagement() {
     }
   };
 
-  const handleDelete = (userId, userEmail) => {
-    confirmModal.show({
+  const handleDelete = async (userId, userEmail) => {
+    const confirmed = await confirmModal.show({
       title: 'Delete User',
       message: `Are you sure you want to delete user: ${userEmail}? This will permanently remove their account and all associated data.`,
       confirmText: 'Delete User',
       cancelText: 'Cancel',
       variant: 'danger',
-      onConfirm: async () => {
-        try {
-          await api.delete(`/users/${userId}`);
-          setSuccess('User deleted successfully');
-          await fetchUsers();
-          setTimeout(() => setSuccess(''), 3000);
-        } catch (err) {
-          setError(err.response?.data?.message || 'Failed to delete user');
-          setTimeout(() => setError(''), 3000);
-        }
-      },
     });
+
+    if (confirmed) {
+      try {
+        await api.delete(`/users/${userId}`);
+        setSuccess('User deleted successfully');
+        await fetchUsers();
+        setTimeout(() => setSuccess(''), 3000);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to delete user');
+        setTimeout(() => setError(''), 3000);
+      }
+    }
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedUserIds.length === 0) {
       setError('Please select users to delete');
       setTimeout(() => setError(''), 3000);
       return;
     }
-    confirmModal.show({
+
+    const confirmed = await confirmModal.show({
       title: 'Delete Multiple Users',
       message: `Are you sure you want to delete ${selectedUserIds.length} user(s)? This will permanently remove their accounts and all associated data. This action cannot be undone.`,
       confirmText: `Delete ${selectedUserIds.length} User${selectedUserIds.length !== 1 ? 's' : ''}`,
       cancelText: 'Cancel',
       variant: 'danger',
-      onConfirm: async () => {
-        try {
-          const response = await api.post('/users/bulk-delete', { userIds: selectedUserIds });
-          setSuccess(response.data.message);
-          setSelectedUserIds([]);
-          await fetchUsers();
-          setTimeout(() => setSuccess(''), 3000);
-        } catch (err) {
-          setError(err.response?.data?.message || 'Failed to delete users');
-          setTimeout(() => setError(''), 3000);
-        }
-      },
     });
+
+    if (confirmed) {
+      try {
+        const response = await api.post('/users/bulk-delete', { userIds: selectedUserIds });
+        setSuccess(response.data.message);
+        setSelectedUserIds([]);
+        await fetchUsers();
+        setTimeout(() => setSuccess(''), 3000);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to delete users');
+        setTimeout(() => setError(''), 3000);
+      }
+    }
   };
 
   const toggleSelectUser = (userId) => {
