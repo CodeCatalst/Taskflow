@@ -336,9 +336,10 @@ router.post('/:id/members', authenticate, checkRole(['admin', 'hr', 'community_a
       return res.status(400).json({ message: 'User already in team' });
     }
 
-    // Add to team
-    team.members.push(userId);
-    await team.save();
+    // Add to team using $addToSet to prevent duplicates
+    await Team.findByIdAndUpdate(teamId, {
+      $addToSet: { members: userId }
+    });
 
     // MULTIPLE TEAMS SUPPORT: For Core Workspace, add to teams array; Community uses single team_id
     const isCoreWorkspace = req.context.workspaceType === 'CORE';
@@ -398,8 +399,10 @@ router.post('/:id/members/bulk', authenticate, checkRole(['admin', 'hr', 'commun
           continue;
         }
 
-        // Add to team
-        team.members.push(userId);
+        // Add to team - will be saved with $addToSet after loop
+        if (!team.members.includes(userId)) {
+          team.members.push(userId);
+        }
         
         // MULTIPLE TEAMS SUPPORT: For Core Workspace, add to teams array
         const isCoreWorkspace = req.context.workspaceType === 'CORE';
@@ -418,7 +421,10 @@ router.post('/:id/members/bulk', authenticate, checkRole(['admin', 'hr', 'commun
       }
     }
 
-    await team.save();
+    // Save team with $addToSet to prevent any duplicate members
+    await Team.findByIdAndUpdate(teamId, {
+      $addToSet: { members: { $each: team.members } }
+    });
 
     const updatedTeam = await Team.findOne({ _id: teamId, workspaceId: req.context.workspaceId })
       .populate('hr_id lead_id members');
@@ -440,19 +446,58 @@ router.delete('/:id/members/:userId', authenticate, checkRole(['admin', 'hr', 'c
   try {
     const { id, userId } = req.params;
 
+    console.log(`[REMOVE MEMBER] Request received - Team: ${id}, User: ${userId}, Workspace: ${req.context.workspaceId}`);
+
     // WORKSPACE SUPPORT: Verify team exists in workspace
     const team = await Team.findOne({ _id: id, workspaceId: req.context.workspaceId });
     if (!team) {
+      console.log(`[REMOVE MEMBER] Team not found: ${id}`);
       return res.status(404).json({ message: 'Team not found' });
     }
 
-    // Remove from team
-    team.members = team.members.filter(m => m.toString() !== userId);
-    await team.save();
+    // Check if user is actually a member
+    if (!team.members.some(m => m.toString() === userId)) {
+      console.log(`[REMOVE MEMBER] User ${userId} is not a member of team ${id}`);
+      return res.status(400).json({ message: 'User is not a member of this team' });
+    }
+
+    // Prevent removing HR or Team Lead from their own team
+    const isHR = team.hr_id && team.hr_id.toString() === userId;
+    const isLead = team.lead_id && team.lead_id.toString() === userId;
+    
+    if (isHR || isLead) {
+      const role = isHR && isLead ? 'HR and Team Lead' : isHR ? 'HR' : 'Team Lead';
+      console.log(`[REMOVE MEMBER] Cannot remove ${role} from their own team`);
+      return res.status(400).json({ 
+        message: `Cannot remove the ${role} from their own team. Please reassign the ${role} role first.` 
+      });
+    }
+
+    console.log(`[REMOVE MEMBER] Removing user ${userId} from team ${team.name}`);
+
+    // Remove from team using $pull for consistency and atomicity
+    const result = await Team.findByIdAndUpdate(id, {
+      $pull: { members: userId }
+    });
+
+    if (!result) {
+      console.log(`[REMOVE MEMBER] Failed to update team ${id}`);
+      return res.status(500).json({ message: 'Failed to remove member from team' });
+    }
+
+    console.log(`[REMOVE MEMBER] Successfully removed from team array`);
+
+    console.log(`[REMOVE MEMBER] Successfully removed from team array`);
 
     // MULTIPLE TEAMS SUPPORT: For Core Workspace, remove from teams array and update team_id
     const isCoreWorkspace = req.context.workspaceType === 'CORE';
     const user = await User.findOne({ _id: userId, workspaceId: req.context.workspaceId });
+    
+    if (!user) {
+      console.log(`[REMOVE MEMBER] Warning: User ${userId} not found, but member removed from team`);
+    } else {
+      console.log(`[REMOVE MEMBER] Updating user ${user.full_name}'s team assignments`);
+    }
     
     if (isCoreWorkspace && user) {
       // Remove this team from teams array
@@ -460,6 +505,7 @@ router.delete('/:id/members/:userId', authenticate, checkRole(['admin', 'hr', 'c
         { _id: userId, workspaceId: req.context.workspaceId },
         { $pull: { teams: id } }
       );
+      console.log(`[REMOVE MEMBER] Removed team from user's teams array`);
       
       // Update team_id: set to another team if user has other teams, else null
       const updatedUser = await User.findOne({ _id: userId, workspaceId: req.context.workspaceId });
@@ -471,20 +517,23 @@ router.delete('/:id/members/:userId', authenticate, checkRole(['admin', 'hr', 'c
         { _id: userId, workspaceId: req.context.workspaceId },
         { team_id: newTeamId }
       );
-    } else {
+      console.log(`[REMOVE MEMBER] Updated user team_id to: ${newTeamId || 'null'}`);
+    } else if (user) {
       // Community Workspace: just set team_id to null
       await User.findOneAndUpdate(
         { _id: userId, workspaceId: req.context.workspaceId },
         { team_id: null }
       );
+      console.log(`[REMOVE MEMBER] Set user team_id to null (Community workspace)`);
     }
 
     const updatedTeam = await Team.findOne({ _id: id, workspaceId: req.context.workspaceId })
       .populate('hr_id lead_id members');
 
+    console.log(`[REMOVE MEMBER] ✅ Success! Team ${updatedTeam.name} now has ${updatedTeam.members.length} members`);
     res.json({ message: 'Member removed from team', team: updatedTeam });
   } catch (error) {
-    console.error('Remove member error:', error);
+    console.error('[REMOVE MEMBER] ❌ Error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

@@ -453,24 +453,45 @@ const Teams = () => {
                 <h4 className="text-sm font-medium text-white mb-2">Team Members</h4>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {team.members && team.members.length > 0 ? (
-                    team.members.map((member) => (
-                      <div
-                        key={member._id}
-                        className={`flex justify-between items-center rounded-[0.125rem] p-2 border ${theme === 'dark' ? 'bg-[#111418] border-[#282f39]' : 'bg-white border-gray-200'}`}
-                        data-testid="team-member"
-                      >
-                        <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{member.full_name}</span>
-                        {['admin', 'hr', 'community_admin'].includes(user?.role) && (
-                          <button
-                            onClick={() => handleRemoveMember(team._id, member._id)}
-                            className="text-red-600 hover:text-red-800"
-                            data-testid="remove-member-btn"
-                          >
-                            <UserMinus className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    ))
+                    team.members.map((member, index) => {
+                      const isHR = team.hr_id?._id === member._id;
+                      const isLead = team.lead_id?._id === member._id;
+                      const isHROrLead = isHR || isLead;
+                      const roleLabel = isHR && isLead ? ' (HR & Lead)' : isHR ? ' (HR)' : isLead ? ' (Lead)' : '';
+                      
+                      return (
+                        <div
+                          key={`${team._id}-${member._id}-${index}`}
+                          className={`flex justify-between items-center rounded-[0.125rem] p-2 border ${theme === 'dark' ? 'bg-[#111418] border-[#282f39]' : 'bg-white border-gray-200'}`}
+                          data-testid="team-member"
+                        >
+                          <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                            {member.full_name}
+                            {roleLabel && <span className="text-xs text-blue-500 ml-1">{roleLabel}</span>}
+                          </span>
+                          {['admin', 'hr', 'community_admin'].includes(user?.role) && (
+                            isHROrLead ? (
+                              <button
+                                disabled
+                                className="text-gray-400 cursor-not-allowed opacity-50"
+                                title={`Cannot remove ${isHR && isLead ? 'HR and Team Lead' : isHR ? 'HR' : 'Team Lead'} from their own team`}
+                                data-testid="remove-member-btn-disabled"
+                              >
+                                <UserMinus className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleRemoveMember(team._id, member._id)}
+                                className="text-red-600 hover:text-red-800"
+                                data-testid="remove-member-btn"
+                              >
+                                <UserMinus className="w-4 h-4" />
+                              </button>
+                            )
+                          )}
+                        </div>
+                      );
+                    })
                   ) : (
                     <p className="text-sm text-[#9da8b9]">No members yet</p>
                   )}
