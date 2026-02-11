@@ -119,11 +119,16 @@ const workspaceContext = async (req, res, next) => {
     }
     
     // Get all workspace IDs user belongs to (for cross-workspace queries like HR leave management)
-    const allWorkspaceIds = user.workspaces
-      ? user.workspaces
-          .filter(ws => ws.isActive)
-          .map(ws => ws.workspaceId)
-      : [activeWorkspaceId];
+    // Support both new multi-workspace array and legacy single workspace field
+    let allWorkspaceIds;
+    if (user.workspaces && user.workspaces.length > 0) {
+      allWorkspaceIds = user.workspaces
+        .filter(ws => ws.isActive)
+        .map(ws => ws.workspaceId);
+    } else {
+      // Fallback to legacy workspace field(s)
+      allWorkspaceIds = [activeWorkspaceId];
+    }
     
     // Get role in current workspace
     const roleInWorkspace = user.getRoleInWorkspace(activeWorkspaceId) || user.role;

@@ -21,6 +21,15 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
     const { status, userId, workspaceId: filterWorkspaceId } = req.query;
     const workspaceId = req.context?.workspaceId || req.user.currentWorkspaceId || req.user.workspaceId;
 
+    console.log('🔍 Leave Requests Query Debug:', {
+      userRole: req.user.role,
+      contextRole: req.context?.currentRole,
+      workspaceId,
+      allWorkspaceIds: req.context?.allWorkspaceIds,
+      filterWorkspaceId,
+      userId
+    });
+
     const query = {};
 
     // HR and Admin see requests from ALL their workspaces
@@ -48,6 +57,8 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
       query.status = status;
     }
 
+    console.log('🔍 Final Query:', query);
+
     const requests = await LeaveRequest.find(query)
       .populate('userId', 'full_name email profile_picture')
       .populate('leaveTypeId', 'name code color')
@@ -55,6 +66,8 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
       .populate('workspaceId', 'name type')
       .sort({ createdAt: -1 })
       .lean();
+
+    console.log('📊 Found Requests:', requests.length);
 
     res.json({ success: true, requests });
   } catch (error) {

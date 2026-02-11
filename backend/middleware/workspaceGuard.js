@@ -12,11 +12,11 @@
 
 /**
  * Middleware to ensure only CORE workspaces can access the route
- * System admins and workspace admins bypass this check
+ * System admins, workspace admins, and HR users bypass this check
  */
 export const requireCoreWorkspace = (req, res, next) => {
-  // System admins can access CORE features in any workspace
-  if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
+  // System admins, admins, and HR can access CORE features
+  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
     return next();
   }
 
@@ -45,8 +45,8 @@ export const requireCoreWorkspace = (req, res, next) => {
  */
 export const requireFeature = (featureName) => {
   return (req, res, next) => {
-    // System admins have all features enabled
-    if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
+    // System admins, admins, and HR have all features enabled
+    if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
       return next();
     }
 
@@ -73,11 +73,11 @@ export const requireFeature = (featureName) => {
 
 /**
  * Middleware to check if workspace can add more users
- * Admins and system admins bypass this check
+ * Admins, HR, and system admins bypass this check
  */
 export const checkUserLimit = (req, res, next) => {
-  // System admins can bypass limits
-  if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
+  // System admins, admins, and HR can bypass limits
+  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
     return next();
   }
 
@@ -104,11 +104,11 @@ export const checkUserLimit = (req, res, next) => {
 
 /**
  * Middleware to check if workspace can add more tasks
- * Admins and system admins bypass this check
+ * Admins, HR, and system admins bypass this check
  */
 export const checkTaskLimit = (req, res, next) => {
-  // System admins can bypass limits
-  if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
+  // System admins, admins, and HR can bypass limits
+  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
     return next();
   }
 
@@ -135,11 +135,11 @@ export const checkTaskLimit = (req, res, next) => {
 
 /**
  * Middleware to check if workspace can add more teams
- * Admins and system admins bypass this check
+ * Admins, HR, and system admins bypass this check
  */
 export const checkTeamLimit = (req, res, next) => {
-  // System admins can bypass limits
-  if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
+  // System admins, admins, and HR can bypass limits
+  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
     return next();
   }
 
@@ -167,12 +167,12 @@ export const checkTeamLimit = (req, res, next) => {
 /**
  * Combined middleware for bulk user import
  * Requires CORE workspace AND bulkUserImport feature
- * System admins and workspace admins bypass restrictions
+ * System admins, workspace admins, and HR bypass restrictions
  */
 export const requireBulkImport = [
   (req, res, next) => {
-    // Allow admins and system admins to bypass
-    if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
+    // Allow admins, HR, and system admins to bypass
+    if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
       return next();
     }
     next();
@@ -183,12 +183,12 @@ export const requireBulkImport = [
 /**
  * Combined middleware for audit logs
  * Requires CORE workspace AND auditLogs feature
- * System admins and workspace admins bypass restrictions
+ * System admins, workspace admins, and HR bypass restrictions
  */
 export const requireAuditLogs = [
   (req, res, next) => {
-    // Allow admins and system admins to bypass
-    if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
+    // Allow admins, HR, and system admins to bypass
+    if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
       return next();
     }
     next();

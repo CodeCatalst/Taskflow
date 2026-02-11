@@ -27,6 +27,7 @@ export default function LeavesPage() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [hrNotes, setHrNotes] = useState('');
   const [showBulkLeaveModal, setShowBulkLeaveModal] = useState(false);
+  const [showLeaveTypes, setShowLeaveTypes] = useState(true);
   const [users, setUsers] = useState([]);
   const [bulkLeaveForm, setBulkLeaveForm] = useState({
     userId: '',
@@ -366,6 +367,32 @@ export default function LeavesPage() {
           ) : (
             <>
               {/* Leave Balance Cards */}
+              {isAdmin && (
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Leave Types & Balances</h3>
+                  <button
+                    onClick={() => setShowLeaveTypes(!showLeaveTypes)}
+                    className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                      showLeaveTypes
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : `${currentTheme.surfaceSecondary} ${currentTheme.text} hover:${currentTheme.hover}`
+                    }`}
+                  >
+                    {showLeaveTypes ? (
+                      <>
+                        <XCircle className="w-4 h-4" />
+                        <span className="text-sm">Hide Types</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="text-sm">Show Types</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+              {(!isAdmin || showLeaveTypes) && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {leaveBalances.length === 0 ? (
                   <div className={`col-span-full ${currentTheme.surface} rounded-lg p-6 border ${currentTheme.border} text-center`}>
@@ -407,6 +434,7 @@ export default function LeavesPage() {
                   ))
                 )}
               </div>
+              )}
 
           {/* Leave Requests Table */}
           <div className={`${currentTheme.surface} rounded-lg border ${currentTheme.border} overflow-hidden`}>
@@ -425,6 +453,7 @@ export default function LeavesPage() {
                     <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Start Date</th>
                     <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>End Date</th>
                     <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Days</th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Requested On</th>
                     <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Status</th>
                     <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.textSecondary} uppercase tracking-wider`}>Actions</th>
                   </tr>
@@ -432,7 +461,7 @@ export default function LeavesPage() {
                 <tbody className={`divide-y ${currentTheme.border}`}>
                   {leaveRequests.length === 0 ? (
                     <tr>
-                      <td colSpan={isAdmin ? 7 : 6} className={`px-6 py-8 text-center`}>
+                      <td colSpan={isAdmin ? 8 : 7} className={`px-6 py-8 text-center`}>
                         <div className={`${currentTheme.textSecondary}`}>
                           <p className="text-sm mb-2">No leave requests found</p>
                           <p className="text-xs">Click "Apply Leave" to create your first leave request</p>
@@ -466,6 +495,23 @@ export default function LeavesPage() {
                         </td>
                         <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentTheme.text}`}>
                           {request.days}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentTheme.text}`}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {new Date(request.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </span>
+                            <span className={`text-xs ${currentTheme.textSecondary}`}>
+                              {new Date(request.createdAt).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(request.status)}`}>
