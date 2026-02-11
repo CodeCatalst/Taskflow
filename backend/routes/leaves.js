@@ -190,11 +190,12 @@ router.post('/bulk', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
       balance = new LeaveBalance({
         userId,
         leaveTypeId,
+        workspaceId,
         year: currentYear,
-        allocated: leaveType.annualQuota,
+        totalQuota: leaveType.annualQuota,
+        carriedForward: 0,
         used: 0,
-        pending: 0,
-        available: leaveType.annualQuota
+        pending: 0
       });
       await balance.save();
     }

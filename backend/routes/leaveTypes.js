@@ -56,7 +56,8 @@ router.post('/', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']),
         workspaceId,
         leaveTypeId: leaveType._id,
         year: currentYear,
-        totalQuota: annualQuota
+        totalQuota: annualQuota,  // Initially equals annualQuota (no carry forward yet)
+        carriedForward: 0  // No carried forward for new leave type
       })
     );
 
@@ -86,7 +87,7 @@ router.post('/', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']),
 // Update leave type
 router.put('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
-    const { name, annualQuota, carryForward, maxCarryForward, color, description, isActive } = req.body;
+    const { name, annualQuota, carryForward, maxCarryForward, color, description, isActive, updateExistingBalances } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
 
     const leaveType = await LeaveType.findOne({ _id: req.params.id, workspaceId });
@@ -95,8 +96,12 @@ router.put('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']
       return res.status(404).json({ message: 'Leave type not found' });
     }
 
+    const oldQuota = leaveType.annualQuota;
+    const newQuota = annualQuota !== undefined ? annualQuota : leaveType.annualQuota;
+    const quotaChanged = oldQuota !== newQuota;
+
     leaveType.name = name || leaveType.name;
-    leaveType.annualQuota = annualQuota !== undefined ? annualQuota : leaveType.annualQuota;
+    leaveType.annualQuota = newQuota;
     leaveType.carryForward = carryForward !== undefined ? carryForward : leaveType.carryForward;
     leaveType.maxCarryForward = maxCarryForward !== undefined ? maxCarryForward : leaveType.maxCarryForward;
     leaveType.color = color || leaveType.color;
@@ -105,17 +110,46 @@ router.put('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']
 
     await leaveType.save();
 
+    // Optionally update existing user balances if quota changed
+    let updatedBalancesCount = 0;
+    if (quotaChanged && updateExistingBalances === true) {
+      const currentYear = new Date().getFullYear();
+      const balances = await LeaveBalance.find({
+        workspaceId,
+        leaveTypeId: leaveType._id,
+        year: currentYear
+      });
+
+      const quotaDifference = newQuota - oldQuota;
+      
+      for (const balance of balances) {
+        balance.totalQuota = newQuota;
+        // Adjust available by the difference, but don't go negative
+        // available = totalQuota - used - pending (calculated by pre-save hook)
+        await balance.save();
+        updatedBalancesCount++;
+      }
+    }
+
     await logChange({
       userId: req.user._id,
       workspaceId,
       action: 'update',
       entity: 'leave_type',
       entityId: leaveType._id,
-      details: req.body,
+      details: { 
+        ...req.body, 
+        quotaChanged,
+        updatedBalancesCount 
+      },
       ipAddress: getClientIP(req)
     });
 
-    res.json({ success: true, leaveType });
+    res.json({ 
+      success: true, 
+      leaveType,
+      updatedBalancesCount: quotaChanged && updateExistingBalances ? updatedBalancesCount : 0
+    });
   } catch (error) {
     console.error('Update leave type error:', error);
     res.status(500).json({ message: 'Failed to update leave type' });
