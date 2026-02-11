@@ -3,11 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
+import WorkspaceSelector from '../components/WorkspaceSelector';
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, selectWorkspace } = useAuth();
   const { theme } = useTheme();
   const [formData, setFormData] = useState({
     email: location.state?.email || '',
@@ -20,6 +21,11 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  
+  // Workspace selection state
+  const [showWorkspaceSelector, setShowWorkspaceSelector] = useState(false);
+  const [availableWorkspaces, setAvailableWorkspaces] = useState([]);
+  const [loginUserData, setLoginUserData] = useState(null);
 
   useEffect(() => {
     // Clear success message after 5 seconds
@@ -37,9 +43,20 @@ const Login = () => {
     setLoading(true);
 
     const result = await login(formData.email, formData.password);
+    console.log('Login result:', result);
 
     if (result.success) {
-      navigate('/dashboard');
+      // Check if workspace selection is required
+      if (result.requiresWorkspaceSelection) {
+        console.log('Multiple workspaces detected:', result.workspaces);
+        setLoginUserData(result.user);
+        setAvailableWorkspaces(result.workspaces);
+        setShowWorkspaceSelector(true);
+      } else {
+        // Single workspace - navigate directly
+        console.log('Single workspace, navigating to dashboard');
+        navigate('/dashboard');
+      }
     } else {
       setError(result.message);
 
@@ -56,9 +73,41 @@ const Login = () => {
     setLoading(false);
   };
 
+  const handleWorkspaceSelect = async (workspace) => {
+    console.log('handleWorkspaceSelect called with:', workspace);
+    try {
+      const result = await selectWorkspace(workspace, loginUserData);
+      console.log('selectWorkspace result:', result);
+      if (result.success) {
+        console.log('Navigating to dashboard');
+        navigate('/dashboard');
+      } else {
+        console.error('Workspace selection failed:', result);
+        setError(result.message || 'Failed to select workspace. Please try again.');
+        setShowWorkspaceSelector(false);
+      }
+    } catch (error) {
+      console.error('Error in handleWorkspaceSelect:', error);
+      setError('An error occurred while selecting workspace.');
+      setShowWorkspaceSelector(false);
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  // Show workspace selector if needed
+  if (showWorkspaceSelector) {
+    return (
+      <WorkspaceSelector
+        workspaces={availableWorkspaces}
+        onSelect={handleWorkspaceSelect}
+        userEmail={formData.email}
+        isAdmin={loginUserData?.role === 'admin'}
+      />
+    );
+  }
 
   return (
     <div className={`relative flex min-h-screen w-full flex-col ${theme === 'dark' ? 'bg-[#111418]' : 'bg-gray-50'}`}>

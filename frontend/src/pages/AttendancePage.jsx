@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
 import api from '../api/axios';
 import ResponsivePageLayout from '../components/layouts/ResponsivePageLayout';
-import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Edit2, Save, X, Menu } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Edit2, Save, X, Menu, Search, UserPlus } from 'lucide-react';
 
 export default function AttendancePage() {
   const { user } = useAuth();
@@ -18,14 +18,66 @@ export default function AttendancePage() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [editMode, setEditMode] = useState(null);
   const [editData, setEditData] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showMarkModal, setShowMarkModal] = useState(false);
+  const [markAttendanceSearch, setMarkAttendanceSearch] = useState('');
+  const [users, setUsers] = useState([]);
+  const [markFormData, setMarkFormData] = useState({
+    userId: '',
+    date: new Date().toISOString().split('T')[0],
+    status: 'present',
+    checkIn: '',
+    checkOut: '',
+    notes: ''
+  });
 
   const isAdmin = user && (user.role === 'admin' || user.role === 'hr');
+
+  // Filter attendance records based on search query
+  const filteredAttendance = useMemo(() => {
+    if (!searchQuery.trim()) return attendance;
+    
+    const query = searchQuery.toLowerCase();
+    return attendance.filter(record => {
+      const employeeName = record.userId?.full_name?.toLowerCase() || '';
+      const date = new Date(record.date).toLocaleDateString().toLowerCase();
+      const status = record.status.toLowerCase();
+      
+      return employeeName.includes(query) || 
+             date.includes(query) || 
+             status.includes(query);
+    });
+  }, [attendance, searchQuery]);
+
+  // Filter users for mark attendance modal
+  const filteredUsers = useMemo(() => {
+    if (!markAttendanceSearch.trim()) return users;
+    
+    const query = markAttendanceSearch.toLowerCase();
+    return users.filter(u => {
+      const name = u.full_name?.toLowerCase() || '';
+      const email = u.email?.toLowerCase() || '';
+      return name.includes(query) || email.includes(query);
+    });
+  }, [users, markAttendanceSearch]);
 
   useEffect(() => {
     fetchAttendance();
     fetchSummary();
     checkTodayAttendance();
+    if (isAdmin) {
+      fetchUsers();
+    }
   }, [currentMonth, currentYear]);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await api.get('/users');
+      setUsers(response.data.users || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
   const fetchAttendance = async () => {
     try {
@@ -95,6 +147,28 @@ export default function AttendancePage() {
     }
   };
 
+  const handleMarkAttendance = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/hr/attendance/mark', markFormData);
+      setShowMarkModal(false);
+      setMarkFormData({
+        userId: '',
+        date: new Date().toISOString().split('T')[0],
+        status: 'present',
+        checkIn: '',
+        checkOut: '',
+        notes: ''
+      });
+      setMarkAttendanceSearch('');
+      fetchAttendance();
+      fetchSummary();
+      alert('Attendance marked successfully!');
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to mark attendance');
+    }
+  };
+
   const handleEditAttendance = async (id) => {
     try {
       await api.put(`/hr/attendance/${id}`, editData);
@@ -133,25 +207,36 @@ export default function AttendancePage() {
     <ResponsivePageLayout
       title="Attendance Tracking"
       actions={
-        !isAdmin && (
-          checkedIn ? (
+        <div className="flex gap-2">
+          {isAdmin && (
             <button
-              onClick={handleCheckOut}
-              className={`px-4 py-2 ${currentTheme.primary} text-white ${currentTheme.primaryHover} flex items-center gap-2`}
+              onClick={() => setShowMarkModal(true)}
+              className={`px-4 py-2 bg-purple-600 text-white hover:bg-purple-700 flex items-center gap-2 rounded-lg`}
             >
-              <XCircle className="w-5 h-5" />
-              Check Out
+              <UserPlus className="w-5 h-5" />
+              Mark Attendance
             </button>
-          ) : (
-            <button
-              onClick={handleCheckIn}
-              className={`px-4 py-2 ${currentTheme.primary} text-white ${currentTheme.primaryHover} flex items-center gap-2`}
-            >
-              <CheckCircle className="w-5 h-5" />
-              Check In
-            </button>
-          )
-        )
+          )}
+          {!isAdmin && (
+            checkedIn ? (
+              <button
+                onClick={handleCheckOut}
+                className={`px-4 py-2 ${currentTheme.primary} text-white ${currentTheme.primaryHover} flex items-center gap-2`}
+              >
+                <XCircle className="w-5 h-5" />
+                Check Out
+              </button>
+            ) : (
+              <button
+                onClick={handleCheckIn}
+                className={`px-4 py-2 ${currentTheme.primary} text-white ${currentTheme.primaryHover} flex items-center gap-2`}
+              >
+                <CheckCircle className="w-5 h-5" />
+                Check In
+              </button>
+            )
+          )}
+        </div>
       }
     >
           {/* Summary Cards */}
@@ -209,8 +294,22 @@ export default function AttendancePage() {
             </div>
           )}
 
-          {/* Month/Year Selector */}
+          {/* Search and Filters */}
           <div className={`${currentTheme.surface} rounded-lg p-4 mb-6 border ${currentTheme.border}`}>
+            {isAdmin && (
+              <div className="mb-4">
+                <div className="relative">
+                  <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${currentTheme.textSecondary}`} />
+                  <input
+                    type="text"
+                    placeholder="Search by employee name, date, or status..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={`w-full pl-10 pr-4 py-2.5 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text} placeholder:${currentTheme.textSecondary} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  />
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-4">
               <label className={`text-sm font-medium ${currentTheme.text}`}>Month:</label>
               <select
@@ -260,14 +359,14 @@ export default function AttendancePage() {
                         Loading...
                       </td>
                     </tr>
-                  ) : attendance.length === 0 ? (
+                  ) : filteredAttendance.length === 0 ? (
                     <tr>
                       <td colSpan={isAdmin ? 7 : 6} className={`px-6 py-4 text-center ${currentTheme.textSecondary}`}>
-                        No attendance records found
+                        {searchQuery ? 'No matching attendance records found' : 'No attendance records found'}
                       </td>
                     </tr>
                   ) : (
-                    attendance.map((record) => (
+                    filteredAttendance.map((record) => (
                       <tr key={record._id} className={`${currentTheme.hover}`}>
                         <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentTheme.text}`}>
                           {new Date(record.date).toLocaleDateString()}
@@ -334,6 +433,171 @@ export default function AttendancePage() {
               </table>
             </div>
           </div>
+
+      {/* Mark Attendance Modal */}
+      {showMarkModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className={`${currentTheme.surface} rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+            <div className={`sticky top-0 ${currentTheme.surface} border-b ${currentTheme.border} px-6 py-4 flex justify-between items-center`}>
+              <h2 className={`text-xl font-bold ${currentTheme.text}`}>Mark Attendance</h2>
+              <button
+                onClick={() => {
+                  setShowMarkModal(false);
+                  setMarkAttendanceSearch('');
+                  setMarkFormData({
+                    userId: '',
+                    date: new Date().toISOString().split('T')[0],
+                    status: 'present',
+                    checkIn: '',
+                    checkOut: '',
+                    notes: ''
+                  });
+                }}
+                className={`${currentTheme.textSecondary} hover:${currentTheme.text}`}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleMarkAttendance} className="p-6 space-y-4">
+              {/* Search and Select Employee */}
+              <div>
+                <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
+                  Select Employee
+                </label>
+                <div className="relative mb-3">
+                  <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${currentTheme.textSecondary}`} />
+                  <input
+                    type="text"
+                    placeholder="Search employees..."
+                    value={markAttendanceSearch}
+                    onChange={(e) => setMarkAttendanceSearch(e.target.value)}
+                    className={`w-full pl-10 pr-4 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                  />
+                </div>
+                <select
+                  value={markFormData.userId}
+                  onChange={(e) => setMarkFormData({ ...markFormData, userId: e.target.value })}
+                  className={`w-full px-4 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                  required
+                  size="5"
+                >
+                  <option value="">-- Select Employee --</option>
+                  {filteredUsers.map((u) => (
+                    <option key={u._id} value={u._id}>
+                      {u.full_name} ({u.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={markFormData.date}
+                  onChange={(e) => setMarkFormData({ ...markFormData, date: e.target.value })}
+                  className={`w-full px-4 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                  required
+                />
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
+                  Status
+                </label>
+                <select
+                  value={markFormData.status}
+                  onChange={(e) => setMarkFormData({ ...markFormData, status: e.target.value })}
+                  className={`w-full px-4 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                  required
+                >
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="half_day">Half Day</option>
+                  <option value="leave">Leave</option>
+                  <option value="holiday">Holiday</option>
+                </select>
+              </div>
+
+              {/* Check In Time (optional) */}
+              {markFormData.status === 'present' && (
+                <>
+                  <div>
+                    <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
+                      Check In Time (Optional)
+                    </label>
+                    <input
+                      type="time"
+                      value={markFormData.checkIn}
+                      onChange={(e) => setMarkFormData({ ...markFormData, checkIn: e.target.value })}
+                      className={`w-full px-4 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
+                      Check Out Time (Optional)
+                    </label>
+                    <input
+                      type="time"
+                      value={markFormData.checkOut}
+                      onChange={(e) => setMarkFormData({ ...markFormData, checkOut: e.target.value })}
+                      className={`w-full px-4 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Notes */}
+              <div>
+                <label className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
+                  Notes (Optional)
+                </label>
+                <textarea
+                  value={markFormData.notes}
+                  onChange={(e) => setMarkFormData({ ...markFormData, notes: e.target.value })}
+                  className={`w-full px-4 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                  rows="3"
+                  placeholder="Add any additional notes..."
+                />
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMarkModal(false);
+                    setMarkAttendanceSearch('');
+                    setMarkFormData({
+                      userId: '',
+                      date: new Date().toISOString().split('T')[0],
+                      status: 'present',
+                      checkIn: '',
+                      checkOut: '',
+                      notes: ''
+                    });
+                  }}
+                  className={`px-4 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.text} hover:bg-gray-100 dark:hover:bg-gray-800`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Mark Attendance
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </ResponsivePageLayout>
   );
 }

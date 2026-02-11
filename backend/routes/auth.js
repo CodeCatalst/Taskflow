@@ -171,7 +171,20 @@ router.post('/login', validateLogin, async (req, res) => {
 
     // SYSTEM ADMIN: Admins and community_admins can have special handling
     // Regular users must have workspace
-    if (!user.workspaceId) {
+    let activeWorkspaceId = user.currentWorkspaceId || user.workspaceId;
+    let activeWorkspace = null;
+    
+    // Multi-workspace support: Check user's workspaces array
+    if (!activeWorkspaceId && user.workspaces && user.workspaces.length > 0) {
+      const firstActive = user.workspaces.find(ws => ws.isActive);
+      if (firstActive) {
+        activeWorkspaceId = firstActive.workspaceId;
+        user.currentWorkspaceId = activeWorkspaceId;
+        await user.save();
+      }
+    }
+    
+    if (!activeWorkspaceId) {
       if (user.role !== 'admin' && user.role !== 'community_admin') {
         return res.status(403).json({ 
           message: 'Your account is not associated with any workspace. Please contact support.' 
@@ -180,14 +193,66 @@ router.post('/login', validateLogin, async (req, res) => {
       // Admin without workspace = system admin, continue login
       // Community admin without workspace = edge case, allow login
     } else {
+      // Populate workspace if it's an ObjectId
+      if (!user.workspaceId || typeof user.workspaceId === 'string') {
+        activeWorkspace = await Workspace.findById(activeWorkspaceId);
+      } else {
+        activeWorkspace = user.workspaceId;
+      }
+      
       // Check if workspace is active (default to true if not set)
-      if (user.workspaceId.isActive === false) {
+      if (activeWorkspace && activeWorkspace.isActive === false) {
         return res.status(403).json({ 
           message: 'Your workspace has been deactivated. Please contact support.',
-          workspaceId: user.workspaceId._id,
-          workspaceName: user.workspaceId.name
+          workspaceId: activeWorkspace._id,
+          workspaceName: activeWorkspace.name
         });
       }
+    }
+    
+    // Get all user workspaces for multi-workspace support
+    const allWorkspaces = [];
+    
+    // ADMIN/SUPER ADMIN: Get all workspaces
+    if (user.role === 'admin') {
+      const allAvailableWorkspaces = await Workspace.find({ isActive: true })
+        .select('name type settings.features')
+        .lean();
+      
+      for (const wsData of allAvailableWorkspaces) {
+        allWorkspaces.push({
+          id: wsData._id,
+          name: wsData.name,
+          type: wsData.type,
+          role: 'admin', // Admin role in all workspaces
+          features: wsData.settings?.features || {}
+        });
+      }
+    } else if (user.workspaces && user.workspaces.length > 0) {
+      // Regular users: Get their assigned workspaces
+      for (const ws of user.workspaces) {
+        if (ws.isActive) {
+          const wsData = await Workspace.findById(ws.workspaceId).select('name type settings.features').lean();
+          if (wsData) {
+            allWorkspaces.push({
+              id: wsData._id,
+              name: wsData.name,
+              type: wsData.type,
+              role: ws.role,
+              features: wsData.settings?.features || {}
+            });
+          }
+        }
+      }
+    } else if (activeWorkspace) {
+      // Legacy single workspace support
+      allWorkspaces.push({
+        id: activeWorkspace._id,
+        name: activeWorkspace.name,
+        type: activeWorkspace.type,
+        role: user.role,
+        features: activeWorkspace.settings?.features || {}
+      });
     }
 
     // Check password
@@ -211,11 +276,12 @@ router.post('/login', validateLogin, async (req, res) => {
       metadata: {
         role: user.role,
         team_id: user.team_id,
-        workspaceId: user.workspaceId?._id || null,
-        workspaceType: user.workspaceId?.type || 'SYSTEM',
-        isSystemAdmin: !user.workspaceId && user.role === 'admin'
+        currentWorkspaceId: activeWorkspaceId || null,
+        workspaceType: activeWorkspace?.type || 'SYSTEM',
+        isSystemAdmin: !activeWorkspaceId && user.role === 'admin',
+        totalWorkspaces: allWorkspaces.length
       },
-      workspaceId: user.workspaceId?._id || null,
+      workspaceId: activeWorkspaceId || null,
     });
 
     res.json({
@@ -227,16 +293,18 @@ router.post('/login', validateLogin, async (req, res) => {
         role: user.role,
         profile_picture: user.profile_picture || null,
         team_id: user.team_id,
-        workspaceId: user.workspaceId?._id || null,
-        isSystemAdmin: !user.workspaceId && user.role === 'admin'
+        workspaceId: activeWorkspaceId || null,
+        currentWorkspaceId: activeWorkspaceId || null,
+        isSystemAdmin: !activeWorkspaceId && user.role === 'admin'
       },
-      workspace: user.workspaceId ? {
-        id: user.workspaceId._id,
-        name: user.workspaceId.name,
-        type: user.workspaceId.type,
-        features: user.workspaceId.settings?.features || {},
+      workspace: activeWorkspace ? {
+        id: activeWorkspace._id,
+        name: activeWorkspace.name,
+        type: activeWorkspace.type,
+        features: activeWorkspace.settings?.features || {},
       } : null,  // null for system admins
-      isSystemAdmin: !user.workspaceId && user.role === 'admin',
+      workspaces: allWorkspaces, // All workspaces user has access to
+      isSystemAdmin: !activeWorkspaceId && user.role === 'admin',
       accessToken,
       refreshToken
     });
@@ -594,6 +662,143 @@ router.post('/reset-password', [
   } catch (error) {
     console.error('Reset password error:', error);
     res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+});
+
+// Switch Workspace - Change user's current active workspace
+router.post('/switch-workspace', authenticate, async (req, res) => {
+  try {
+    const { workspaceId } = req.body;
+    
+    console.log('Switch workspace request:', {
+      userId: req.user._id,
+      userRole: req.user.role,
+      requestedWorkspace: workspaceId
+    });
+    
+    if (!workspaceId) {
+      return res.status(400).json({ message: 'Workspace ID is required' });
+    }
+    
+    // Verify workspace exists
+    const workspace = await Workspace.findById(workspaceId)
+      .select('name type settings.features limits usage')
+      .lean();
+    
+    if (!workspace) {
+      console.log('Workspace not found:', workspaceId);
+      return res.status(404).json({ message: 'Workspace not found' });
+    }
+    
+    console.log('Workspace found:', workspace.name);
+    
+    // Admins can access any workspace, regular users need to belong to it
+    if (req.user.role !== 'admin' && !req.user.belongsToWorkspace(workspaceId)) {
+      console.log('Access denied: User does not belong to workspace');
+      return res.status(403).json({ 
+        message: 'You do not have access to this workspace' 
+      });
+    }
+    
+    // Get current workspace before switching (for logging)
+    const fromWorkspaceId = req.user.currentWorkspaceId;
+    
+    // Switch workspace (update currentWorkspaceId)
+    if (req.user.role === 'admin' || req.user.belongsToWorkspace(workspaceId)) {
+      req.user.currentWorkspaceId = workspaceId;
+      await req.user.save();
+      console.log('Workspace switched successfully from', fromWorkspaceId, 'to', workspaceId);
+    }
+    
+    // Get role in new workspace (admin always has admin role)
+    const roleInWorkspace = req.user.role === 'admin' ? 'admin' : req.user.getRoleInWorkspace(workspaceId);
+    
+    // Log workspace switch
+    await logChange({
+      userId: req.user._id,
+      workspaceId,
+      action: 'switch_workspace',
+      entity: 'workspace',
+      entityId: workspaceId,
+      details: { 
+        fromWorkspace: fromWorkspaceId,
+        toWorkspace: workspaceId,
+        workspaceName: workspace.name
+      },
+      ipAddress: getClientIP(req)
+    });
+    
+    res.json({
+      message: 'Workspace switched successfully',
+      workspace: {
+        id: workspace._id,
+        name: workspace.name,
+        type: workspace.type,
+        features: workspace.settings?.features || {},
+        role: roleInWorkspace
+      }
+    });
+  } catch (error) {
+    console.error('Switch workspace error:', error);
+    res.status(500).json({ message: 'Failed to switch workspace' });
+  }
+});
+
+// Get all user workspaces
+router.get('/my-workspaces', authenticate, async (req, res) => {
+  try {
+    const workspaces = [];
+    
+    // ADMIN/SUPER ADMIN: Get all workspaces
+    if (req.user.role === 'admin') {
+      const allAvailableWorkspaces = await Workspace.find({ isActive: true })
+        .select('name type settings.features limits usage')
+        .lean();
+      
+      for (const wsData of allAvailableWorkspaces) {
+        workspaces.push({
+          id: wsData._id,
+          name: wsData.name,
+          type: wsData.type,
+          role: 'admin',
+          joinedAt: wsData.createdAt,
+          isCurrent: wsData._id.toString() === req.user.currentWorkspaceId?.toString(),
+          features: wsData.settings?.features || {},
+          usage: wsData.usage
+        });
+      }
+    } else if (req.user.workspaces && req.user.workspaces.length > 0) {
+      // Regular users: Get their assigned workspaces
+      for (const ws of req.user.workspaces) {
+        if (ws.isActive) {
+          const wsData = await Workspace.findById(ws.workspaceId)
+            .select('name type settings.features limits usage')
+            .lean();
+          
+          if (wsData) {
+            workspaces.push({
+              id: wsData._id,
+              name: wsData.name,
+              type: wsData.type,
+              role: ws.role,
+              joinedAt: ws.joinedAt,
+              isCurrent: wsData._id.toString() === req.user.currentWorkspaceId?.toString(),
+              features: wsData.settings?.features || {},
+              usage: wsData.usage
+            });
+          }
+        }
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      workspaces,
+      currentWorkspaceId: req.user.currentWorkspaceId
+    });
+  } catch (error) {
+    console.error('Get workspaces error:', error);
+    res.status(500).json({ message: 'Failed to fetch workspaces' });
   }
 });
 

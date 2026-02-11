@@ -32,7 +32,7 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
 });
 
 // Create holiday (Admin/HR only)
-router.post('/', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.post('/', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { name, date, isRecurring, description } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -65,7 +65,7 @@ router.post('/', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
 });
 
 // Update holiday
-router.put('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.put('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { name, date, isRecurring, description, isActive } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -102,7 +102,7 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res) =>
 });
 
 // Delete holiday
-router.delete('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.delete('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
 

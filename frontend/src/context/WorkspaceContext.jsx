@@ -10,6 +10,11 @@ import { useAuth } from './AuthContext';
  * WORKSPACE TYPES:
  * - CORE: Full-featured enterprise workspace (no limits)
  * - COMMUNITY: Free workspace with limited features and usage limits
+ * 
+ * MULTI-WORKSPACE SUPPORT:
+ * - Users can belong to multiple workspaces
+ * - Can switch between workspaces
+ * - HR/Admin see leave requests across all their workspaces
  */
 
 const WorkspaceContext = createContext(null);
@@ -25,12 +30,16 @@ export const WorkspaceProvider = ({ children }) => {
     limits: {},
     usage: {},
   });
+  
+  const [allWorkspaces, setAllWorkspaces] = useState([]);
 
   const [isLoading, setIsLoading] = useState(true);
 
   // Initialize workspace from localStorage on mount
   useEffect(() => {
     const storedWorkspace = localStorage.getItem('workspace');
+    const storedWorkspaces = localStorage.getItem('allWorkspaces');
+    
     if (storedWorkspace) {
       try {
         const parsed = JSON.parse(storedWorkspace);
@@ -40,14 +49,47 @@ export const WorkspaceProvider = ({ children }) => {
         localStorage.removeItem('workspace');
       }
     }
+    
+    if (storedWorkspaces) {
+      try {
+        const parsed = JSON.parse(storedWorkspaces);
+        setAllWorkspaces(parsed);
+      } catch (error) {
+        console.error('Failed to parse stored workspaces:', error);
+        localStorage.removeItem('allWorkspaces');
+      }
+    }
+    
     setIsLoading(false);
   }, []);
 
   // Update workspace when user changes
   useEffect(() => {
     if (user && user.workspace) {
+      // Check if we have a stored workspace ID that's different from user.workspace
+      // This happens after a workspace switch - trust the stored workspace over user object
+      const storedWorkspace = localStorage.getItem('workspace');
+      if (storedWorkspace) {
+        try {
+          const parsed = JSON.parse(storedWorkspace);
+          // If stored workspace ID differs from user.workspace.id, keep the stored one
+          // (it's newer because switchWorkspace updated it before reload)
+          if (parsed.id && parsed.id !== user.workspace.id) {
+            console.log('Using stored workspace after switch:', parsed.id);
+            // Don't update from user.workspace - keep the stored one
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to parse stored workspace:', e);
+        }
+      }
       updateWorkspace(user.workspace);
-    } else if (!user) {
+    }
+    if (user && user.workspaces) {
+      setAllWorkspaces(user.workspaces);
+      localStorage.setItem('allWorkspaces', JSON.stringify(user.workspaces));
+    }
+    if (!user) {
       clearWorkspace();
     }
   }, [user]);
@@ -82,7 +124,103 @@ export const WorkspaceProvider = ({ children }) => {
       limits: {},
       usage: {},
     });
+    setAllWorkspaces([]);
     localStorage.removeItem('workspace');
+    localStorage.removeItem('allWorkspaces');
+  };
+  
+  /**
+   * Switch to a different workspace
+   * @param {string} workspaceId - Workspace ID to switch to
+   */
+  const switchWorkspace = async (workspaceId) => {
+    try {
+      console.log('Switching to workspace:', workspaceId);
+      const token = localStorage.getItem('accessToken');
+      
+      if (!token) {
+        console.error('No access token found');
+        return false;
+      }
+      
+      const response = await fetch('http://localhost:3000/api/auth/switch-workspace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ workspaceId })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Workspace switch failed:', errorData);
+        throw new Error(errorData.message || 'Failed to switch workspace');
+      }
+      
+      const data = await response.json();
+      console.log('Workspace switched successfully:', data);
+      updateWorkspace(data.workspace);
+      
+      // Also update the user object in localStorage to reflect new workspace
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          user.workspace = data.workspace;
+          localStorage.setItem('user', JSON.stringify(user));
+          console.log('Updated user object with new workspace');
+        } catch (e) {
+          console.error('Failed to update user object:', e);
+        }
+      }
+      
+      // Reload page to refresh all workspace-scoped data
+      window.location.reload();
+      
+      return true;
+    } catch (error) {
+      console.error('Switch workspace error:', error);
+      return false;
+    }
+  };
+  
+  /**
+   * Fetch all user workspaces
+   */
+  const fetchAllWorkspaces = async () => {
+    try {
+      console.log('Fetching all workspaces...');
+      const token = localStorage.getItem('accessToken');
+      
+      if (!token) {
+        console.error('No access token found');
+        return [];
+      }
+      
+      const response = await fetch('http://localhost:3000/api/auth/my-workspaces', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to fetch workspaces:', errorData);
+        throw new Error('Failed to fetch workspaces');
+      }
+      
+      const data = await response.json();
+      console.log('Workspaces fetched:', data.workspaces);
+      setAllWorkspaces(data.workspaces);
+      localStorage.setItem('allWorkspaces', JSON.stringify(data.workspaces));
+      
+      return data.workspaces;
+    } catch (error) {
+      console.error('Fetch workspaces error:', error);
+      return [];
+    }
   };
 
   /**
@@ -188,9 +326,12 @@ export const WorkspaceProvider = ({ children }) => {
 
   const value = {
     workspace,
+    allWorkspaces,
     isLoading,
     updateWorkspace,
     clearWorkspace,
+    switchWorkspace,
+    fetchAllWorkspaces,
     
     // Helper methods
     isCore,

@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
 import api from '../api/axios';
 import ResponsivePageLayout from '../components/layouts/ResponsivePageLayout';
-import { Briefcase, Plus, Calendar, CheckCircle, XCircle, Clock, Menu, X } from 'lucide-react';
+import { Briefcase, Plus, Calendar, CheckCircle, XCircle, Clock, Menu, X, UserPlus } from 'lucide-react';
 
 export default function LeavesPage() {
   const { user } = useAuth();
@@ -26,6 +26,16 @@ export default function LeavesPage() {
   const [rejectingRequestId, setRejectingRequestId] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [hrNotes, setHrNotes] = useState('');
+  const [showBulkLeaveModal, setShowBulkLeaveModal] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [bulkLeaveForm, setBulkLeaveForm] = useState({
+    userId: '',
+    leaveTypeId: '',
+    startDate: '',
+    endDate: '',
+    timePeriod: 'full_day',
+    reason: ''
+  });
   const [formData, setFormData] = useState({
     leaveTypeId: '',
     startDate: '',
@@ -112,6 +122,9 @@ export default function LeavesPage() {
 
   useEffect(() => {
     fetchData();
+    if (isAdmin) {
+      fetchUsers();
+    }
   }, []);
 
   const fetchData = async () => {
@@ -133,6 +146,48 @@ export default function LeavesPage() {
       setError(error.response?.data?.message || 'Failed to load leave data. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const response = await api.get('/users');
+      setUsers(response.data.users || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const handleBulkLeaveSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    try {
+      const days = calculateDays(bulkLeaveForm.startDate, bulkLeaveForm.endDate);
+      // Adjust days based on time period
+      const adjustedDays = bulkLeaveForm.timePeriod === 'full_day' ? days : days * 0.5;
+      
+      // Create leave request for the selected user and mark attendance
+      await api.post('/hr/leaves/bulk', {
+        ...bulkLeaveForm,
+        days: adjustedDays,
+        status: 'approved' // Auto-approve since HR is marking it
+      });
+      
+      setShowBulkLeaveModal(false);
+      setBulkLeaveForm({
+        userId: '',
+        leaveTypeId: '',
+        startDate: '',
+        endDate: '',
+        timePeriod: 'full_day',
+        reason: ''
+      });
+      setSuccess('Leave marked successfully and attendance updated for the employee!');
+      await fetchData();
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to mark leave');
     }
   };
 
@@ -243,14 +298,24 @@ export default function LeavesPage() {
         actions={
           <div className="flex gap-2">
             {isAdmin && (
-              <button
-                onClick={() => setShowLeaveTypeModal(true)}
-                className="px-3 sm:px-4 py-2 bg-purple-600 text-white hover:bg-purple-700 flex items-center gap-2 rounded-lg transition-colors text-sm sm:text-base font-medium whitespace-nowrap"
-              >
-                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Manage Leave Types</span>
-                <span className="sm:hidden">Types</span>
-              </button>
+              <>
+                <button
+                  onClick={() => setShowBulkLeaveModal(true)}
+                  className="px-3 sm:px-4 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2 rounded-lg transition-colors text-sm sm:text-base font-medium whitespace-nowrap"
+                >
+                  <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Mark Leave</span>
+                  <span className="sm:hidden">Mark</span>
+                </button>
+                <button
+                  onClick={() => setShowLeaveTypeModal(true)}
+                  className="px-3 sm:px-4 py-2 bg-purple-600 text-white hover:bg-purple-700 flex items-center gap-2 rounded-lg transition-colors text-sm sm:text-base font-medium whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Manage Leave Types</span>
+                  <span className="sm:hidden">Types</span>
+                </button>
+              </>
             )}
             <button
               onClick={() => setShowModal(true)}
@@ -938,6 +1003,189 @@ export default function LeavesPage() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Leave Marking Modal */}
+      {showBulkLeaveModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4">
+            <div className="fixed inset-0 bg-black opacity-50" onClick={() => setShowBulkLeaveModal(false)}></div>
+
+            <div className={`relative ${currentTheme.surface} rounded-lg max-w-2xl w-full p-6`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Mark Leave for Employee</h3>
+                <button
+                  onClick={() => {
+                    setShowBulkLeaveModal(false);
+                    setBulkLeaveForm({
+                      userId: '',
+                      leaveTypeId: '',
+                      startDate: '',
+                      endDate: '',
+                      timePeriod: 'full_day',
+                      reason: ''
+                    });
+                  }}
+                  className={`${currentTheme.textSecondary} hover:${currentTheme.text}`}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleBulkLeaveSubmit} className="space-y-4">
+                {/* Select Employee */}
+                <div>
+                  <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>
+                    Select Employee *
+                  </label>
+                  <select
+                    value={bulkLeaveForm.userId}
+                    onChange={(e) => setBulkLeaveForm({ ...bulkLeaveForm, userId: e.target.value })}
+                    className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                    required
+                  >
+                    <option value="">-- Select Employee --</option>
+                    {users.map((u) => (
+                      <option key={u._id} value={u._id}>
+                        {u.full_name} ({u.email}) - {u.department || 'No Department'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Leave Type */}
+                <div>
+                  <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>
+                    Leave Type *
+                  </label>
+                  <select
+                    value={bulkLeaveForm.leaveTypeId}
+                    onChange={(e) => setBulkLeaveForm({ ...bulkLeaveForm, leaveTypeId: e.target.value })}
+                    className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                    required
+                  >
+                    <option value="">-- Select Leave Type --</option>
+                    {leaveTypes.map((type) => (
+                      <option key={type._id} value={type._id}>
+                        {type.name} ({type.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Date Range */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>
+                      Start Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={bulkLeaveForm.startDate}
+                      onChange={(e) => setBulkLeaveForm({ ...bulkLeaveForm, startDate: e.target.value })}
+                      className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>
+                      End Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={bulkLeaveForm.endDate}
+                      onChange={(e) => setBulkLeaveForm({ ...bulkLeaveForm, endDate: e.target.value })}
+                      min={bulkLeaveForm.startDate}
+                      className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Time Period Selection */}
+                <div>
+                  <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>
+                    Time Period *
+                  </label>
+                  <select
+                    value={bulkLeaveForm.timePeriod}
+                    onChange={(e) => setBulkLeaveForm({ ...bulkLeaveForm, timePeriod: e.target.value })}
+                    className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                    required
+                  >
+                    <option value="full_day">Full Day</option>
+                    <option value="half_day">Half Day</option>
+                  </select>
+                  <p className={`text-xs ${currentTheme.textSecondary} mt-1`}>
+                    Select full day or half day leave for the entire period
+                  </p>
+                </div>
+
+                {/* Display calculated days */}
+                {bulkLeaveForm.startDate && bulkLeaveForm.endDate && (
+                  <div className={`p-3 rounded-lg ${currentTheme.surfaceSecondary} border ${currentTheme.border}`}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className={`text-sm font-medium ${currentTheme.text}`}>Leave Duration:</span>
+                      <span className={`text-lg font-bold ${currentTheme.text}`}>
+                        {bulkLeaveForm.timePeriod === 'full_day' 
+                          ? calculateDays(bulkLeaveForm.startDate, bulkLeaveForm.endDate) 
+                          : (calculateDays(bulkLeaveForm.startDate, bulkLeaveForm.endDate) * 0.5).toFixed(1)} days
+                      </span>
+                    </div>
+                    <div className={`text-xs ${currentTheme.textSecondary}`}>
+                      {calculateDays(bulkLeaveForm.startDate, bulkLeaveForm.endDate)} calendar days × {bulkLeaveForm.timePeriod === 'full_day' ? 'Full Day' : 'Half Day (0.5)'}
+                    </div>
+                    <div className={`text-xs ${currentColorScheme.info.replace('bg-', 'text-').replace('-500', '-600')} mt-2 flex items-start gap-1`}>
+                      <CheckCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      <span>Attendance will be automatically marked as "Leave" for selected dates</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Reason */}
+                <div>
+                  <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>
+                    Reason *
+                  </label>
+                  <textarea
+                    value={bulkLeaveForm.reason}
+                    onChange={(e) => setBulkLeaveForm({ ...bulkLeaveForm, reason: e.target.value })}
+                    className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
+                    rows="3"
+                    placeholder="Enter reason for leave..."
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-3 justify-end pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowBulkLeaveModal(false);
+                      setBulkLeaveForm({
+                        userId: '',
+                        leaveTypeId: '',
+                        startDate: '',
+                        endDate: '',
+                        timePeriod: 'full_day',
+                        reason: ''
+                      });
+                    }}
+                    className={`px-4 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.textSecondary} ${currentTheme.hover}`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className={`px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700`}
+                  >
+                    Mark Leave
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

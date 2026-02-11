@@ -953,17 +953,92 @@ export default function HRDashboard() {
                 </div>
               )}
 
+              {/* Bulk Operations Info Banner */}
+              <div className={`${currentTheme.surface} rounded-lg p-6 border-l-4 border-blue-500 ${currentTheme.border} bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-900/10`}>
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                    <UserPlus className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className={`text-lg font-bold ${currentTheme.text} mb-2`}>
+                      New Bulk Operations Available
+                    </h3>
+                    <p className={`${currentTheme.textSecondary} mb-4 text-sm`}>
+                      Save time with powerful bulk actions for HR management:
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className={`flex items-center gap-3 p-3 ${currentTheme.surfaceSecondary} rounded-lg`}>
+                        <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded">
+                          <UserCheck className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className={`font-medium ${currentTheme.text} text-sm`}>Bulk Attendance Marking</p>
+                          <p className={`${currentTheme.textSecondary} text-xs`}>
+                            Mark attendance for any employee with searchable interface
+                          </p>
+                        </div>
+                      </div>
+                      <div className={`flex items-center gap-3 p-3 ${currentTheme.surfaceSecondary} rounded-lg`}>
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
+                          <Briefcase className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className={`font-medium ${currentTheme.text} text-sm`}>Multi-Day Leave Marking</p>
+                          <p className={`${currentTheme.textSecondary} text-xs`}>
+                            Mark leave for employees across multiple consecutive days
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-3">
+                      <button
+                        onClick={() => navigate('/hr/attendance')}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-2"
+                      >
+                        <UserCheck className="w-4 h-4" />
+                        Go to Attendance
+                      </button>
+                      <button
+                        onClick={() => navigate('/hr/leaves')}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+                      >
+                        <Briefcase className="w-4 h-4" />
+                        Go to Leaves
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Quick Actions */}
               <div className={`${currentTheme.surface} rounded-lg p-6 border ${currentTheme.border}`}>
                 <h2 className={`text-xl font-bold ${currentTheme.text} mb-4`}>Quick Actions</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                   <button
-                    onClick={() => setActiveTab('attendance')}
+                    onClick={() => navigate('/hr/attendance')}
                     className={`p-4 ${currentTheme.surfaceSecondary} rounded-lg ${currentTheme.hover} transition-colors border ${currentTheme.border}`}
                   >
                     <UserCheck className={`w-8 h-8 ${currentColorScheme.success.replace('bg-', 'text-').replace('-500', '-600')} mb-2`} />
-                    <p className={`font-medium ${currentTheme.text}`}>Mark Attendance</p>
-                    <p className={`text-sm ${currentTheme.textSecondary}`}>Mark today's attendance</p>
+                    <p className={`font-medium ${currentTheme.text} text-sm`}>Mark Attendance</p>
+                    <p className={`text-xs ${currentTheme.textSecondary}`}>Single employee</p>
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/hr/attendance')}
+                    className={`p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border ${currentTheme.border}`}
+                  >
+                    <Users className="w-8 h-8 text-green-600 mb-2" />
+                    <p className={`font-medium ${currentTheme.text} text-sm`}>Bulk Attendance</p>
+                    <p className={`text-xs ${currentTheme.textSecondary}`}>Mark for any user</p>
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/hr/leaves')}
+                    className={`p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors border ${currentTheme.border}`}
+                  >
+                    <Briefcase className="w-8 h-8 text-blue-600 mb-2" />
+                    <p className={`font-medium ${currentTheme.text} text-sm`}>Mark Leave</p>
+                    <p className={`text-xs ${currentTheme.textSecondary}`}>Multi-day leaves</p>
                   </button>
 
                   <button
@@ -971,14 +1046,23 @@ export default function HRDashboard() {
                     className={`p-4 ${currentTheme.surfaceSecondary} rounded-lg ${currentTheme.hover} transition-colors border ${currentTheme.border}`}
                   >
                     <CalendarDays className="w-8 h-8 text-purple-600 mb-2" />
-                    <p className={`font-medium ${currentTheme.text}`}>View Calendar</p>
-                    <p className={`text-sm ${currentTheme.textSecondary}`}>{holidays.length} upcoming holidays</p>
+                    <p className={`font-medium ${currentTheme.text} text-sm`}>View Calendar</p>
+                    <p className={`text-xs ${currentTheme.textSecondary}`}>{holidays.length} holidays</p>
                   </button>
 
-                  <button className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
+                  <button
+                    onClick={() => setActiveTab('email')}
+                    className={`p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors border ${currentTheme.border}`}
+                  >
+                    <Mail className="w-8 h-8 text-indigo-600 mb-2" />
+                    <p className={`font-medium ${currentTheme.text} text-sm`}>Send Email</p>
+                    <p className={`text-xs ${currentTheme.textSecondary}`}>Email campaigns</p>
+                  </button>
+
+                  <button className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors border ${currentTheme.border}">
                     <TrendingUp className="w-8 h-8 text-orange-600 mb-2" />
-                    <p className={`font-medium ${currentTheme.text}`}>Generate Report</p>
-                    <p className={`text-sm ${currentTheme.textSecondary}`}>Export attendance data</p>
+                    <p className={`font-medium ${currentTheme.text} text-sm`}>Reports</p>
+                    <p className={`text-xs ${currentTheme.textSecondary}`}>Export data</p>
                   </button>
                 </div>
               </div>

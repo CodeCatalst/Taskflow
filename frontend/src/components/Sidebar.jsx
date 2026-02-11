@@ -27,14 +27,15 @@ import {
   X,
   Clock,
   CalendarDays,
-  Briefcase
+  Briefcase,
+  RefreshCw
 } from 'lucide-react';
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const { theme, currentTheme } = useTheme();
   const { isMobileOpen, isMobile, closeMobileSidebar, isCollapsed, toggleCollapse } = useSidebar();
-  const { workspace } = useWorkspace();
+  const { workspace, allWorkspaces, switchWorkspace, fetchAllWorkspaces } = useWorkspace();
   const navigate = useNavigate();
   const location = useLocation();
   const confirmModal = useConfirmModal();
@@ -43,7 +44,8 @@ const Sidebar = () => {
   const [openDropdowns, setOpenDropdowns] = useState({
     main: true, // Main section starts open
     hr: false,
-    management: false
+    management: false,
+    workspaces: false
   });
 
   const toggleDropdown = (section) => {
@@ -52,6 +54,13 @@ const Sidebar = () => {
       [section]: !prev[section]
     }));
   };
+  
+  // Load workspaces on mount
+  useEffect(() => {
+    if (user && allWorkspaces.length === 0) {
+      fetchAllWorkspaces();
+    }
+  }, [user]);
 
   // Close sidebar when clicking on navigation item on mobile
   const handleNavigation = (path) => {
@@ -95,7 +104,7 @@ const Sidebar = () => {
   const adminMenuItems = [
     { path: '/community-users', icon: UserCog, label: 'Community Users', roles: ['community_admin'] },
     { path: '/workspaces', icon: Building2, label: 'Workspaces', roles: ['admin'] },
-    { path: '/changelog', icon: FileText, label: 'Audit Logs', roles: ['admin'] },
+    { path: '/changelog', icon: FileText, label: 'Audit Logs', roles: ['admin'], coreWorkspaceOnly: true },
   ];
 
   const bottomMenuItems = [
@@ -328,31 +337,109 @@ const Sidebar = () => {
         )}
       </div>
 
-      {/* Workspace Info */}
+      {/* Workspace Info & Switcher */}
       {!isCollapsed && (
         <div className={`p-2 border-t hidden lg:block ${
           isDark ? 'border-[#282f39]' : 'border-gray-200'
         }`}>
           <div className="px-2 py-1.5">
-            <p className={`text-xs font-bold uppercase tracking-wider mb-2 ${
-              isDark ? 'text-[#9da8b9]' : 'text-gray-500'
-            }`}>Workspace</p>
-            {/* Show workspace info for community_admin */}
-            {user?.role === 'community_admin' && user?.workspace ? (
-              <div className={`flex items-center gap-2 text-sm font-medium ${
-                isDark ? 'text-white' : 'text-gray-900'
+            <div className="flex items-center justify-between mb-2">
+              <p className={`text-xs font-bold uppercase tracking-wider ${
+                isDark ? 'text-[#9da8b9]' : 'text-gray-500'
+              }`}>Workspace</p>
+              {allWorkspaces.length > 1 && (
+                <button
+                  onClick={() => toggleDropdown('workspaces')}
+                  className={`text-xs ${isDark ? 'text-[#9da8b9] hover:text-white' : 'text-gray-500 hover:text-gray-700'}`}
+                  title="Switch workspace"
+                >
+                  {openDropdowns.workspaces ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+              )}
+            </div>
+            
+            {/* Current Workspace Display */}
+            {workspace?.name && (
+              <div className={`flex items-center gap-2 text-sm font-medium mb-2 p-2 rounded ${
+                isDark ? 'bg-[#1c2027] text-white' : 'bg-gray-100 text-gray-900'
               }`}>
-                <div className="size-6 rounded bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-[10px] text-white font-bold">
-                  {getUserInitials(user.workspace.name)}
+                <div className={`size-6 rounded flex items-center justify-center text-[10px] text-white font-bold ${
+                  workspace.type === 'CORE' 
+                    ? 'bg-gradient-to-br from-blue-500 to-cyan-500' 
+                    : 'bg-gradient-to-br from-teal-500 to-emerald-500'
+                }`}>
+                  {getUserInitials(workspace.name)}
                 </div>
-                <div className="flex-1">
-                  <span className="truncate block">{user.workspace.name}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="truncate block">{workspace.name}</span>
                   <span className={`text-[10px] ${isDark ? 'text-[#9da8b9]' : 'text-gray-500'}`}>
-                    {user.workspace.type === 'COMMUNITY' ? 'Community' : 'Core'} Workspace
+                    {workspace.type === 'COMMUNITY' ? 'Community' : 'Core'} Workspace
                   </span>
                 </div>
               </div>
-            ) : user?.team_id ? (
+            )}
+            
+            {/* Workspace Switcher Dropdown */}
+            {allWorkspaces.length > 1 && openDropdowns.workspaces && (
+              <div className={`mb-2 rounded overflow-hidden ${
+                isDark ? 'bg-[#111418]' : 'bg-white border border-gray-200'
+              }`}>
+                <div className={`text-[10px] font-semibold uppercase px-2 py-1.5 ${
+                  isDark ? 'text-[#9da8b9] bg-[#1c2027]' : 'text-gray-500 bg-gray-50'
+                }`}>
+                  Available Workspaces
+                </div>
+                {allWorkspaces.map((ws) => (
+                  <button
+                    key={ws.id}
+                    onClick={async () => {
+                      if (ws.id !== workspace?.id) {
+                        const success = await switchWorkspace(ws.id);
+                        if (success) {
+                          toggleDropdown('workspaces');
+                        }
+                      }
+                    }}
+                    disabled={ws.id === workspace?.id}
+                    className={`w-full flex items-center gap-2 px-2 py-2 text-left transition-colors ${
+                      ws.id === workspace?.id
+                        ? isDark 
+                          ? 'bg-[#136dec]/10 text-[#136dec] cursor-default' 
+                          : 'bg-blue-50 text-blue-600 cursor-default'
+                        : isDark
+                          ? 'hover:bg-[#1c2027] text-[#9da8b9] hover:text-white'
+                          : 'hover:bg-gray-50 text-gray-700 hover:text-gray-900'
+                    }`}
+                  >
+                    <div className={`size-5 rounded flex items-center justify-center text-[9px] text-white font-bold ${
+                      ws.type === 'CORE' 
+                        ? 'bg-gradient-to-br from-blue-500 to-cyan-500' 
+                        : 'bg-gradient-to-br from-teal-500 to-emerald-500'
+                    }`}>
+                      {getUserInitials(ws.name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs truncate">{ws.name}</span>
+                        {ws.id === workspace?.id && (
+                          <span className="text-[9px]">✓</span>
+                        )}
+                      </div>
+                      <span className={`text-[9px] ${
+                        ws.id === workspace?.id
+                          ? isDark ? 'text-[#136dec]/70' : 'text-blue-500'
+                          : isDark ? 'text-[#9da8b9]' : 'text-gray-500'
+                      }`}>
+                        {ws.type} • {ws.role}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            {/* Legacy team display for users without multi-workspace */}
+            {(!workspace?.name && user?.team_id) && (
               <div className={`flex items-center gap-2 text-sm font-medium ${
                 isDark ? 'text-white' : 'text-gray-900'
               }`}>
@@ -361,7 +448,10 @@ const Sidebar = () => {
                 </div>
                 <span className="truncate">{user.team_id.name}</span>
               </div>
-            ) : (
+            )}
+            
+            {/* Admin or no workspace display */}
+            {!workspace?.name && !user?.team_id && (
               <div className={`flex items-center gap-2 text-sm ${
                 isDark ? 'text-[#9da8b9]' : 'text-gray-600'
               }`}>
@@ -378,18 +468,6 @@ const Sidebar = () => {
                       >
                         Manage Teams →
                       </button>
-                    </div>
-                  </>
-                ) : user?.workspace ? (
-                  <>
-                    <div className="size-6 rounded bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-[10px] text-white font-bold">
-                      {getUserInitials(user.workspace.name)}
-                    </div>
-                    <div className="flex-1">
-                      <span className={`truncate block text-xs font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.workspace.name}</span>
-                      <span className={`text-[10px] ${isDark ? 'text-[#9da8b9]' : 'text-gray-500'}`}>
-                        {user.workspace.type === 'COMMUNITY' ? 'Community' : 'Core'} Workspace
-                      </span>
                     </div>
                   </>
                 ) : (

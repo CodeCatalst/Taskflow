@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,7 @@ import {
   X, Eye, Code, Layout, ChevronRight, ChevronLeft,
   Calendar, Clock, MessageSquare, Bell, UserMinus,
   Settings as SettingsIcon, ExternalLink, Briefcase,
-  AlertCircle, Edit3, Sparkles, RefreshCw
+  AlertCircle, Edit3, Sparkles, RefreshCw, Search
 } from 'lucide-react';
 
 /**
@@ -32,6 +32,8 @@ export default function EmailCenter() {
   const [templates, setTemplates] = useState([]);
   const [users, setUsers] = useState([]);
   const [campaignStep, setCampaignStep] = useState(1);
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
+  const [userSearchQuery, setUserSearchQuery] = useState('');
   
   // Selection states
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -49,6 +51,33 @@ export default function EmailCenter() {
   const [showPreview, setShowPreview] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [activeRecipientIndex, setActiveRecipientIndex] = useState(0);
+
+  // Filter templates based on search query
+  const filteredTemplates = useMemo(() => {
+    if (!templateSearchQuery.trim()) return templates;
+    
+    const query = templateSearchQuery.toLowerCase();
+    return templates.filter(template => {
+      const name = template.name?.toLowerCase() || '';
+      const category = template.category?.toLowerCase() || '';
+      return name.includes(query) || category.includes(query);
+    });
+  }, [templates, templateSearchQuery]);
+
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!userSearchQuery.trim()) return users;
+    
+    const query = userSearchQuery.toLowerCase();
+    return users.filter(user => {
+      const name = user.name?.toLowerCase() || '';
+      const email = user.email?.toLowerCase() || '';
+      const department = user.department?.toLowerCase() || '';
+      const role = user.role?.toLowerCase() || '';
+      return name.includes(query) || email.includes(query) || 
+             department.includes(query) || role.includes(query);
+    });
+  }, [users, userSearchQuery]);
 
   // Load initial data
   useEffect(() => {
@@ -445,8 +474,35 @@ export default function EmailCenter() {
 
         {/* Step 1: Template Selection */}
         {campaignStep === 1 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-6 duration-500">
-            {templates.map((template) => (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-500">
+            {/* Search Templates */}
+            <div className="max-w-2xl mx-auto">
+              <div className="relative">
+                <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${currentTheme.textSecondary}`} />
+                <input
+                  type="text"
+                  placeholder="Search templates by name or category..."
+                  value={templateSearchQuery}
+                  onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                  className={`w-full pl-12 pr-4 py-3 border ${currentTheme.border} rounded-xl ${currentTheme.surface} ${currentTheme.text} placeholder:${currentTheme.textSecondary} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                />
+              </div>
+            </div>
+            
+            {/* Templates Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTemplates.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <FileText className={`w-16 h-16 mx-auto mb-4 ${currentTheme.textSecondary}`} />
+                <p className={`text-lg font-medium ${currentTheme.text}`}>
+                  {templateSearchQuery ? 'No templates match your search' : 'No templates available'}
+                </p>
+                <p className={`text-sm ${currentTheme.textSecondary} mt-2`}>
+                  {templateSearchQuery ? 'Try adjusting your search terms' : 'Create a template to get started'}
+                </p>
+              </div>
+            ) : (
+              filteredTemplates.map((template) => (
               <div
                 key={template._id}
                 onClick={() => handleTemplateSelect(template)}
@@ -489,13 +545,31 @@ export default function EmailCenter() {
                   </span>
                 </div>
               </div>
-            ))}
+            )))
+            }
+            </div>
           </div>
         )}
 
         {/* Step 2: Recipient Selection */}
         {campaignStep === 2 && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+            {/* Search Users for Internal Recipients */}
+            {recipientMode === 'INTERNAL' && (
+              <div className="max-w-2xl mx-auto">
+                <div className="relative">
+                  <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${currentTheme.textSecondary}`} />
+                  <input
+                    type="text"
+                    placeholder="Search users by name, email, department, or role..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className={`w-full pl-12 pr-4 py-3 border ${currentTheme.border} rounded-xl ${currentTheme.surface} ${currentTheme.text} placeholder:${currentTheme.textSecondary} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  />
+                </div>
+              </div>
+            )}
+            
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
                 <h2 className={`text-2xl font-black ${currentTheme.text}`}>Target Audience</h2>
@@ -588,7 +662,18 @@ export default function EmailCenter() {
               </div>
             ) : (
               <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-3xl bg-gray-50/50 dark:bg-gray-900/30 border ${currentTheme.border}`}>
-                {users.map((u) => {
+                {filteredUsers.length === 0 ? (
+                  <div className="col-span-full text-center py-12">
+                    <Users className={`w-16 h-16 mx-auto mb-4 ${currentTheme.textSecondary}`} />
+                    <p className={`text-lg font-medium ${currentTheme.text}`}>
+                      {userSearchQuery ? 'No users match your search' : 'No users available'}
+                    </p>
+                    <p className={`text-sm ${currentTheme.textSecondary} mt-2`}>
+                      {userSearchQuery ? 'Try adjusting your search terms' : 'Add users to your workspace to get started'}
+                    </p>
+                  </div>
+                ) : (
+                  filteredUsers.map((u) => {
                   const isSelected = emailRecipients.some(r => r.id === u.id);
                   return (
                     <label 
@@ -623,7 +708,8 @@ export default function EmailCenter() {
                       />
                     </label>
                   );
-                })}
+                  })
+                )}
               </div>
             )}
 

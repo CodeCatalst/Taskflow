@@ -15,8 +15,8 @@
  * System admins and workspace admins bypass this check
  */
 export const requireCoreWorkspace = (req, res, next) => {
-  // System admins and workspace admins can access CORE features
-  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'community_admin') {
+  // System admins can access CORE features in any workspace
+  if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
     return next();
   }
 
@@ -27,6 +27,7 @@ export const requireCoreWorkspace = (req, res, next) => {
     });
   }
 
+  // Check workspace type - even community_admin must be in a CORE workspace
   if (req.context.workspaceType !== 'CORE') {
     return res.status(403).json({
       message: 'This feature is only available for CORE workspaces',
@@ -44,8 +45,8 @@ export const requireCoreWorkspace = (req, res, next) => {
  */
 export const requireFeature = (featureName) => {
   return (req, res, next) => {
-    // System admins and workspace admins have all features enabled
-    if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'community_admin') {
+    // System admins have all features enabled
+    if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
       return next();
     }
 
@@ -56,6 +57,7 @@ export const requireFeature = (featureName) => {
       });
     }
 
+    // Check if workspace has the feature - applies to all users including community_admin
     if (!req.hasFeature(featureName)) {
       return res.status(403).json({
         message: `This feature is not available in your workspace`,
@@ -74,8 +76,8 @@ export const requireFeature = (featureName) => {
  * Admins and system admins bypass this check
  */
 export const checkUserLimit = (req, res, next) => {
-  // System admins and workspace admins can bypass limits
-  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'community_admin') {
+  // System admins can bypass limits
+  if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
     return next();
   }
 
@@ -86,6 +88,7 @@ export const checkUserLimit = (req, res, next) => {
     });
   }
 
+  // Check limit - applies to all users including community_admin
   if (!req.canAddUser()) {
     const maxUsers = req.context.workspace.limits?.maxUsers || 0;
     return res.status(403).json({
@@ -104,8 +107,8 @@ export const checkUserLimit = (req, res, next) => {
  * Admins and system admins bypass this check
  */
 export const checkTaskLimit = (req, res, next) => {
-  // System admins and workspace admins can bypass limits
-  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'community_admin') {
+  // System admins can bypass limits
+  if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
     return next();
   }
 
@@ -116,6 +119,7 @@ export const checkTaskLimit = (req, res, next) => {
     });
   }
 
+  // Check limit - applies to all users including community_admin
   if (!req.canAddTask()) {
     const maxTasks = req.context.workspace.limits?.maxTasks || 0;
     return res.status(403).json({
@@ -134,8 +138,8 @@ export const checkTaskLimit = (req, res, next) => {
  * Admins and system admins bypass this check
  */
 export const checkTeamLimit = (req, res, next) => {
-  // System admins and workspace admins can bypass limits
-  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'community_admin') {
+  // System admins can bypass limits
+  if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
     return next();
   }
 
@@ -146,6 +150,7 @@ export const checkTeamLimit = (req, res, next) => {
     });
   }
 
+  // Check limit - applies to all users including community_admin
   if (!req.canAddTeam()) {
     const maxTeams = req.context.workspace.limits?.maxTeams || 0;
     return res.status(403).json({
@@ -170,11 +175,6 @@ export const requireBulkImport = [
     if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
       return next();
     }
-    
-    if (req.user && req.user.role === 'community_admin') {
-      // Community admins can use bulk import (they're admins)
-      return next();
-    }
     next();
   },
   requireFeature('bulkUserImport'),
@@ -189,11 +189,6 @@ export const requireAuditLogs = [
   (req, res, next) => {
     // Allow admins and system admins to bypass
     if (req.context?.isSystemAdmin || req.user?.role === 'admin') {
-      return next();
-    }
-    
-    if (req.user && req.user.role === 'community_admin') {
-      // Community admins can access audit logs (they're admins)
       return next();
     }
     next();

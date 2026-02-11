@@ -15,19 +15,33 @@ import HrEventService from '../services/hrEventService.js';
 const router = express.Router();
 
 // Get all leave requests (filtered by status/user)
-router.get('/', authenticate, async (req, res) => {
+// HR/Admin can see leave requests from ALL their workspaces
+router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
   try {
-    const { status, userId } = req.query;
-    const workspaceId = req.context?.workspaceId || req.user.workspaceId;
+    const { status, userId, workspaceId: filterWorkspaceId } = req.query;
+    const workspaceId = req.context?.workspaceId || req.user.currentWorkspaceId || req.user.workspaceId;
 
-    const query = { workspaceId };
+    const query = {};
 
-    // Members and team_leads see only their own requests
-    // HR and Admin see all requests
-    if (!['admin', 'hr'].includes(req.user.role)) {
+    // HR and Admin see requests from ALL their workspaces
+    if (['admin', 'hr'].includes(req.user.role) || ['admin', 'hr'].includes(req.context?.currentRole)) {
+      // Get all workspace IDs user has HR/admin access to
+      const hrWorkspaceIds = req.context?.allWorkspaceIds || [workspaceId];
+      query.workspaceId = { $in: hrWorkspaceIds };
+      
+      // Optional: Filter by specific workspace
+      if (filterWorkspaceId) {
+        query.workspaceId = filterWorkspaceId;
+      }
+      
+      // Optional: Filter by specific user
+      if (userId) {
+        query.userId = userId;
+      }
+    } else {
+      // Members and team_leads see only their own requests in current workspace
+      query.workspaceId = workspaceId;
       query.userId = req.user._id;
-    } else if (userId) {
-      query.userId = userId;
     }
 
     if (status) {
@@ -38,6 +52,7 @@ router.get('/', authenticate, async (req, res) => {
       .populate('userId', 'full_name email profile_picture')
       .populate('leaveTypeId', 'name code color')
       .populate('approvedBy', 'full_name email')
+      .populate('workspaceId', 'name type')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -49,12 +64,12 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // Create leave request
-router.post('/', authenticate, async (req, res) => {
+router.post('/', authenticate, requireCoreWorkspace, async (req, res) => {
   try {
     const { leaveTypeId, startDate, endDate, reason, days } = req.body;
-    const workspaceId = req.context?.workspaceId || req.user.workspaceId;
+    const workspaceId = req.context?.workspaceId || req.user.currentWorkspaceId || req.user.workspaceId;
 
-    // Validate leave type
+    // Validate leave type in current workspace
     const leaveType = await LeaveType.findOne({ _id: leaveTypeId, workspaceId });
     if (!leaveType) {
       return res.status(404).json({ message: 'Leave type not found' });
@@ -99,10 +114,16 @@ router.post('/', authenticate, async (req, res) => {
       ipAddress: getClientIP(req)
     });
 
-    // Send notification email to HR/Admin
+    // Send notification email to HR/Admin across ALL workspaces that have HR
+    // Find all users with HR/admin role in any workspace
+    const allWorkspaceIds = req.context?.allWorkspaceIds || [workspaceId];
     const hrUsers = await User.find({ 
-      workspaceId, 
-      role: { $in: ['admin', 'hr'] } 
+      $or: [
+        { role: { $in: ['admin', 'hr'] } },
+        { 'workspaces.role': { $in: ['admin', 'hr'] } }
+      ],
+      'workspaces.workspaceId': { $in: allWorkspaceIds },
+      'workspaces.isActive': true
     }).select('email full_name');
 
     // Log notification (email sending would go here)
@@ -120,8 +141,177 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
+// Bulk leave marking (HR/Admin only)
+router.post('/bulk', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
+  try {
+    const { userId, leaveTypeId, startDate, endDate, reason, days, status = 'approved', timePeriod = 'full_day' } = req.body;
+    const workspaceId = req.context?.workspaceId || req.user.currentWorkspaceId || req.user.workspaceId;
+
+    // Validate user exists and belongs to the workspace
+    const user = await User.findOne({
+      _id: userId,
+      'workspaces.workspaceId': workspaceId,
+      'workspaces.isActive': true
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found or not in workspace' });
+    }
+
+    // Validate leave type in current workspace
+    const leaveType = await LeaveType.findOne({ _id: leaveTypeId, workspaceId });
+    if (!leaveType) {
+      return res.status(404).json({ message: 'Leave type not found' });
+    }
+
+    // Check balance
+    const currentYear = new Date().getFullYear();
+    let balance = await LeaveBalance.findOne({
+      userId,
+      leaveTypeId,
+      year: currentYear
+    });
+
+    // If balance doesn't exist, create it
+    if (!balance) {
+      balance = new LeaveBalance({
+        userId,
+        leaveTypeId,
+        year: currentYear,
+        allocated: leaveType.annualQuota,
+        used: 0,
+        pending: 0,
+        available: leaveType.annualQuota
+      });
+      await balance.save();
+    }
+
+    if (balance.available < days) {
+      return res.status(400).json({ message: 'Insufficient leave balance' });
+    }
+
+    // Create leave request with auto-approved status
+    const leaveRequest = new LeaveRequest({
+      userId,
+      workspaceId,
+      leaveTypeId,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      days,
+      reason,
+      status,
+      approvedBy: status === 'approved' ? req.user._id : null,
+      approvedAt: status === 'approved' ? new Date() : null
+    });
+
+    await leaveRequest.save();
+
+    // Update balance immediately if approved
+    if (status === 'approved') {
+      balance.used += days;
+      balance.available -= days;
+    } else {
+      balance.pending += days;
+    }
+    await balance.save();
+
+    // Automatically create attendance records for leave days
+    if (status === 'approved') {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const attendanceRecords = [];
+      
+      // Loop through each day in the range
+      for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+        const currentDate = new Date(date);
+        
+        // Check if attendance already exists for this date
+        const existingAttendance = await Attendance.findOne({
+          userId,
+          workspaceId,
+          date: {
+            $gte: new Date(currentDate.setHours(0, 0, 0, 0)),
+            $lt: new Date(currentDate.setHours(23, 59, 59, 999))
+          }
+        });
+
+        if (!existingAttendance) {
+          // Create new attendance record marked as leave
+          const attendanceRecord = new Attendance({
+            userId,
+            workspaceId,
+            date: new Date(date),
+            status: timePeriod === 'half_day' ? 'half_day' : 'leave',
+            notes: `Leave: ${leaveType.name} - ${reason}`,
+            markedBy: req.user._id
+          });
+          
+          await attendanceRecord.save();
+          attendanceRecords.push(attendanceRecord);
+        } else {
+          // Update existing attendance to leave status
+          existingAttendance.status = timePeriod === 'half_day' ? 'half_day' : 'leave';
+          existingAttendance.notes = `Leave: ${leaveType.name} - ${reason}`;
+          existingAttendance.markedBy = req.user._id;
+          await existingAttendance.save();
+          attendanceRecords.push(existingAttendance);
+        }
+      }
+
+      await logChange({
+        userId: req.user._id,
+        workspaceId,
+        action: 'create',
+        entity: 'leave_request',
+        entityId: leaveRequest._id,
+        details: { 
+          leaveType: leaveType.name, 
+          days, 
+          startDate, 
+          endDate,
+          timePeriod,
+          markedBy: req.user.full_name,
+          markedFor: user.full_name,
+          attendanceRecordsCreated: attendanceRecords.length
+        },
+        ipAddress: getClientIP(req)
+      });
+
+      res.status(201).json({ 
+        success: true, 
+        leaveRequest,
+        attendanceRecordsCreated: attendanceRecords.length,
+        message: `Leave marked successfully and ${attendanceRecordsCreated.length} attendance record(s) created`
+      });
+    } else {
+      await logChange({
+        userId: req.user._id,
+        workspaceId,
+        action: 'create',
+        entity: 'leave_request',
+        entityId: leaveRequest._id,
+        details: { 
+          leaveType: leaveType.name, 
+          days, 
+          startDate, 
+          endDate,
+          timePeriod,
+          markedBy: req.user.full_name,
+          markedFor: user.full_name
+        },
+        ipAddress: getClientIP(req)
+      });
+
+      res.status(201).json({ success: true, leaveRequest });
+    }
+  } catch (error) {
+    console.error('Bulk leave marking error:', error);
+    res.status(500).json({ message: 'Failed to mark leave' });
+  }
+});
+
 // Approve/Reject leave request (HR Action-Driven)
-router.patch('/:id/status', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.patch('/:id/status', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { status, rejectionReason, hrNotes } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -169,7 +359,7 @@ router.patch('/:id/status', authenticate, checkRole(['admin', 'hr']), async (req
 });
 
 // Get leave balance for a user
-router.get('/balance/:userId?', authenticate, async (req, res) => {
+router.get('/balance/:userId?', authenticate, requireCoreWorkspace, async (req, res) => {
   try {
     const targetUserId = req.params.userId || req.user._id;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -199,7 +389,7 @@ router.get('/balance/:userId?', authenticate, async (req, res) => {
 });
 
 // Get all leave balances (for HR/Admin)
-router.get('/balances', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.get('/balances', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
     const currentYear = new Date().getFullYear();
@@ -220,7 +410,7 @@ router.get('/balances', authenticate, checkRole(['admin', 'hr']), async (req, re
 });
 
 // Update HR notes for a leave request (Admin/HR only)
-router.patch('/:id/notes', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.patch('/:id/notes', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { hrNotes } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -260,7 +450,7 @@ router.patch('/:id/notes', authenticate, checkRole(['admin', 'hr']), async (req,
 });
 
 // Cancel leave request (by employee, only if pending)
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', authenticate, requireCoreWorkspace, async (req, res) => {
   try {
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
 

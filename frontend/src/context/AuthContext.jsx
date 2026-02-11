@@ -43,18 +43,31 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password });
-      const { user, workspace, accessToken, refreshToken } = response.data;
+      const { user, workspace, workspaces, accessToken, refreshToken } = response.data;
 
-      // Include workspace info in user object for easy access
-      const userWithWorkspace = {
-        ...user,
-        workspace: workspace
-      };
-
-      localStorage.setItem('user', JSON.stringify(userWithWorkspace));
+      // Store tokens immediately
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
 
+      // If user has multiple workspaces, return them for selection
+      if (workspaces && workspaces.length > 1) {
+        return { 
+          success: true, 
+          requiresWorkspaceSelection: true,
+          user,
+          workspace,
+          workspaces
+        };
+      }
+
+      // Single workspace - proceed with normal login
+      const userWithWorkspace = {
+        ...user,
+        workspace: workspace,
+        workspaces: workspaces || []
+      };
+
+      localStorage.setItem('user', JSON.stringify(userWithWorkspace));
       setUser(userWithWorkspace);
       initializeSocket(user.id);
 
@@ -66,6 +79,43 @@ export const AuthProvider = ({ children }) => {
         message: errorData?.message || 'Login failed',
         requiresVerification: errorData?.requiresVerification || false,
         accountDeactivated: errorData?.accountDeactivated || false,
+      };
+    }
+  };
+
+  const selectWorkspace = async (workspace, userData) => {
+    try {
+      console.log('selectWorkspace called with:', { workspace, userData });
+      
+      // Switch to selected workspace
+      const switchResponse = await api.post('/auth/switch-workspace', { 
+        workspaceId: workspace.id 
+      });
+      console.log('Switch workspace response:', switchResponse.data);
+
+      // Fetch all workspaces
+      const workspacesResponse = await api.get('/auth/my-workspaces');
+      const allWorkspaces = workspacesResponse.data.workspaces || [];
+      console.log('Fetched workspaces:', allWorkspaces);
+
+      // Update user with selected workspace
+      const userWithWorkspace = {
+        ...userData,
+        workspace: workspace,
+        workspaces: allWorkspaces
+      };
+
+      localStorage.setItem('user', JSON.stringify(userWithWorkspace));
+      setUser(userWithWorkspace);
+      initializeSocket(userData.id);
+
+      console.log('Workspace selection complete');
+      return { success: true };
+    } catch (error) {
+      console.error('Error in selectWorkspace:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to select workspace'
       };
     }
   };
@@ -120,6 +170,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     socket,
     login,
+    selectWorkspace,
     register,
     logout,
     updateUser,

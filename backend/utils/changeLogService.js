@@ -39,7 +39,8 @@ export const logChange = async (params) => {
         holiday: 'holiday_action',
         email_template: 'email_action',
         user: 'user_action',
-        task: 'task_action'
+        task: 'task_action',
+        workspace: 'workspace_action'
       };
 
       logData = {

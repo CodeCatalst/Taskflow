@@ -49,7 +49,7 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
 });
 
 // Check-in
-router.post('/checkin', authenticate, async (req, res) => {
+router.post('/checkin', authenticate, requireCoreWorkspace, async (req, res) => {
   try {
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
     const today = new Date();
@@ -96,7 +96,7 @@ router.post('/checkin', authenticate, async (req, res) => {
 });
 
 // Check-out
-router.post('/checkout', authenticate, async (req, res) => {
+router.post('/checkout', authenticate, requireCoreWorkspace, async (req, res) => {
   try {
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
     const today = new Date();
@@ -137,7 +137,7 @@ router.post('/checkout', authenticate, async (req, res) => {
 });
 
 // Admin/HR: Mark attendance for any user
-router.post('/mark', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.post('/mark', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { userId, date, status, checkIn, checkOut, notes } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -205,7 +205,7 @@ router.post('/mark', authenticate, checkRole(['admin', 'hr']), async (req, res) 
 });
 
 // Admin: Override attendance
-router.put('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.put('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { status, checkIn, checkOut, notes } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -246,7 +246,7 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res) =>
 });
 
 // Get attendance summary for a user
-router.get('/summary/:userId?', authenticate, async (req, res) => {
+router.get('/summary/:userId?', authenticate, requireCoreWorkspace, async (req, res) => {
   try {
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
     const targetUserId = req.params.userId || req.user._id;

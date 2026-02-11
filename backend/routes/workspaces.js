@@ -506,15 +506,145 @@ router.get('/:id/users', requireAdmin, async (req, res) => {
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
-    const users = await User.find({ workspaceId: workspace._id })
+    
+    // Find users with this workspace in their workspaces array OR legacy workspaceId
+    const users = await User.find({
+      $or: [
+        { workspaceId: workspace._id },
+        { 'workspaces.workspaceId': workspace._id, 'workspaces.isActive': true }
+      ]
+    })
       .select('-password_hash')
       .populate('team_id', 'name')
       .populate('teams', 'name')
       .sort({ created_at: -1 });
+    
     res.json({ workspace: { id: workspace._id, name: workspace.name, type: workspace.type }, users, count: users.length });
   } catch (error) {
     console.error('Error fetching workspace users:', error);
     res.status(500).json({ message: 'Failed to fetch users' });
+  }
+});
+
+// Add user to workspace (Admin only)
+router.post('/:id/add-user', requireAdmin, async (req, res) => {
+  try {
+    const { userId, role } = req.body;
+    
+    if (!userId || !role) {
+      return res.status(400).json({ message: 'User ID and role are required' });
+    }
+    
+    const workspace = await Workspace.findById(req.params.id);
+    if (!workspace) {
+      return res.status(404).json({ message: 'Workspace not found' });
+    }
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Check if user already belongs to this workspace
+    if (user.belongsToWorkspace(workspace._id)) {
+      return res.status(400).json({ message: 'User already belongs to this workspace' });
+    }
+    
+    // Add user to workspace
+    await user.addToWorkspace(workspace._id, role);
+    
+    // Update workspace usage
+    workspace.usage.userCount = await User.countDocuments({
+      $or: [
+        { workspaceId: workspace._id },
+        { 'workspaces.workspaceId': workspace._id, 'workspaces.isActive': true }
+      ]
+    });
+    await workspace.save();
+    
+    // Log change
+    await logChange({
+      userId: req.user._id,
+      workspaceId: workspace._id,
+      action: 'add_user_to_workspace',
+      entity: 'workspace',
+      entityId: workspace._id,
+      details: { 
+        addedUser: user.email,
+        addedUserName: user.full_name,
+        role
+      },
+      ipAddress: req.ip
+    });
+    
+    res.json({ 
+      success: true, 
+      message: `User ${user.full_name} added to workspace ${workspace.name}`,
+      user: {
+        id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        role
+      }
+    });
+  } catch (error) {
+    console.error('Error adding user to workspace:', error);
+    res.status(500).json({ message: 'Failed to add user to workspace' });
+  }
+});
+
+// Remove user from workspace (Admin only)
+router.post('/:id/remove-user', requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+    
+    const workspace = await Workspace.findById(req.params.id);
+    if (!workspace) {
+      return res.status(404).json({ message: 'Workspace not found' });
+    }
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Remove user from workspace
+    await user.removeFromWorkspace(workspace._id);
+    
+    // Update workspace usage
+    workspace.usage.userCount = await User.countDocuments({
+      $or: [
+        { workspaceId: workspace._id },
+        { 'workspaces.workspaceId': workspace._id, 'workspaces.isActive': true }
+      ]
+    });
+    await workspace.save();
+    
+    // Log change
+    await logChange({
+      userId: req.user._id,
+      workspaceId: workspace._id,
+      action: 'remove_user_from_workspace',
+      entity: 'workspace',
+      entityId: workspace._id,
+      details: { 
+        removedUser: user.email,
+        removedUserName: user.full_name
+      },
+      ipAddress: req.ip
+    });
+    
+    res.json({ 
+      success: true, 
+      message: `User ${user.full_name} removed from workspace ${workspace.name}`
+    });
+  } catch (error) {
+    console.error('Error removing user from workspace:', error);
+    res.status(500).json({ message: 'Failed to remove user from workspace' });
   }
 });
 

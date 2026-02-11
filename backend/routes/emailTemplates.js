@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
+import { requireCoreWorkspace } from '../middleware/workspaceGuard.js';
 import EmailTemplate from '../models/EmailTemplate.js';
 import User from '../models/User.js';
 import { logChange } from '../utils/changeLogService.js';
@@ -11,7 +12,7 @@ import brevoService from '../services/brevoEmailService.js';
 const router = express.Router();
 
 // Get all email templates
-router.get('/', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.get('/', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
     const { category } = req.query;
@@ -37,7 +38,7 @@ router.get('/', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
 });
 
 // Create custom email template
-router.post('/', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.post('/', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { name, code, subject, htmlContent, variables, category } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -77,7 +78,7 @@ router.post('/', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
 });
 
 // Update email template
-router.put('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.put('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { name, subject, htmlContent, variables, isActive } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -121,7 +122,7 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res) =>
 });
 
 // Delete email template
-router.delete('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.delete('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
 
@@ -158,7 +159,7 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res)
 });
 
 // Send test email
-router.post('/test', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.post('/test', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { to, subject, htmlContent, variables = {} } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -194,7 +195,7 @@ router.post('/test', authenticate, checkRole(['admin', 'hr']), async (req, res) 
 });
 
 // Send email to users
-router.post('/send', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.post('/send', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { recipients, subject, htmlContent, templateId, variables = {} } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -287,7 +288,7 @@ router.post('/send', authenticate, checkRole(['admin', 'hr']), async (req, res) 
 });
 
 // Get users for email recipient selection with advanced search and filters
-router.get('/users', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.get('/users', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
     const {
@@ -373,7 +374,7 @@ router.get('/users', authenticate, checkRole(['admin', 'hr']), async (req, res) 
 });
 
 // Get email configuration status
-router.get('/config', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.get('/config', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const config = {
       brevoConfigured: !!process.env.BREVO_API_KEY,
@@ -389,7 +390,7 @@ router.get('/config', authenticate, checkRole(['admin', 'hr']), async (req, res)
 });
 
 // Test send email using template
-router.post('/test-send', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.post('/test-send', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { templateId, variables = {}, testRecipient } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
@@ -446,7 +447,7 @@ router.post('/test-send', authenticate, checkRole(['admin', 'hr']), async (req, 
 });
 
 // Bulk send emails using template
-router.post('/bulk-send', authenticate, checkRole(['admin', 'hr']), async (req, res) => {
+router.post('/bulk-send', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), async (req, res) => {
   try {
     const { templateId, variables = {}, recipients } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.workspaceId;
