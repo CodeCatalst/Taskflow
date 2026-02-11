@@ -28,6 +28,7 @@ export default function LeavesPage() {
   const [hrNotes, setHrNotes] = useState('');
   const [showBulkLeaveModal, setShowBulkLeaveModal] = useState(false);
   const [showLeaveTypes, setShowLeaveTypes] = useState(true);
+  const [selectedUserBalance, setSelectedUserBalance] = useState([]);
   const [users, setUsers] = useState([]);
   const [bulkLeaveForm, setBulkLeaveForm] = useState({
     userId: '',
@@ -156,6 +157,16 @@ export default function LeavesPage() {
       setUsers(response.data.users || []);
     } catch (error) {
       console.error('Error fetching users:', error);
+    }
+  };
+
+  const fetchUserBalance = async (userId) => {
+    try {
+      const response = await api.get(`/hr/leaves/balance/${userId}`);
+      setSelectedUserBalance(response.data.balances || []);
+    } catch (error) {
+      console.error('Error fetching user balance:', error);
+      setSelectedUserBalance([]);
     }
   };
 
@@ -607,13 +618,50 @@ export default function LeavesPage() {
                         required
                       >
                         <option value="">Select leave type</option>
-                        {leaveTypes.map(type => (
-                          <option key={type._id} value={type._id}>
-                            {type.name} ({type.code}) - {type.annualQuota} days/year
-                          </option>
-                        ))}
+                        {leaveTypes.map(type => {
+                          const balance = leaveBalances.find(b => b.leaveTypeId?._id === type._id);
+                          return (
+                            <option key={type._id} value={type._id}>
+                              {type.name} ({type.code}) - 
+                              {balance 
+                                ? ` Available: ${balance.available} days (Total: ${balance.totalQuota})`
+                                : ` ${type.annualQuota} days/year`
+                              }
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
+                    
+                    {/* Show selected leave type balance details */}
+                    {formData.leaveTypeId && (() => {
+                      const selectedBalance = leaveBalances.find(b => b.leaveTypeId?._id === formData.leaveTypeId);
+                      if (selectedBalance) {
+                        return (
+                          <div className={`${currentTheme.surfaceSecondary} rounded-lg p-3 border ${currentTheme.border}`}>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <span className={`${currentTheme.textSecondary}`}>Total:</span>
+                                <span className={`ml-2 font-semibold ${currentTheme.text}`}>{selectedBalance.totalQuota}</span>
+                              </div>
+                              <div>
+                                <span className={`${currentTheme.textSecondary}`}>Used:</span>
+                                <span className="ml-2 font-semibold text-red-600 dark:text-red-400">{selectedBalance.used}</span>
+                              </div>
+                              <div>
+                                <span className={`${currentTheme.textSecondary}`}>Pending:</span>
+                                <span className="ml-2 font-semibold text-yellow-600 dark:text-yellow-400">{selectedBalance.pending}</span>
+                              </div>
+                              <div>
+                                <span className={`${currentTheme.textSecondary}`}>Available:</span>
+                                <span className="ml-2 font-bold text-green-600 dark:text-green-400">{selectedBalance.available}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
 
                 <div>
                   <label className={`block text-sm font-medium ${currentTheme.text} mb-1`}>
@@ -1058,7 +1106,10 @@ export default function LeavesPage() {
       {showBulkLeaveModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
-            <div className="fixed inset-0 bg-black opacity-50" onClick={() => setShowBulkLeaveModal(false)}></div>
+            <div className="fixed inset-0 bg-black opacity-50" onClick={() => {
+              setShowBulkLeaveModal(false);
+              setSelectedUserBalance([]);
+            }}></div>
 
             <div className={`relative ${currentTheme.surface} rounded-lg max-w-2xl w-full p-6`}>
               <div className="flex items-center justify-between mb-4">
@@ -1066,6 +1117,7 @@ export default function LeavesPage() {
                 <button
                   onClick={() => {
                     setShowBulkLeaveModal(false);
+                    setSelectedUserBalance([]);
                     setBulkLeaveForm({
                       userId: '',
                       leaveTypeId: '',
@@ -1089,7 +1141,14 @@ export default function LeavesPage() {
                   </label>
                   <select
                     value={bulkLeaveForm.userId}
-                    onChange={(e) => setBulkLeaveForm({ ...bulkLeaveForm, userId: e.target.value })}
+                    onChange={(e) => {
+                      setBulkLeaveForm({ ...bulkLeaveForm, userId: e.target.value });
+                      if (e.target.value) {
+                        fetchUserBalance(e.target.value);
+                      } else {
+                        setSelectedUserBalance([]);
+                      }
+                    }}
                     className={`w-full px-3 py-2 border ${currentTheme.border} rounded-lg ${currentTheme.surface} ${currentTheme.text}`}
                     required
                   >
@@ -1114,13 +1173,48 @@ export default function LeavesPage() {
                     required
                   >
                     <option value="">-- Select Leave Type --</option>
-                    {leaveTypes.map((type) => (
-                      <option key={type._id} value={type._id}>
-                        {type.name} ({type.code})
-                      </option>
-                    ))}
+                    {leaveTypes.map((type) => {
+                      const balance = selectedUserBalance.find(b => b.leaveTypeId?._id === type._id);
+                      return (
+                        <option key={type._id} value={type._id}>
+                          {type.name} ({type.code})
+                          {balance ? ` - Available: ${balance.available}/${balance.totalQuota} days` : ` - ${type.annualQuota} days/year`}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
+
+                {/* Show selected employee's leave type balance */}
+                {bulkLeaveForm.userId && bulkLeaveForm.leaveTypeId && (() => {
+                  const selectedBalance = selectedUserBalance.find(b => b.leaveTypeId?._id === bulkLeaveForm.leaveTypeId);
+                  if (selectedBalance) {
+                    return (
+                      <div className={`${currentTheme.surfaceSecondary} rounded-lg p-3 border ${currentTheme.border}`}>
+                        <h4 className={`text-sm font-semibold ${currentTheme.text} mb-2`}>Employee Leave Balance</h4>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className={`${currentTheme.textSecondary}`}>Total:</span>
+                            <span className={`ml-2 font-semibold ${currentTheme.text}`}>{selectedBalance.totalQuota}</span>
+                          </div>
+                          <div>
+                            <span className={`${currentTheme.textSecondary}`}>Used:</span>
+                            <span className="ml-2 font-semibold text-red-600 dark:text-red-400">{selectedBalance.used}</span>
+                          </div>
+                          <div>
+                            <span className={`${currentTheme.textSecondary}`}>Pending:</span>
+                            <span className="ml-2 font-semibold text-yellow-600 dark:text-yellow-400">{selectedBalance.pending}</span>
+                          </div>
+                          <div>
+                            <span className={`${currentTheme.textSecondary}`}>Available:</span>
+                            <span className="ml-2 font-bold text-green-600 dark:text-green-400">{selectedBalance.available}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* Date Range */}
                 <div className="grid grid-cols-2 gap-4">
@@ -1211,6 +1305,7 @@ export default function LeavesPage() {
                     type="button"
                     onClick={() => {
                       setShowBulkLeaveModal(false);
+                      setSelectedUserBalance([]);
                       setBulkLeaveForm({
                         userId: '',
                         leaveTypeId: '',
