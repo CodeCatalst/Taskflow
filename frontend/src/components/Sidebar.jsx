@@ -94,7 +94,7 @@ const Sidebar = () => {
   const hrMenuItems = [
     { path: '/hr/dashboard', icon: LayoutDashboard, label: 'HR Dashboard', roles: ['admin', 'hr'], coreWorkspaceOnly: true },
     { path: '/hr/attendance', icon: Clock, label: 'Attendance', roles: ['admin', 'hr'], coreWorkspaceOnly: true },
-    { path: '/hr/leaves', icon: CalendarDays, label: 'Leave Management', roles: ['admin', 'hr', 'member'], coreWorkspaceOnly: true },
+    { path: '/hr/leaves', icon: CalendarDays, label: 'Leave Management', roles: ['admin', 'hr', 'team_lead', 'member'], coreWorkspaceOnly: true },
     { path: '/hr/calendar', icon: Calendar, label: 'HR Calendar', roles: ['admin', 'hr'], coreWorkspaceOnly: true },
     { path: '/hr/email-center', icon: FileText, label: 'Email Center', roles: ['admin', 'hr'], coreWorkspaceOnly: true },
     { path: '/teams', icon: Users, label: 'Teams', roles: ['admin', 'hr', 'team_lead', 'community_admin'] },
