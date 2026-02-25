@@ -7,7 +7,7 @@ import Sidebar from '../components/Sidebar';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import api from '../api/axios';
 import useRealtimeSync from '../hooks/useRealtimeSync';
-import { Plus, X, Users, UserPlus, UserMinus, Trash2, Pin, GripVertical, Search, Filter, Menu } from 'lucide-react';
+import { Plus, X, Users, UserPlus, UserMinus, Trash2, Pin, GripVertical, Search, Filter, Menu, Edit } from 'lucide-react';
 
 const Teams = () => {
   const { user } = useAuth();
@@ -18,11 +18,16 @@ const Teams = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     hr_id: '',
+    lead_id: '',
+  });
+  const [editFormData, setEditFormData] = useState({
+    name: '',
     lead_id: '',
   });
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -73,7 +78,6 @@ const Teams = () => {
       setTeams(fetchedTeams);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching teams:', error);
       setLoading(false);
     }
   };
@@ -83,7 +87,7 @@ const Teams = () => {
       const response = await api.get('/users');
       setUsers(response.data.users);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      // Error fetching users
     }
   };
 
@@ -95,8 +99,29 @@ const Teams = () => {
       setFormData({ name: '', hr_id: '', lead_id: '' });
       fetchTeams();
     } catch (error) {
-      console.error('Error creating team:', error);
       alert(error.response?.data?.message || 'Failed to create team');
+    }
+  };
+
+  const handleEditTeam = (team) => {
+    setSelectedTeam(team);
+    setEditFormData({
+      name: team.name,
+      lead_id: team.lead_id?._id || team.lead_id || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTeam = async (e) => {
+    e.preventDefault();
+    try {
+      await api.patch(`/teams/${selectedTeam._id}`, editFormData);
+      setShowEditModal(false);
+      setEditFormData({ name: '', lead_id: '' });
+      setSelectedTeam(null);
+      fetchTeams();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to update team');
     }
   };
 
@@ -133,7 +158,6 @@ const Teams = () => {
       setIsMultiSelect(false);
       fetchTeams();
     } catch (error) {
-      console.error('Error adding member:', error);
       alert(error.response?.data?.message || 'Failed to add member');
     }
   };
@@ -156,23 +180,28 @@ const Teams = () => {
     }
   };
 
-  const handleRemoveMember = (teamId, userId) => {
-    confirmModal.show({
+  const handleRemoveMember = async (teamId, userId) => {
+    const confirmed = await confirmModal.show({
       title: 'Remove Member',
       message: 'Are you sure you want to remove this member from the team? They will no longer have access to team resources.',
       confirmText: 'Remove',
       cancelText: 'Cancel',
       variant: 'warning',
-      onConfirm: async () => {
-        try {
-          await api.delete(`/teams/${teamId}/members/${userId}`);
-          fetchTeams();
-        } catch (error) {
-          console.error('Error removing member:', error);
-          alert(error.response?.data?.message || 'Failed to remove member');
-        }
-      },
     });
+
+    if (confirmed) {
+      try {
+        const response = await api.delete(`/teams/${teamId}/members/${userId}`);
+        fetchTeams();
+        if (response.data?.message) {
+          alert(response.data.message);
+        }
+      } catch (error) {
+        const errorMsg = error.response?.data?.message || 'Failed to remove member';
+        const debugInfo = error.response?.data?.debug ? ` (${error.response.data.debug})` : '';
+        alert(errorMsg + debugInfo);
+      }
+    }
   };
 
   const handleDeleteTeam = async (teamId, teamName) => {
@@ -190,7 +219,6 @@ const Teams = () => {
         fetchTeams();
         alert('Team deleted successfully');
       } catch (error) {
-        console.error('Error deleting team:', error);
         alert(error.response?.data?.message || 'Failed to delete team');
       }
     }
@@ -217,7 +245,6 @@ const Teams = () => {
         fetchTeams();
         alert(`Successfully deleted all teams`);
       } catch (error) {
-        console.error('Error deleting all teams:', error);
         alert(error.response?.data?.message || 'Failed to delete teams');
         setLoading(false);
       }
@@ -229,7 +256,6 @@ const Teams = () => {
       await api.patch(`/teams/${teamId}/pin`);
       fetchTeams();
     } catch (error) {
-      console.error('Error toggling pin:', error);
       alert(error.response?.data?.message || 'Failed to toggle pin');
     }
   };
@@ -272,7 +298,6 @@ const Teams = () => {
       
       await api.post('/teams/reorder', { teamOrder });
     } catch (error) {
-      console.error('Error reordering teams:', error);
       // Revert on error
       fetchTeams();
     }
@@ -412,6 +437,14 @@ const Teams = () => {
                   {['admin', 'hr', 'community_admin'].includes(user?.role) && (
                     <>
                       <button
+                        onClick={() => handleEditTeam(team)}
+                        className={`hover:text-blue-600 p-1 transition-colors ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-400'}`}
+                        title="Edit Team"
+                        data-testid="edit-team-btn"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </button>
+                      <button
                         onClick={() => handleTogglePin(team._id)}
                         className={`hover:text-yellow-600 p-1 transition-colors ${
                           team.pinned ? 'text-yellow-500' : theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-400'
@@ -517,6 +550,88 @@ const Teams = () => {
         )}
         </div>
       </div>
+
+      {/* Edit Team Modal */}
+      {showEditModal && selectedTeam && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="edit-team-modal">
+          <div className="bg-[#1c2027] rounded-[0.125rem] p-8 max-w-md w-full mx-4 border border-[#282f39]">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Edit Team</h2>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditFormData({ name: '', lead_id: '' });
+                  setSelectedTeam(null);
+                }}
+                className="text-[#9da8b9] hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateTeam} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  Team Name *
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="input"
+                  required
+                  data-testid="edit-team-name-input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  Team Lead *
+                </label>
+                <select
+                  value={editFormData.lead_id}
+                  onChange={(e) => setEditFormData({ ...editFormData, lead_id: e.target.value })}
+                  className="input"
+                  required
+                  data-testid="edit-team-lead-select"
+                >
+                  <option value="">Select Team Lead</option>
+                  {users
+                    .filter((u) => u.role === 'team_lead' || u.role === 'admin')
+                    .map((u) => (
+                      <option key={u._id} value={u._id}>
+                        {u.full_name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-[0.125rem] p-3 mt-4">
+                <p className="text-xs text-blue-400">
+                  <strong>Note:</strong> HR assignment cannot be changed. Only team name and team lead can be updated.
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditFormData({ name: '', lead_id: '' });
+                    setSelectedTeam(null);
+                  }}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" data-testid="submit-edit-team">
+                  Update Team
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Create Team Modal */}
       {showCreateModal && (
