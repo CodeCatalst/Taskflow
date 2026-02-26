@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, CheckCircle, XCircle, RefreshCw, ArrowLeft } from 'lucide-react';
 import api from '../api/axios';
@@ -52,7 +52,6 @@ const VerifyEmail = () => {
         });
       }, 3000);
     } catch (error) {
-      console.error('Verification error:', error);
       setError(
         error.response?.data?.message || 
         'Verification failed. Please check your code and try again.'
@@ -79,7 +78,6 @@ const VerifyEmail = () => {
       setSuccess(true);
       setMessage('Verification code resent! Please check your email inbox.');
     } catch (error) {
-      console.error('Resend error:', error);
       setError(
         error.response?.data?.message || 
         'Failed to resend verification code. Please try again.'
@@ -130,7 +128,7 @@ const VerifyEmail = () => {
                   <CheckCircle size={80} className="text-green-500 mx-auto" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                  Email Verified! 🎉
+                  Email Verified! ðŸŽ‰
                 </h2>
                 <p className="text-gray-600 mb-6">
                   Redirecting you to login page...
@@ -241,7 +239,7 @@ const VerifyEmail = () => {
         {/* Info Box */}
         {!success && (
           <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-lg p-4 text-white text-sm">
-            <p className="font-semibold mb-2">📧 Check your email inbox</p>
+            <p className="font-semibold mb-2">ðŸ“§ Check your email inbox</p>
             <ul className="space-y-1 ml-4 list-disc">
               <li>The code is valid for 24 hours</li>
               <li>Check your spam folder if you don't see it</li>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -92,9 +92,7 @@ const Dashboard = () => {
       if (error.response?.status === 403) {
         // No permission
       } else if (error.response?.status === 401) {
-        console.error('Authentication required');
       } else {
-        console.error('Error fetching teams:', error);
       }
     }
   }, [user?.role]);
@@ -139,7 +137,7 @@ const Dashboard = () => {
 
   const handleInstallClick = async () => {
     if (isInstalled || localStorage.getItem('pwa-installed') === 'true') {
-      alert('✅ TaskFlow is Already Installed!');
+      alert('âœ… TaskFlow is Already Installed!');
       return;
     }
     
@@ -156,14 +154,13 @@ const Dashboard = () => {
         setIsInstalled(true);
         localStorage.setItem('pwa-installed', 'true');
         setTimeout(() => {
-          alert('🎉 TaskFlow has been installed!');
+          alert('ðŸŽ‰ TaskFlow has been installed!');
         }, 1000);
       }
 
       setDeferredPrompt(null);
       setShowInstallBanner(false);
     } catch (error) {
-      console.error('Error during installation:', error);
     }
   };
 
@@ -338,7 +335,6 @@ const Dashboard = () => {
 
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
       setLoading(false);
     }
   }, [user, fetchTeams]);
@@ -419,7 +415,6 @@ const Dashboard = () => {
       }
       setShowReportOptions(false);
     } catch (error) {
-      console.error('Error generating report:', error);
       alert('Failed to generate report. Please try again.');
     }
   };
@@ -634,7 +629,7 @@ const Dashboard = () => {
                   to="/analytics"
                   className="text-xs text-[#136dec] hover:text-blue-400 font-medium"
                 >
-                  View Detailed Analytics →
+                  View Detailed Analytics â†’
                 </Link>
               </div>
 
@@ -995,7 +990,7 @@ const Dashboard = () => {
                           </span>
                         </div>
                         <p className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} mb-2`}>
-                          {task.team_id?.name || 'No Team'} • {task.priority?.charAt(0).toUpperCase() + task.priority?.slice(1)}
+                          {task.team_id?.name || 'No Team'} â€¢ {task.priority?.charAt(0).toUpperCase() + task.priority?.slice(1)}
                         </p>
                         {task.assigned_to && task.assigned_to.length > 0 && (
                           <div className="flex items-center gap-2">
@@ -1010,7 +1005,7 @@ const Dashboard = () => {
 
                     {overdueTasks.length === 0 && (
                       <div className={`p-4 text-center text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
-                        No overdue tasks! 🎉
+                        No overdue tasks! ðŸŽ‰
                       </div>
                     )}
                   </div>

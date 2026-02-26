@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
 import { requireCoreWorkspace } from '../middleware/workspaceGuard.js';
@@ -22,7 +22,6 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
 
     res.json({ success: true, leaveTypes });
   } catch (error) {
-    console.error('Get leave types error:', error);
     res.status(500).json({ message: 'Failed to fetch leave types' });
   }
 });
@@ -75,7 +74,6 @@ router.post('/', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']),
 
     res.status(201).json({ success: true, leaveType });
   } catch (error) {
-    console.error('Create leave type error:', error);
     if (error.code === 11000) {
       res.status(400).json({ message: 'Leave type code already exists' });
     } else {
@@ -151,7 +149,6 @@ router.put('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']
       updatedBalancesCount: quotaChanged && updateExistingBalances ? updatedBalancesCount : 0
     });
   } catch (error) {
-    console.error('Update leave type error:', error);
     res.status(500).json({ message: 'Failed to update leave type' });
   }
 });
@@ -182,7 +179,6 @@ router.delete('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'h
 
     res.json({ success: true, message: 'Leave type deactivated' });
   } catch (error) {
-    console.error('Delete leave type error:', error);
     res.status(500).json({ message: 'Failed to delete leave type' });
   }
 });

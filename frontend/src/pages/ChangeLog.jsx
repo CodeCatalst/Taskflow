@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -79,7 +79,6 @@ const ChangeLog = () => {
       setTotalPages(response.data.totalPages || 1);
       setTotal(response.data.total || 0);
     } catch (error) {
-      console.error('Error fetching change logs:', error);
 
       if (error.response?.status === 401) {
         setError('Authentication required. Please log in again.');
@@ -87,7 +86,7 @@ const ChangeLog = () => {
         setError('Access denied. Admin privileges required.');
         setTimeout(() => navigate('/dashboard'), 2000);
       } else if (error.response?.status === 404) {
-        setError('⚠️ Changelog routes not found. Please restart the backend server! See RESTART_BACKEND.md for instructions.');
+        setError('âš ï¸ Changelog routes not found. Please restart the backend server! See RESTART_BACKEND.md for instructions.');
       } else if (error.response?.data?.message) {
         setError(`Error: ${error.response.data.message}`);
       } else {
@@ -107,7 +106,6 @@ const ChangeLog = () => {
       const response = await api.get(`/changelog/stats?${params}`);
       setStats(response.data);
     } catch (error) {
-      console.error('Error fetching stats:', error);
       // Set default stats if error
       setStats({
         total: 0,
@@ -122,7 +120,6 @@ const ChangeLog = () => {
       const response = await api.get('/changelog/event-types');
       setEventTypes(response.data || []);
     } catch (error) {
-      console.error('Error fetching event types:', error);
       // Set default event types
       setEventTypes([
         'user_login',
@@ -161,7 +158,6 @@ const ChangeLog = () => {
       link.click();
       link.remove();
     } catch (error) {
-      console.error('Error exporting logs:', error);
       alert('Failed to export logs');
     } finally {
       setExporting(false);
@@ -182,7 +178,6 @@ const ChangeLog = () => {
           fetchLogs();
           fetchStats();
         } catch (error) {
-          console.error('Error clearing logs:', error);
           alert('Failed to clear logs');
         }
       },
@@ -190,16 +185,16 @@ const ChangeLog = () => {
   };
 
   const getEventIcon = (eventType) => {
-    if (eventType.includes('login') || eventType.includes('logout')) return '🔐';
-    if (eventType.includes('task')) return '✅';
-    if (eventType.includes('user')) return '👤';
-    if (eventType.includes('team')) return '👥';
-    if (eventType.includes('report')) return '📊';
-    if (eventType.includes('automation')) return '🤖';
-    if (eventType.includes('notification')) return '🔔';
-    if (eventType.includes('comment')) return '💬';
-    if (eventType.includes('bulk')) return '📦';
-    return '⚙️';
+    if (eventType.includes('login') || eventType.includes('logout')) return 'ðŸ”';
+    if (eventType.includes('task')) return 'âœ…';
+    if (eventType.includes('user')) return 'ðŸ‘¤';
+    if (eventType.includes('team')) return 'ðŸ‘¥';
+    if (eventType.includes('report')) return 'ðŸ“Š';
+    if (eventType.includes('automation')) return 'ðŸ¤–';
+    if (eventType.includes('notification')) return 'ðŸ””';
+    if (eventType.includes('comment')) return 'ðŸ’¬';
+    if (eventType.includes('bulk')) return 'ðŸ“¦';
+    return 'âš™ï¸';
   };
 
   const getEventColor = (eventType) => {
@@ -240,14 +235,14 @@ const ChangeLog = () => {
 
   const getTargetTypeIcon = (targetType) => {
     switch (targetType?.toLowerCase()) {
-      case 'task': return '✅';
-      case 'user': return '👤';
-      case 'team': return '👥';
-      case 'report': return '📊';
-      case 'comment': return '💬';
-      case 'notification': return '🔔';
-      case 'automation': return '⚙️';
-      default: return '📌';
+      case 'task': return 'âœ…';
+      case 'user': return 'ðŸ‘¤';
+      case 'team': return 'ðŸ‘¥';
+      case 'report': return 'ðŸ“Š';
+      case 'comment': return 'ðŸ’¬';
+      case 'notification': return 'ðŸ””';
+      case 'automation': return 'âš™ï¸';
+      default: return 'ðŸ“Œ';
     }
   };
 
@@ -279,7 +274,7 @@ const ChangeLog = () => {
                 onClick={() => setError(null)}
                 className="text-red-400 hover:text-red-300"
               >
-                ×
+                Ã—
               </button>
             </div>
           )}
@@ -402,13 +397,13 @@ const ChangeLog = () => {
                         : 'border-gray-200 bg-white'
                       } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                   >
-                    <option value="">🌐 All Events</option>
+                    <option value="">ðŸŒ All Events</option>
                     {eventTypes.map(type => {
-                      const emoji = type.includes('created') ? '✨' :
-                        type.includes('updated') ? '📝' :
-                          type.includes('deleted') ? '🗑️' :
-                            type.includes('login') ? '🔓' :
-                              type.includes('logout') ? '🔒' : '📌';
+                      const emoji = type.includes('created') ? 'âœ¨' :
+                        type.includes('updated') ? 'ðŸ“' :
+                          type.includes('deleted') ? 'ðŸ—‘ï¸' :
+                            type.includes('login') ? 'ðŸ”“' :
+                              type.includes('logout') ? 'ðŸ”’' : 'ðŸ“Œ';
                       return (
                         <option key={type} value={type}>
                           {emoji} {type.replace(/_/g, ' ').toUpperCase()}
@@ -432,14 +427,14 @@ const ChangeLog = () => {
                       : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
                       } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                   >
-                    <option value="">🎯 All Types</option>
-                    <option value="task">✅ Task</option>
-                    <option value="user">👤 User</option>
-                    <option value="team">👥 Team</option>
-                    <option value="report">📊 Report</option>
-                    <option value="comment">💬 Comment</option>
-                    <option value="notification">🔔 Notification</option>
-                    <option value="automation">⚙️ Automation</option>
+                    <option value="">ðŸŽ¯ All Types</option>
+                    <option value="task">âœ… Task</option>
+                    <option value="user">ðŸ‘¤ User</option>
+                    <option value="team">ðŸ‘¥ Team</option>
+                    <option value="report">ðŸ“Š Report</option>
+                    <option value="comment">ðŸ’¬ Comment</option>
+                    <option value="notification">ðŸ”” Notification</option>
+                    <option value="automation">âš™ï¸ Automation</option>
                   </select>
                 </div>
 
@@ -511,10 +506,10 @@ const ChangeLog = () => {
                     className={`w-full px-4 py-2.5 border-2 rounded-[0.125rem] font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:outline-none ${theme === 'dark' ? 'border-[#282f39] bg-[#1c2027] text-white' : 'border-gray-200 bg-white text-gray-900'
                       }`}
                   >
-                    <option value="25">📄 25 items</option>
-                    <option value="50">📋 50 items</option>
-                    <option value="100">📚 100 items</option>
-                    <option value="200">📦 200 items</option>
+                    <option value="25">ðŸ“„ 25 items</option>
+                    <option value="50">ðŸ“‹ 50 items</option>
+                    <option value="100">ðŸ“š 100 items</option>
+                    <option value="200">ðŸ“¦ 200 items</option>
                   </select>
                 </div>
               </div>
@@ -538,7 +533,7 @@ const ChangeLog = () => {
                   )}
                   {(filters.start_date || filters.end_date) && (
                     <span className="px-3 py-1 bg-green-500/10 text-green-400 rounded-full text-xs font-medium">
-                      📅 Date Range
+                      ðŸ“… Date Range
                     </span>
                   )}
                 </div>
@@ -640,7 +635,7 @@ const ChangeLog = () => {
                                   ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                                   : 'bg-green-500/10 text-green-400 border border-green-500/30'
                                 }`}>
-                                {log.user_role === 'admin' ? '👑' : log.user_role === 'manager' ? '⭐' : '👤'} {log.user_role.toUpperCase()}
+                                {log.user_role === 'admin' ? 'ðŸ‘‘' : log.user_role === 'manager' ? 'â­' : 'ðŸ‘¤'} {log.user_role.toUpperCase()}
                               </span>
                             )}
                           </div>
@@ -655,7 +650,7 @@ const ChangeLog = () => {
                                   <span className={theme === 'dark' ? 'text-red-400' : 'text-red-600'}>
                                     {change.old !== undefined ? String(change.old) : 'null'}
                                   </span>
-                                  <span className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-400'}>→</span>
+                                  <span className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-400'}>â†’</span>
                                   <span className={theme === 'dark' ? 'text-green-400' : 'text-green-600'}>
                                     {change.new !== undefined ? String(change.new) : 'null'}
                                   </span>

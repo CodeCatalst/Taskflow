@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import { body, validationResult } from 'express-validator';
@@ -124,7 +124,6 @@ router.post('/register-community', [
       },
     });
   } catch (error) {
-    console.error('Community registration error:', error);
     res.status(500).json({ 
       message: 'Failed to create community workspace', 
       error: error.message 
@@ -309,7 +308,6 @@ router.post('/login', validateLogin, async (req, res) => {
       refreshToken
     });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -377,7 +375,6 @@ router.post('/refresh', async (req, res) => {
       refreshToken: newRefreshToken
     });
   } catch (error) {
-    console.error('Refresh token error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -455,7 +452,6 @@ router.post('/verify-email', [
       } : null
     });
   } catch (error) {
-    console.error('Email verification error:', error);
     res.status(500).json({ 
       message: 'Failed to verify email', 
       error: error.message 
@@ -513,7 +509,6 @@ router.post('/resend-verification', [
       email: user.email
     });
   } catch (error) {
-    console.error('Resend verification error:', error);
     res.status(500).json({ 
       message: 'Failed to resend verification email', 
       error: error.message 
@@ -564,21 +559,16 @@ router.post('/forgot-password', [
     const resetToken = crypto.randomInt(100000, 999999).toString();
     const resetExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    console.log('🔐 Password reset requested for:', user.email);
-    console.log('   Generated token:', resetToken);
-    console.log('   Token expires:', resetExpiry);
 
     // Save token to user (updates existing token if any)
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpiry = resetExpiry;
     await user.save();
 
-    console.log('✅ Token saved to database');
 
     // Send reset email
     await sendPasswordResetLink(user.full_name, user.email, resetToken);
 
-    console.log('📧 Reset email sent to:', user.email);
 
     // Log password reset request
     const user_ip = getClientIP(req);
@@ -595,7 +585,6 @@ router.post('/forgot-password', [
       message: 'If an account exists with that email, a password reset code has been sent.' 
     });
   } catch (error) {
-    console.error('Forgot password error:', error);
     res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 });
@@ -614,9 +603,6 @@ router.post('/reset-password', [
 
     const { email, token, newPassword } = req.body;
 
-    console.log('🔐 Password reset attempt');
-    console.log('   Email:', email);
-    console.log('   Token received:', token);
 
     // Find user with valid token and email
     const user = await User.findOne({
@@ -625,15 +611,10 @@ router.post('/reset-password', [
       resetPasswordExpiry: { $gt: Date.now() }
     });
 
-    console.log('   User found:', user ? `${user.email} (${user._id})` : 'NO USER FOUND');
     if (user) {
-      console.log('   Stored token:', user.resetPasswordToken);
-      console.log('   Token expires:', user.resetPasswordExpiry);
-      console.log('   Current time:', new Date());
     }
 
     if (!user) {
-      console.log('❌ Invalid or expired token');
       return res.status(400).json({ 
         message: 'Invalid or expired reset code. Please request a new password reset.' 
       });
@@ -645,7 +626,6 @@ router.post('/reset-password', [
     user.resetPasswordExpiry = null;
     await user.save();
 
-    console.log('✅ Password reset successful for:', user.email);
 
     // Log password reset
     const user_ip = getClientIP(req);
@@ -660,7 +640,6 @@ router.post('/reset-password', [
 
     res.json({ message: 'Password reset successfully. You can now login with your new password.' });
   } catch (error) {
-    console.error('Reset password error:', error);
     res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 });
@@ -670,7 +649,6 @@ router.post('/switch-workspace', authenticate, async (req, res) => {
   try {
     const { workspaceId } = req.body;
     
-    console.log('Switch workspace request:', {
       userId: req.user._id,
       userRole: req.user.role,
       requestedWorkspace: workspaceId
@@ -686,15 +664,12 @@ router.post('/switch-workspace', authenticate, async (req, res) => {
       .lean();
     
     if (!workspace) {
-      console.log('Workspace not found:', workspaceId);
       return res.status(404).json({ message: 'Workspace not found' });
     }
     
-    console.log('Workspace found:', workspace.name);
     
     // Admins can access any workspace, regular users need to belong to it
     if (req.user.role !== 'admin' && !req.user.belongsToWorkspace(workspaceId)) {
-      console.log('Access denied: User does not belong to workspace');
       return res.status(403).json({ 
         message: 'You do not have access to this workspace' 
       });
@@ -707,7 +682,6 @@ router.post('/switch-workspace', authenticate, async (req, res) => {
     if (req.user.role === 'admin' || req.user.belongsToWorkspace(workspaceId)) {
       req.user.currentWorkspaceId = workspaceId;
       await req.user.save();
-      console.log('Workspace switched successfully from', fromWorkspaceId, 'to', workspaceId);
     }
     
     // Get role in new workspace (admin always has admin role)
@@ -739,7 +713,6 @@ router.post('/switch-workspace', authenticate, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Switch workspace error:', error);
     res.status(500).json({ message: 'Failed to switch workspace' });
   }
 });
@@ -797,7 +770,6 @@ router.get('/my-workspaces', authenticate, async (req, res) => {
       currentWorkspaceId: req.user.currentWorkspaceId
     });
   } catch (error) {
-    console.error('Get workspaces error:', error);
     res.status(500).json({ message: 'Failed to fetch workspaces' });
   }
 });

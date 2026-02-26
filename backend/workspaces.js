@@ -1,4 +1,4 @@
-
+﻿
 // Get users of a specific workspace (System Admin only)
 router.get('/:id/users', requireSystemAdmin, async (req, res) => {
   try {
@@ -22,7 +22,6 @@ router.get('/:id/users', requireSystemAdmin, async (req, res) => {
       count: users.length 
     });
   } catch (error) {
-    console.error('Error fetching workspace users:', error);
     res.status(500).json({ message: 'Failed to fetch users' });
   }
 });
@@ -53,7 +52,6 @@ router.get('/:id/tasks', requireSystemAdmin, async (req, res) => {
       total: await Task.countDocuments({ workspaceId: workspace._id })
     });
   } catch (error) {
-    console.error('Error fetching workspace tasks:', error);
     res.status(500).json({ message: 'Failed to fetch tasks' });
   }
 });
@@ -82,7 +80,6 @@ router.get('/:id/teams', requireSystemAdmin, async (req, res) => {
       count: teams.length 
     });
   } catch (error) {
-    console.error('Error fetching workspace teams:', error);
     res.status(500).json({ message: 'Failed to fetch teams' });
   }
 });

@@ -1938,9 +1938,9 @@ async function seedEmailTemplates() {
   try {
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/taskflow');
-    console.log('✅ Connected to MongoDB');
+    
 
-    console.log('🌱 Seeding predefined email templates...');
+    
 
       for (const templateData of predefinedTemplates) {
         // Use findOneAndUpdate to create or update
@@ -1949,18 +1949,18 @@ async function seedEmailTemplates() {
           { $set: templateData },
           { upsert: true, new: true }
         );
-        console.log(`✅ Processed template: ${templateData.name} (${templateData.code})`);
+        
       }
 
 
-    console.log('🎉 Email template seeding completed!');
-    console.log(`📊 Created ${predefinedTemplates.length} predefined templates`);
+    
+    
 
   } catch (error) {
-    console.error('❌ Error seeding email templates:', error);
+    
   } finally {
     await mongoose.connection.close();
-    console.log('🔌 Database connection closed');
+    
   }
 }
 

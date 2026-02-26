@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -69,7 +69,6 @@ export default function CommunityUserManagement() {
       const response = await api.get('/teams');
       setTeams(response.data.teams || []);
     } catch (err) {
-      console.error('Failed to fetch teams:', err);
     }
   };
 

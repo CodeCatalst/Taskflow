@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+﻿import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -403,7 +403,6 @@ export const generateComprehensivePDFReport = (tasks, analyticsData, filters, us
     doc.save(`TaskFlow_${reportTypeLabel}_Report_${timestamp}.pdf`);
     
   } catch (error) {
-    console.error('Error in generateComprehensivePDFReport:', error);
     throw error;
   }
 };

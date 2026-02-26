@@ -17,18 +17,18 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const seedHRData = async () => {
   try {
-    console.log('🌱 Starting HR module data seeding...');
+    
 
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Connected to MongoDB');
+    
 
     // Get all workspaces
     const workspaces = await Workspace.find();
-    console.log(`📊 Found ${workspaces.length} workspace(s)`);
+    
 
     for (const workspace of workspaces) {
-      console.log(`\n📦 Seeding data for workspace: ${workspace.name}`);
+      
 
       // 1. Seed Leave Types
       const leaveTypes = [
@@ -82,7 +82,7 @@ const seedHRData = async () => {
 
         if (!existing) {
           const leaveType = await LeaveType.create(leaveTypeData);
-          console.log(`  ✅ Created leave type: ${leaveType.name}`);
+          
 
           // Initialize leave balances for all users in workspace
           const users = await User.find({ workspaceId: workspace._id });
@@ -101,9 +101,9 @@ const seedHRData = async () => {
               carriedForward: 0
             });
           }
-          console.log(`  📊 Initialized leave balances for ${users.length} user(s)`);
+          
         } else {
-          console.log(`  ⏭️  Leave type already exists: ${leaveTypeData.name}`);
+          
         }
       }
 
@@ -149,9 +149,9 @@ const seedHRData = async () => {
 
         if (!existing) {
           await Holiday.create(holidayData);
-          console.log(`  ✅ Created holiday: ${holidayData.name}`);
+          
         } else {
-          console.log(`  ⏭️  Holiday already exists: ${holidayData.name}`);
+          
         }
       }
     }
@@ -270,22 +270,22 @@ const seedHRData = async () => {
 
       if (!existing) {
         await EmailTemplate.create(templateData);
-        console.log(`\n✅ Created global email template: ${templateData.name}`);
+        
       } else {
-        console.log(`\n⏭️  Email template already exists: ${templateData.name}`);
+        
       }
     }
 
-    console.log('\n✅ HR module data seeding completed successfully!');
-    console.log('\n📋 Summary:');
-    console.log(`   - Leave Types: 4 per workspace`);
-    console.log(`   - Holidays: 4 per workspace`);
-    console.log(`   - Email Templates: 4 global templates`);
-    console.log(`   - Leave Balances: Initialized for all users\n`);
+    
+    
+    
+    
+    
+    
 
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error seeding HR data:', error);
+    
     process.exit(1);
   }
 };

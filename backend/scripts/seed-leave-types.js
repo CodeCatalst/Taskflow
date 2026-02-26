@@ -87,22 +87,22 @@ const defaultLeaveTypes = [
 
 async function seedLeaveTypes() {
   try {
-    console.log('🔗 Connecting to MongoDB...');
+    
     await mongoose.connect(MONGODB_URI);
-    console.log('✅ Connected to MongoDB');
+    
 
     // Get all workspaces
     const workspaces = await Workspace.find({});
-    console.log(`\n📊 Found ${workspaces.length} workspace(s)`);
+    
 
     for (const workspace of workspaces) {
-      console.log(`\n🏢 Processing workspace: ${workspace.name} (${workspace.type})`);
+      
 
       // Check if leave types already exist
       const existingTypes = await LeaveType.find({ workspaceId: workspace._id });
       
       if (existingTypes.length > 0) {
-        console.log(`   ℹ️  ${existingTypes.length} leave type(s) already exist, skipping...`);
+        
         continue;
       }
 
@@ -116,12 +116,12 @@ async function seedLeaveTypes() {
         });
         await leaveType.save();
         createdTypes.push(leaveType);
-        console.log(`   ✅ Created: ${typeData.name} (${typeData.code}) - ${typeData.annualQuota} days`);
+        
       }
 
       // Get all users in this workspace
       const users = await User.find({ workspaceId: workspace._id });
-      console.log(`   👥 Found ${users.length} user(s) in workspace`);
+      
 
       // Create leave balances for all users
       const currentYear = new Date().getFullYear();
@@ -152,27 +152,27 @@ async function seedLeaveTypes() {
         }
       }
 
-      console.log(`   ✅ Created ${balanceCount} leave balance record(s)`);
+      
     }
 
-    console.log('\n✅ Leave types seeding completed successfully!');
-    console.log('\n📋 Summary:');
-    console.log('   - 8 leave types per workspace');
-    console.log('   - Annual Leave: 20 days (carry forward up to 5)');
-    console.log('   - Sick Leave: 12 days');
-    console.log('   - Casual Leave: 10 days');
-    console.log('   - Maternity Leave: 90 days');
-    console.log('   - Paternity Leave: 14 days');
-    console.log('   - Bereavement Leave: 5 days');
-    console.log('   - Study Leave: 10 days (carry forward up to 3)');
-    console.log('   - Compensatory Off: 12 days (carry forward up to 6)');
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
   } catch (error) {
-    console.error('❌ Error seeding leave types:', error);
+    
     process.exit(1);
   } finally {
     await mongoose.connection.close();
-    console.log('\n🔌 Database connection closed');
+    
     process.exit(0);
   }
 }

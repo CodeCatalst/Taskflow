@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -74,7 +74,6 @@ export default function LeavesPage() {
         setTimeout(() => setSuccess(''), 5000);
       }
     } catch (error) {
-      console.error('Error updating leave status:', error);
       setError(error.response?.data?.message || 'Failed to update leave status');
     }
   };
@@ -98,7 +97,6 @@ export default function LeavesPage() {
         setTimeout(() => setSuccess(''), 5000);
       }
     } catch (error) {
-      console.error('Error updating notes:', error);
       setError(error.response?.data?.message || 'Failed to update notes');
     }
   };
@@ -145,7 +143,6 @@ export default function LeavesPage() {
       setLeaveBalances(balancesRes.data.balances || []);
       setLeaveTypes(typesRes.data.leaveTypes || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
       setError(error.response?.data?.message || 'Failed to load leave data. Please try again.');
     } finally {
       setLoading(false);
@@ -157,7 +154,6 @@ export default function LeavesPage() {
       const response = await api.get('/users');
       setUsers(response.data.users || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
     }
   };
 
@@ -166,7 +162,6 @@ export default function LeavesPage() {
       const response = await api.get(`/hr/leaves/balance/${userId}`);
       setSelectedUserBalance(response.data.balances || []);
     } catch (error) {
-      console.error('Error fetching user balance:', error);
       setSelectedUserBalance([]);
     }
   };
@@ -315,7 +310,7 @@ export default function LeavesPage() {
     <div>
       <ResponsivePageLayout
         title="Leave Management"
-        subtitle={`${leaveRequests.length} request${leaveRequests.length !== 1 ? 's' : ''} • ${leaveTypes.length} leave type${leaveTypes.length !== 1 ? 's' : ''}`}
+        subtitle={`${leaveRequests.length} request${leaveRequests.length !== 1 ? 's' : ''} â€¢ ${leaveTypes.length} leave type${leaveTypes.length !== 1 ? 's' : ''}`}
         actions={
           <div className="flex gap-2">
             {isAdmin && (
@@ -769,6 +764,7 @@ export default function LeavesPage() {
                 <div className="mb-6">
                   <h4 className={`text-sm font-semibold ${currentTheme.text} mb-3`}>Existing Leave Types</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+<<<<<<< Updated upstream
                     {leaveTypes.map((type) => {
                       // Find the corresponding balance for this leave type
                       const balance = leaveBalances.find(b => b.leaveTypeId?._id === type._id);
@@ -777,6 +773,37 @@ export default function LeavesPage() {
                         <div
                           key={type._id}
                           className={`${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded-lg p-3 flex items-center justify-between hover:border-blue-500/50 transition-colors`}
+=======
+                    {leaveTypes.map((type) => (
+                      <div
+                        key={type._id}
+                        className={`${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded-lg p-3 flex items-center justify-between hover:border-blue-500/50 transition-colors`}
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <div
+                            className="w-4 h-4 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: type.color }}
+                          ></div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h5 className={`text-sm font-semibold ${currentTheme.text} truncate`}>
+                                {type.name}
+                              </h5>
+                              <span className={`text-xs px-2 py-0.5 rounded ${currentTheme.surfaceSecondary} ${currentTheme.textSecondary} border ${currentTheme.border}`}>
+                                {type.code}
+                              </span>
+                            </div>
+                            <p className={`text-xs ${currentTheme.textSecondary} mt-0.5`}>
+                              {type.annualQuota} days/year
+                              {type.carryForward && ` â€¢ Carry forward: ${type.maxCarryForward} days`}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleEditLeaveType(type)}
+                          className="ml-2 px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex-shrink-0"
+>>>>>>> Stashed changes
                         >
                           <div className="flex items-center gap-3 flex-1">
                             <div
@@ -1336,7 +1363,7 @@ export default function LeavesPage() {
                       </span>
                     </div>
                     <div className={`text-xs ${currentTheme.textSecondary}`}>
-                      {calculateDays(bulkLeaveForm.startDate, bulkLeaveForm.endDate)} calendar days × {bulkLeaveForm.timePeriod === 'full_day' ? 'Full Day' : 'Half Day (0.5)'}
+                      {calculateDays(bulkLeaveForm.startDate, bulkLeaveForm.endDate)} calendar days Ã— {bulkLeaveForm.timePeriod === 'full_day' ? 'Full Day' : 'Half Day (0.5)'}
                     </div>
                     <div className={`text-xs ${currentColorScheme.info.replace('bg-', 'text-').replace('-500', '-600')} mt-2 flex items-start gap-1`}>
                       <CheckCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />

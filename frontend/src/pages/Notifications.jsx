@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -23,12 +23,10 @@ const Notifications = () => {
     try {
       setLoading(true);
       const response = await api.get('/notifications');
-      console.log('Notifications received:', response.data.notifications);
       setNotifications(response.data.notifications || []);
       setUnreadCount(response.data.unreadCount || 0);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
       setLoading(false);
     }
   };
@@ -38,7 +36,6 @@ const Notifications = () => {
       await api.patch('/notifications/mark-read', { notificationIds });
       await fetchNotifications();
     } catch (error) {
-      console.error('Error marking notifications as read:', error);
     }
   };
 
@@ -47,7 +44,6 @@ const Notifications = () => {
       await api.patch('/notifications/mark-read', {});
       await fetchNotifications();
     } catch (error) {
-      console.error('Error marking all as read:', error);
     }
   };
 
@@ -56,7 +52,6 @@ const Notifications = () => {
       // For now, just mark as read. You can add a delete endpoint if needed
       await markAsRead([id]);
     } catch (error) {
-      console.error('Error deleting notification:', error);
     }
   };
 
@@ -278,7 +273,7 @@ const Notifications = () => {
                         href={`/tasks`}
                         className="text-xs text-[#136dec] hover:text-blue-400 font-medium"
                       >
-                        View Task →
+                        View Task â†’
                       </a>
                     </div>
                   )}

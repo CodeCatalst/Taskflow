@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -116,7 +116,6 @@ const CommunityRegister = () => {
         window.location.reload();
       }
     } catch (error) {
-      console.error('Community registration error:', error);
       if (error.response?.data?.message) {
         setApiError(error.response.data.message);
       } else if (error.response?.data?.errors) {
@@ -163,7 +162,7 @@ const CommunityRegister = () => {
               Get Started
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-              Includes: Up to 10 users • 100 tasks • 3 teams
+              Includes: Up to 10 users â€¢ 100 tasks â€¢ 3 teams
             </p>
           </div>
 

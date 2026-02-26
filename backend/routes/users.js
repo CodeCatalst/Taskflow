@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
@@ -55,7 +55,6 @@ router.get('/me', authenticate, async (req, res) => {
     
     res.json({ user });
   } catch (error) {
-    console.error('Get user error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -77,7 +76,6 @@ router.patch('/me', authenticate, async (req, res) => {
 
     res.json({ message: 'Profile updated', user });
   } catch (error) {
-    console.error('Update profile error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -126,7 +124,6 @@ router.post('/me/profile-picture', authenticate, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Upload profile picture error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -153,7 +150,6 @@ router.delete('/me/profile-picture', authenticate, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Delete profile picture error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -191,7 +187,6 @@ router.post('/me/change-password', authenticate, async (req, res) => {
 
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
-    console.error('Change password error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -208,7 +203,6 @@ router.get('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), asy
 
     res.json({ users, count: users.length });
   } catch (error) {
-    console.error('Get users error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -240,7 +234,6 @@ router.get('/team-members', authenticate, checkRole(['team_lead']), async (req, 
 
     res.json({ users, count: users.length });
   } catch (error) {
-    console.error('Get team members error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -263,7 +256,6 @@ router.get('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
 
     res.json({ user });
   } catch (error) {
-    console.error('Get user error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -333,7 +325,6 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
         // Email result handled silently
       })
       .catch((error) => {
-        console.error('❌ Email error:', error.message);
       });
 
     // Get user response immediately
@@ -373,7 +364,6 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
       emailQueued: true
     });
   } catch (error) {
-    console.error('Create user error:', error);
     
     // Handle duplicate email error
     if (error.code === 11000 && error.keyPattern?.email) {
@@ -451,7 +441,6 @@ router.post('/bulk-delete', authenticate, checkRole(['admin', 'hr']), ...require
       attempted: idsToDelete.length
     });
   } catch (error) {
-    console.error('Bulk delete users error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -576,7 +565,6 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
 
     res.json({ message: 'User updated successfully', user });
   } catch (error) {
-    console.error('Update user error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -633,7 +621,6 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res)
 
     res.json({ message: 'User deleted successfully', user: { id: user._id, email: user.email } });
   } catch (error) {
-    console.error('Delete user error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -663,7 +650,6 @@ router.patch('/:id/password', authenticate, checkRole(['admin', 'hr', 'community
         // Email result handled silently
       })
       .catch((error) => {
-        console.error('❌ Password reset email error:', error.message);
       });
 
     res.json({ 
@@ -671,7 +657,6 @@ router.patch('/:id/password', authenticate, checkRole(['admin', 'hr', 'community
       emailQueued: true
     });
   } catch (error) {
-    console.error('Reset password error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -698,7 +683,6 @@ router.patch('/:id/role', authenticate, checkRole(['admin', 'hr']), async (req, 
 
     res.json({ message: 'User role updated', user });
   } catch (error) {
-    console.error('Update role error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -733,7 +717,6 @@ router.post('/bulk-import/json', authenticate, checkRole(['admin', 'hr']), ...re
       ...results
     });
   } catch (error) {
-    console.error('Bulk import JSON error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -767,7 +750,6 @@ router.post('/bulk-import/excel', authenticate, checkRole(['admin', 'hr']), ...r
       ...results
     });
   } catch (error) {
-    console.error('Bulk import Excel error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -927,7 +909,6 @@ async function processBulkUsers(usersData, currentUser) {
       try {
         await sendCredentialEmail(userData.email, userData.password);
       } catch (emailError) {
-        console.error(`Failed to send email to ${userData.email}:`, emailError);
       }
 
       results.successful.push({
@@ -1009,7 +990,6 @@ router.get('/bulk-import/template', authenticate, checkRole(['admin', 'hr']), ..
     res.setHeader('Content-Disposition', 'attachment; filename=user_import_template.xlsx');
     res.send(excelBuffer);
   } catch (error) {
-    console.error('Template download error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -1051,7 +1031,6 @@ router.get('/bulk-import/template-json', authenticate, checkRole(['admin', 'hr']
     res.setHeader('Content-Disposition', 'attachment; filename=user_import_template.json');
     res.json(sampleData);
   } catch (error) {
-    console.error('JSON template download error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -1078,7 +1057,6 @@ router.patch('/:id/activate', authenticate, checkRole(['hr', 'admin', 'community
      }
    });
  } catch (error) {
-   console.error('Employee activation error:', error);
    res.status(400).json({ message: error.message });
  }
 });
@@ -1121,7 +1099,6 @@ router.patch('/:id/deactivate', authenticate, checkRole(['hr', 'admin', 'communi
      }
    });
  } catch (error) {
-   console.error('Employee deactivation error:', error);
    res.status(400).json({ message: error.message });
  }
 });

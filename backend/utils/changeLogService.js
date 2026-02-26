@@ -1,4 +1,4 @@
-import ChangeLog from '../models/ChangeLog.js';
+﻿import ChangeLog from '../models/ChangeLog.js';
 
 /**
  * Create a change log entry
@@ -61,7 +61,6 @@ export const logChange = async (params) => {
     await logEntry.save();
     return logEntry;
   } catch (error) {
-    console.error('Error creating change log:', error);
     // Don't throw error to prevent disrupting main operations
     return null;
   }
@@ -143,7 +142,6 @@ export const getChangeLogs = async ({
       totalPages: Math.ceil(total / limit)
     };
   } catch (error) {
-    console.error('Error fetching change logs:', error);
     throw error;
   }
 };
@@ -204,7 +202,6 @@ export const getChangeLogStats = async ({ start_date, end_date }) => {
       top_users: userActivity
     };
   } catch (error) {
-    console.error('Error fetching change log stats:', error);
     throw error;
   }
 };
@@ -221,7 +218,6 @@ export const exportChangeLogs = async (query) => {
 
     return logs;
   } catch (error) {
-    console.error('Error exporting change logs:', error);
     throw error;
   }
 };

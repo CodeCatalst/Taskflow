@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -93,7 +93,6 @@ export default function EmailCenter() {
         fetchEmailConfig()
       ]);
     } catch (error) {
-      console.error('Error fetching initial data:', error);
     } finally {
       setLoading(false);
     }
@@ -104,7 +103,6 @@ export default function EmailCenter() {
       const response = await api.get('/hr/email-templates');
       setTemplates(response.data.templates || []);
     } catch (error) {
-      console.error('Failed to load templates:', error);
     }
   };
 
@@ -113,7 +111,6 @@ export default function EmailCenter() {
       const response = await api.get('/hr/email-templates/users');
       setUsers(response.data.users || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
     }
   };
 
@@ -122,7 +119,6 @@ export default function EmailCenter() {
       const response = await api.get('/hr/email-templates/config');
       setEmailConfig(response.data.config);
     } catch (error) {
-      console.error('Error fetching email config:', error);
     }
   };
 
@@ -308,7 +304,6 @@ export default function EmailCenter() {
             successCount++;
             setEmailRecipients(prev => prev.map((r, idx) => idx === i ? { ...r, status: 'sent' } : r));
           } catch (err) {
-            console.error(`Failed to send to ${recipientObj.email}:`, err);
             errorCount++;
             setEmailRecipients(prev => prev.map((r, idx) => idx === i ? { ...r, status: 'failed' } : r));
           }
@@ -335,7 +330,6 @@ export default function EmailCenter() {
           setEmailData({ subject: '', htmlContent: '', variables: {} });
         }
       } catch (error) {
-        console.error('Send campaign error:', error);
         setIsSending(false);
         alert('An unexpected error occurred during the campaign.');
       }

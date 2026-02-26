@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
 import { requireCoreWorkspace } from '../middleware/workspaceGuard.js';
@@ -32,7 +32,6 @@ router.get('/', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']), 
 
     res.json({ success: true, templates });
   } catch (error) {
-    console.error('Get templates error:', error);
     res.status(500).json({ message: 'Failed to fetch email templates' });
   }
 });
@@ -68,7 +67,6 @@ router.post('/', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']),
 
     res.status(201).json({ success: true, template });
   } catch (error) {
-    console.error('Create template error:', error);
     if (error.code === 11000) {
       res.status(400).json({ message: 'Template code already exists' });
     } else {
@@ -116,7 +114,6 @@ router.put('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']
 
     res.json({ success: true, template });
   } catch (error) {
-    console.error('Update template error:', error);
     res.status(500).json({ message: 'Failed to update template' });
   }
 });
@@ -153,7 +150,6 @@ router.delete('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'h
 
     res.json({ success: true, message: 'Template deleted' });
   } catch (error) {
-    console.error('Delete template error:', error);
     res.status(500).json({ message: 'Failed to delete template' });
   }
 });
@@ -189,7 +185,6 @@ router.post('/test', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
       res.status(500).json({ message: 'Failed to send test email', error: result.error });
     }
   } catch (error) {
-    console.error('Send test email error:', error);
     res.status(500).json({ message: 'Failed to send test email' });
   }
 });
@@ -282,7 +277,6 @@ router.post('/send', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
       res.status(500).json({ message: 'Failed to send emails', error: result.error });
     }
   } catch (error) {
-    console.error('Send email error:', error);
     res.status(500).json({ message: 'Failed to send emails' });
   }
 });
@@ -368,7 +362,6 @@ router.get('/users', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
       }
     });
   } catch (error) {
-    console.error('Get users error:', error);
     res.status(500).json({ message: 'Failed to fetch users' });
   }
 });
@@ -384,7 +377,6 @@ router.get('/config', authenticate, requireCoreWorkspace, checkRole(['admin', 'h
 
     res.json({ success: true, config });
   } catch (error) {
-    console.error('Get email config error:', error);
     res.status(500).json({ message: 'Failed to get email configuration' });
   }
 });
@@ -441,7 +433,6 @@ router.post('/test-send', authenticate, requireCoreWorkspace, checkRole(['admin'
       res.status(500).json({ message: 'Failed to send test email', error: result.error });
     }
   } catch (error) {
-    console.error('Test send error:', error);
     res.status(500).json({ message: 'Failed to send test email' });
   }
 });
@@ -501,7 +492,6 @@ router.post('/bulk-send', authenticate, requireCoreWorkspace, checkRole(['admin'
           results.push({ email: recipient.email, status: 'failed', error: result.error });
         }
       } catch (error) {
-        console.error(`Failed to send to ${recipient.email}:`, error);
         results.push({ email: recipient.email, status: 'error', error: error.message });
       }
     }
@@ -528,7 +518,6 @@ router.post('/bulk-send', authenticate, requireCoreWorkspace, checkRole(['admin'
       results: { sentCount, totalCount: recipients.length, details: results }
     });
   } catch (error) {
-    console.error('Bulk send error:', error);
     res.status(500).json({ message: 'Failed to send emails' });
   }
 });

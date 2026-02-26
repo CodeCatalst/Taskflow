@@ -8,12 +8,12 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 async function removeDuplicateTeamMembers() {
   try {
-    console.log('🔗 Connecting to MongoDB...');
+    
     await mongoose.connect(MONGODB_URI);
-    console.log('✅ Connected to MongoDB\n');
+    
 
     const teams = await Team.find({});
-    console.log(`📊 Found ${teams.length} teams to check\n`);
+    
 
     let teamsFixed = 0;
     let totalDuplicatesRemoved = 0;
@@ -24,9 +24,9 @@ async function removeDuplicateTeamMembers() {
 
       if (memberIds.length !== uniqueMemberIds.length) {
         const duplicateCount = memberIds.length - uniqueMemberIds.length;
-        console.log(`⚠️  Team "${team.name}" (${team._id})`);
-        console.log(`   - Had ${memberIds.length} members (${duplicateCount} duplicates)`);
-        console.log(`   - Now has ${uniqueMemberIds.length} unique members`);
+        
+        
+        
 
         // Update team with unique members only
         team.members = uniqueMemberIds;
@@ -37,23 +37,23 @@ async function removeDuplicateTeamMembers() {
       }
     }
 
-    console.log('\n═══════════════════════════════════════════════════');
-    console.log('📋 CLEANUP SUMMARY');
-    console.log('═══════════════════════════════════════════════════');
-    console.log(`✅ Teams processed: ${teams.length}`);
-    console.log(`🔧 Teams fixed: ${teamsFixed}`);
-    console.log(`🗑️  Duplicate members removed: ${totalDuplicatesRemoved}`);
-    console.log('═══════════════════════════════════════════════════\n');
+    
+    
+    
+    
+    
+    
+    
 
     if (teamsFixed === 0) {
-      console.log('✨ No duplicates found! All teams are clean.\n');
+      
     } else {
-      console.log('✨ All duplicate team members have been removed!\n');
+      
     }
 
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error);
+    
     process.exit(1);
   }
 }

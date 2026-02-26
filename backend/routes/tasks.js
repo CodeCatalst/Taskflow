@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
 import { checkTaskLimit } from '../middleware/workspaceGuard.js';
@@ -134,7 +134,6 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
 
     res.status(201).json({ message: 'Task created', task: populatedTask });
   } catch (error) {
-    console.error('Create task error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -192,7 +191,6 @@ router.get('/', authenticate, async (req, res) => {
 
     res.json({ tasks, count: tasks.length });
   } catch (error) {
-    console.error('Get tasks error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -246,7 +244,6 @@ router.get('/:id', authenticate, async (req, res) => {
 
     res.json({ task });
   } catch (error) {
-    console.error('Get task error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -440,7 +437,7 @@ router.patch('/:id', authenticate, async (req, res) => {
       target_id: task._id.toString(),
       target_name: task.title,
       action: 'Updated task',
-      description: `${req.user.full_name} updated task "${task.title}"${status && status !== oldStatus ? ` (${oldStatus} → ${status})` : ''}`,
+      description: `${req.user.full_name} updated task "${task.title}"${status && status !== oldStatus ? ` (${oldStatus} â†’ ${status})` : ''}`,
       metadata: {
         priority: task.priority,
         status: task.status,
@@ -457,7 +454,6 @@ router.patch('/:id', authenticate, async (req, res) => {
 
     res.json({ message: 'Task updated', task: updatedTask });
   } catch (error) {
-    console.error('Update task error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -528,7 +524,6 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     res.json({ message: 'Task deleted' });
   } catch (error) {
-    console.error('Delete task error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

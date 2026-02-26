@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
@@ -139,7 +139,6 @@ const TasksResponsive = () => {
       const response = await api.get('/tasks');
       setTasks(response.data.tasks || []);
     } catch (error) {
-      console.error('Error fetching tasks:', error);
     } finally {
       setLoading(false);
     }
@@ -150,7 +149,6 @@ const TasksResponsive = () => {
       const response = await api.get('/users');
       setUsers(response.data.users || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
     }
   };
 
@@ -159,7 +157,6 @@ const TasksResponsive = () => {
       const response = await api.get('/teams');
       setTeams(response.data.teams || []);
     } catch (error) {
-      console.error('Error fetching teams:', error);
     }
   };
 
@@ -179,7 +176,6 @@ const TasksResponsive = () => {
       });
       fetchTasks();
     } catch (error) {
-      console.error('Error creating task:', error);
       alert(error.response?.data?.message || 'Failed to create task');
     }
   };
@@ -189,7 +185,6 @@ const TasksResponsive = () => {
       await api.patch(`/tasks/${taskId}`, updates);
       fetchTasks();
     } catch (error) {
-      console.error('Error updating task:', error);
       alert(error.response?.data?.message || 'Failed to update task');
     }
   };
@@ -225,7 +220,6 @@ const TasksResponsive = () => {
       setSelectedTeamMembers([]);
       fetchTasks();
     } catch (error) {
-      console.error('Error updating task:', error);
       alert(error.response?.data?.message || 'Failed to update task');
     }
   };
@@ -238,7 +232,6 @@ const TasksResponsive = () => {
       fetchTasks();
       setShowDetailModal(false);
     } catch (error) {
-      console.error('Error deleting task:', error);
       alert(error.response?.data?.message || 'Failed to delete task');
     }
   };
@@ -251,7 +244,6 @@ const TasksResponsive = () => {
       const response = await api.get(`/comments/${task._id}/comments`);
       setComments(response.data.comments);
     } catch (error) {
-      console.error('Error fetching comments:', error);
     }
   };
 

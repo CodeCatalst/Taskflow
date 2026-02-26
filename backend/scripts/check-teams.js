@@ -14,17 +14,11 @@ async function checkTeams() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
     
-    console.log('🔍 Checking teams and workspace assignments...\n');
-    
     // Get CORE workspace
     const coreWorkspace = await Workspace.findOne({ type: 'CORE' });
     if (!coreWorkspace) {
-      console.log('❌ No CORE workspace found!');
       process.exit(1);
     }
-    
-    console.log(`📦 CORE Workspace: ${coreWorkspace.name}`);
-    console.log(`   ID: ${coreWorkspace._id}\n`);
     
     // Get all teams
     const allTeams = await Team.find({})
@@ -33,21 +27,17 @@ async function checkTeams() {
       .populate('lead_id', 'full_name email')
       .populate('members', 'full_name email');
     
-    console.log(`👥 Total teams in database: ${allTeams.length}\n`);
-    
     // Teams with workspace
     const teamsWithWorkspace = allTeams.filter(t => t.workspaceId);
     const teamsWithoutWorkspace = allTeams.filter(t => !t.workspaceId);
     
-    console.log(`✅ Teams with workspace: ${teamsWithWorkspace.length}`);
     teamsWithWorkspace.forEach(team => {
-      console.log(`   - ${team.name} → ${team.workspaceId?.name || 'Unknown'} (${team.members?.length || 0} members)`);
+      `);
     });
     
     if (teamsWithoutWorkspace.length > 0) {
-      console.log(`\n❌ Teams without workspace: ${teamsWithoutWorkspace.length}`);
       teamsWithoutWorkspace.forEach(team => {
-        console.log(`   - ${team.name} (${team.members?.length || 0} members)`);
+        `);
       });
     }
     
@@ -55,34 +45,24 @@ async function checkTeams() {
     const teamsInCore = allTeams.filter(t => t.workspaceId?._id?.toString() === coreWorkspace._id.toString());
     const teamsInOtherWorkspace = allTeams.filter(t => t.workspaceId && t.workspaceId._id?.toString() !== coreWorkspace._id.toString());
     
-    console.log(`\n📊 Teams in CORE workspace: ${teamsInCore.length}`);
     if (teamsInOtherWorkspace.length > 0) {
-      console.log(`⚠️  Teams in other workspaces: ${teamsInOtherWorkspace.length}`);
       teamsInOtherWorkspace.forEach(team => {
-        console.log(`   - ${team.name} → ${team.workspaceId?.name}`);
-      });
+        });
     }
     
     // Propose fix
     const needsFix = teamsWithoutWorkspace.length + teamsInOtherWorkspace.length;
     
     if (needsFix > 0) {
-      console.log(`\n🔧 PROPOSED FIX:`);
-      console.log(`   Assign ${needsFix} team(s) to CORE workspace`);
-      console.log('\n   Run with --fix flag to apply changes');
-      console.log('   Example: node check-teams.js --fix\n');
-      
+      to CORE workspace`);
       if (process.argv.includes('--fix')) {
-        console.log('\n🔧 FIXING TEAM ASSIGNMENTS...\n');
-        
         // Fix teams without workspace
         for (const team of teamsWithoutWorkspace) {
           await Team.updateOne(
             { _id: team._id },
             { $set: { workspaceId: coreWorkspace._id } }
           );
-          console.log(`   ✅ Assigned ${team.name} to CORE workspace`);
-        }
+          }
         
         // Fix teams in other workspaces
         for (const team of teamsInOtherWorkspace) {
@@ -90,8 +70,7 @@ async function checkTeams() {
             { _id: team._id },
             { $set: { workspaceId: coreWorkspace._id } }
           );
-          console.log(`   ✅ Moved ${team.name} to CORE workspace`);
-        }
+          }
         
         // Update workspace team count
         const teamCount = await Team.countDocuments({ workspaceId: coreWorkspace._id });
@@ -100,18 +79,14 @@ async function checkTeams() {
           { $set: { 'usage.teamCount': teamCount } }
         );
         
-        console.log(`\n✅ All teams now in CORE workspace`);
-        console.log(`📊 CORE workspace team count: ${teamCount}\n`);
-      }
+        }
     } else {
-      console.log('\n✅ All teams correctly assigned to CORE workspace!\n');
-    }
+      }
     
     await mongoose.connection.close();
     process.exit(0);
     
   } catch (error) {
-    console.error('❌ Error:', error);
     process.exit(1);
   }
 }

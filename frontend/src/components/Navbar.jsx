@@ -1,4 +1,4 @@
-import { useAuth } from '../context/AuthContext';
+﻿import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Bell, LogOut, LayoutDashboard, CheckSquare, Users, UserCog, Kanban, Menu, X, ChevronLeft, ChevronRight, BarChart3, Settings, Calendar as CalendarIcon, Activity, Building2 } from 'lucide-react';
@@ -33,7 +33,6 @@ const Navbar = () => {
     } catch (error) {
       // Don't show error for unauthorized - user might not be logged in yet
       if (error.response?.status !== 401) {
-        console.error('Error fetching notifications:', error);
       }
     }
   };
@@ -44,7 +43,6 @@ const Navbar = () => {
       setUnreadCount(0);
       fetchNotifications();
     } catch (error) {
-      console.error('Error marking notifications as read:', error);
     }
   };
 

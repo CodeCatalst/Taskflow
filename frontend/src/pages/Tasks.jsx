@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
@@ -143,7 +143,6 @@ const Tasks = () => {
       setTasks(response.data.tasks);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching tasks:', error);
       setLoading(false);
     }
   };
@@ -155,7 +154,6 @@ const Tasks = () => {
       setUsers(response.data.users);
     } catch (error) {
       if (error.response?.status !== 403) {
-        console.error('Error fetching users:', error);
       }
     }
   };
@@ -165,7 +163,6 @@ const Tasks = () => {
       const response = await api.get('/teams');
       setTeams(response.data.teams);
     } catch (error) {
-      console.error('Error fetching teams:', error);
     }
   };
 
@@ -185,7 +182,6 @@ const Tasks = () => {
       });
       fetchTasks();
     } catch (error) {
-      console.error('Error creating task:', error);
       alert(error.response?.data?.message || 'Failed to create task');
     }
   };
@@ -210,7 +206,6 @@ const Tasks = () => {
         setEditingTask(updatedTask);
       }
     } catch (error) {
-      console.error('Error updating task:', error);
       alert(error.response?.data?.message || 'Failed to update task');
       fetchTasks();
     }
@@ -263,7 +258,6 @@ const Tasks = () => {
       setSelectedTeamMembers([]);
       fetchTasks();
     } catch (error) {
-      console.error('Error updating task:', error);
       alert(error.response?.data?.message || 'Failed to update task');
     }
   };
@@ -324,7 +318,6 @@ const Tasks = () => {
       fetchTasks();
       setShowDetailModal(false);
     } catch (error) {
-      console.error('Error deleting task:', error);
       alert(error.response?.data?.message || 'Failed to delete task');
     }
   };
@@ -337,7 +330,6 @@ const Tasks = () => {
       const response = await api.get(`/comments/${task._id}/comments`);
       setComments(response.data.comments);
     } catch (error) {
-      console.error('Error fetching comments:', error);
     }
   };
 
@@ -354,7 +346,6 @@ const Tasks = () => {
       const response = await api.get(`/comments/${selectedTask._id}/comments`);
       setComments(response.data.comments);
     } catch (error) {
-      console.error('Error adding comment:', error);
     }
   };
 

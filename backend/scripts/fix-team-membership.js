@@ -18,28 +18,18 @@ dotenv.config();
 
 async function fixTeamMembership() {
   try {
-    console.log('🔧 Starting Team Membership Fix...\n');
-
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Connected to MongoDB\n');
-
     const teams = await Team.find({}).populate('members', '_id full_name email teams team_id');
-    console.log(`📊 Found ${teams.length} teams to process\n`);
-
     let fixedCount = 0;
     let skippedCount = 0;
 
     for (const team of teams) {
-      console.log(`\n🔍 Processing Team: ${team.name}`);
-      console.log(`   Team ID: ${team._id}`);
-      console.log(`   Members in team.members: ${team.members.length}`);
-
       // Get workspace type
       const workspace = await Workspace.findById(team.workspaceId);
       const isCoreWorkspace = workspace && workspace.type === 'CORE';
       
-      console.log(`   Workspace: ${workspace?.name || 'Unknown'} (${workspace?.type || 'Unknown'})`);
+      `);
 
       let addedToUsers = 0;
       let alreadyConsistent = 0;
@@ -57,7 +47,6 @@ async function fixTeamMembership() {
             await User.findByIdAndUpdate(userId, {
               $addToSet: { teams: team._id }
             });
-            console.log(`   ✅ Added team to ${member.full_name}'s teams array`);
             addedToUsers++;
             
             // If user has no team_id, set this as their primary team
@@ -65,8 +54,7 @@ async function fixTeamMembership() {
               await User.findByIdAndUpdate(userId, {
                 team_id: team._id
               });
-              console.log(`   ✅ Set as primary team for ${member.full_name}`);
-            }
+              }
           } else {
             alreadyConsistent++;
           }
@@ -77,16 +65,16 @@ async function fixTeamMembership() {
       }
 
       if (addedToUsers > 0) {
-        console.log(`   📝 Fixed ${addedToUsers} member(s)`);
+        `);
         fixedCount++;
       } else {
-        console.log(`   ✅ All ${alreadyConsistent} member(s) already consistent`);
+        already consistent`);
         skippedCount++;
       }
     }
 
     // Also check for users who have teams in their array but aren't in the team's members
-    console.log('\n\n🔍 Checking reverse consistency (users.teams → team.members)...\n');
+    ...\n');
     
     const usersWithTeams = await User.find({ 
       teams: { $exists: true, $ne: [] } 
@@ -104,47 +92,34 @@ async function fixTeamMembership() {
           await Team.findByIdAndUpdate(team._id, {
             $addToSet: { members: user._id }
           });
-          console.log(`   ✅ Added ${user.full_name} to team "${team.name}" members`);
           reverseFixedCount++;
         }
       }
     }
 
     if (reverseFixedCount > 0) {
-      console.log(`\n   📝 Fixed ${reverseFixedCount} reverse inconsistency(ies)`);
+      `);
     } else {
-      console.log(`\n   ✅ No reverse inconsistencies found`);
-    }
+      }
 
     // Summary
-    console.log('\n' + '='.repeat(60));
-    console.log('📊 FIX SUMMARY');
-    console.log('='.repeat(60));
-    console.log(`✅ Teams with fixes applied: ${fixedCount}`);
-    console.log(`⏭️  Teams already consistent: ${skippedCount}`);
-    console.log(`🔄 Reverse fixes applied: ${reverseFixedCount}`);
-    console.log(`📝 Total Teams Processed: ${teams.length}`);
-    console.log('='.repeat(60) + '\n');
+    );
+    );
+    + '\n');
 
-    console.log('✨ Fix completed successfully!\n');
-
-  } catch (error) {
-    console.error('❌ Fix failed:', error);
+    } catch (error) {
     throw error;
   } finally {
     // Close connection
     await mongoose.connection.close();
-    console.log('🔌 Disconnected from MongoDB');
-  }
+    }
 }
 
 // Run fix
 fixTeamMembership()
   .then(() => {
-    console.log('\n✅ All done!');
     process.exit(0);
   })
   .catch((error) => {
-    console.error('\n❌ Fix failed:', error);
     process.exit(1);
   });

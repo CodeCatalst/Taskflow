@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import { useAuth } from '../context/AuthContext';
@@ -51,7 +51,6 @@ export default function HRCalendar({ embedded = false }) {
       // Transform data into calendar events
       transformDataToEvents(attendanceByDate, calendarResponse.data.events);
     } catch (error) {
-      console.error('Error fetching calendar data:', error);
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notification Service for PWA
  * Handles desktop and mobile push notifications
  */
@@ -37,10 +37,9 @@ class NotificationService {
       this.permission = permission;
       
       if (permission === 'granted') {
-        console.log('✅ Notification permission granted');
         
         // Show a welcome notification to confirm it's working
-        await this.showNotification('🎉 Notifications Enabled!', {
+        await this.showNotification('ðŸŽ‰ Notifications Enabled!', {
           body: 'You will now receive task updates and reminders.',
           icon: '/icons/pwa-192x192.png',
           badge: '/icons/pwa-64x64.png',
@@ -49,14 +48,11 @@ class NotificationService {
           vibrate: [200, 100, 200],
         });
       } else if (permission === 'denied') {
-        console.warn('⚠️ Notification permission denied');
       } else {
-        console.log('ℹ️ Notification permission dismissed');
       }
       
       return permission;
     } catch (error) {
-      console.error('❌ Error requesting notification permission:', error);
       return 'error';
     }
   }
@@ -109,7 +105,6 @@ class NotificationService {
       
       return notification;
     } catch (error) {
-      console.error('Error showing notification:', error);
       return null;
     }
   }
@@ -122,21 +117,21 @@ class NotificationService {
   async showTaskNotification(type, task) {
     const notifications = {
       created: {
-        title: '📝 New Task Created',
+        title: 'ðŸ“ New Task Created',
         body: `Task: ${task.title}`,
         icon: '/icons/pwa-192x192.png',
         tag: `task-${task._id}`,
         data: { type: 'task', action: 'created', taskId: task._id },
       },
       updated: {
-        title: '🔄 Task Updated',
+        title: 'ðŸ”„ Task Updated',
         body: `Task "${task.title}" has been updated`,
         icon: '/icons/pwa-192x192.png',
         tag: `task-${task._id}`,
         data: { type: 'task', action: 'updated', taskId: task._id },
       },
       assigned: {
-        title: '👤 Task Assigned to You',
+        title: 'ðŸ‘¤ Task Assigned to You',
         body: `You've been assigned: ${task.title}`,
         icon: '/icons/pwa-192x192.png',
         tag: `task-${task._id}`,
@@ -144,7 +139,7 @@ class NotificationService {
         data: { type: 'task', action: 'assigned', taskId: task._id },
       },
       due: {
-        title: '⏰ Task Due Soon',
+        title: 'â° Task Due Soon',
         body: `"${task.title}" is due soon`,
         icon: '/icons/pwa-192x192.png',
         tag: `task-due-${task._id}`,
@@ -152,7 +147,7 @@ class NotificationService {
         data: { type: 'task', action: 'due', taskId: task._id },
       },
       overdue: {
-        title: '🚨 Task Overdue',
+        title: 'ðŸš¨ Task Overdue',
         body: `"${task.title}" is overdue!`,
         icon: '/icons/pwa-192x192.png',
         tag: `task-overdue-${task._id}`,
@@ -161,7 +156,7 @@ class NotificationService {
         data: { type: 'task', action: 'overdue', taskId: task._id },
       },
       comment: {
-        title: '💬 New Comment',
+        title: 'ðŸ’¬ New Comment',
         body: `New comment on "${task.title}"`,
         icon: '/icons/pwa-192x192.png',
         tag: `task-comment-${task._id}`,

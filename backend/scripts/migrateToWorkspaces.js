@@ -34,32 +34,32 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/taskfl
 
 async function migrateToWorkspaces() {
   try {
-    console.log('🚀 Starting workspace migration...\n');
+    
 
     // Connect to MongoDB
-    console.log('📡 Connecting to MongoDB...');
+    
     await mongoose.connect(MONGODB_URI);
-    console.log('✅ Connected to MongoDB\n');
+    
 
     // Check if CORE workspace already exists
     let coreWorkspace = await Workspace.findOne({ type: 'CORE' });
     
     if (coreWorkspace) {
-      console.log('⚠️  CORE workspace already exists:', coreWorkspace.name);
-      console.log('   Workspace ID:', coreWorkspace._id);
-      console.log('\n   Checking if migration is needed...\n');
+      
+      
+      
     } else {
       // Find the first admin user to be the workspace owner
       const adminUser = await User.findOne({ role: 'admin' }).sort({ created_at: 1 });
       
       if (!adminUser) {
-        console.error('❌ No admin user found. Please create an admin user first.');
-        console.error('   Run: npm run seed:admin');
+        
+        
         process.exit(1);
       }
 
-      console.log('👤 Found admin user:', adminUser.email);
-      console.log('   Creating CORE workspace...\n');
+      
+      
 
       // Create CORE workspace
       coreWorkspace = new Workspace({
@@ -71,17 +71,17 @@ async function migrateToWorkspaces() {
       });
 
       await coreWorkspace.save();
-      console.log('✅ Created CORE workspace:', coreWorkspace.name);
-      console.log('   Workspace ID:', coreWorkspace._id);
-      console.log('   Type:', coreWorkspace.type);
-      console.log('   Features:', JSON.stringify(coreWorkspace.settings.features, null, 2));
-      console.log();
+      
+      
+      
+      
+      
     }
 
     const workspaceId = coreWorkspace._id;
 
     // Migrate Users
-    console.log('👥 Migrating users...');
+    
     const usersWithoutWorkspace = await User.countDocuments({ 
       workspaceId: { $exists: false } 
     });
@@ -91,16 +91,16 @@ async function migrateToWorkspaces() {
         { workspaceId: { $exists: false } },
         { $set: { workspaceId: workspaceId } }
       );
-      console.log(`   ✅ Migrated ${userResult.modifiedCount} users to CORE workspace`);
+      
     } else {
-      console.log('   ℹ️  All users already have workspace assignments');
+      
     }
     
     const totalUsers = await User.countDocuments({ workspaceId: workspaceId });
-    console.log(`   📊 Total users in CORE workspace: ${totalUsers}\n`);
+    
 
     // Migrate Tasks
-    console.log('📋 Migrating tasks...');
+    
     const tasksWithoutWorkspace = await Task.countDocuments({ 
       workspaceId: { $exists: false } 
     });
@@ -110,16 +110,16 @@ async function migrateToWorkspaces() {
         { workspaceId: { $exists: false } },
         { $set: { workspaceId: workspaceId } }
       );
-      console.log(`   ✅ Migrated ${taskResult.modifiedCount} tasks to CORE workspace`);
+      
     } else {
-      console.log('   ℹ️  All tasks already have workspace assignments');
+      
     }
     
     const totalTasks = await Task.countDocuments({ workspaceId: workspaceId });
-    console.log(`   📊 Total tasks in CORE workspace: ${totalTasks}\n`);
+    
 
     // Migrate Teams
-    console.log('👨‍👩‍👧‍👦 Migrating teams...');
+    
     const teamsWithoutWorkspace = await Team.countDocuments({ 
       workspaceId: { $exists: false } 
     });
@@ -129,16 +129,16 @@ async function migrateToWorkspaces() {
         { workspaceId: { $exists: false } },
         { $set: { workspaceId: workspaceId } }
       );
-      console.log(`   ✅ Migrated ${teamResult.modifiedCount} teams to CORE workspace`);
+      
     } else {
-      console.log('   ℹ️  All teams already have workspace assignments');
+      
     }
     
     const totalTeams = await Team.countDocuments({ workspaceId: workspaceId });
-    console.log(`   📊 Total teams in CORE workspace: ${totalTeams}\n`);
+    
 
     // Migrate Notifications
-    console.log('🔔 Migrating notifications...');
+    
     const notificationsWithoutWorkspace = await Notification.countDocuments({ 
       workspaceId: { $exists: false } 
     });
@@ -148,16 +148,16 @@ async function migrateToWorkspaces() {
         { workspaceId: { $exists: false } },
         { $set: { workspaceId: workspaceId } }
       );
-      console.log(`   ✅ Migrated ${notificationResult.modifiedCount} notifications to CORE workspace`);
+      
     } else {
-      console.log('   ℹ️  All notifications already have workspace assignments');
+      
     }
     
     const totalNotifications = await Notification.countDocuments({ workspaceId: workspaceId });
-    console.log(`   📊 Total notifications in CORE workspace: ${totalNotifications}\n`);
+    
 
     // Migrate ChangeLogs
-    console.log('📝 Migrating audit logs (changelogs)...');
+    
     const changeLogsWithoutWorkspace = await ChangeLog.countDocuments({ 
       workspaceId: { $exists: false } 
     });
@@ -167,55 +167,55 @@ async function migrateToWorkspaces() {
         { workspaceId: { $exists: false } },
         { $set: { workspaceId: workspaceId } }
       );
-      console.log(`   ✅ Migrated ${changeLogResult.modifiedCount} audit logs to CORE workspace`);
+      
     } else {
-      console.log('   ℹ️  All audit logs already have workspace assignments');
+      
     }
     
     const totalChangeLogs = await ChangeLog.countDocuments({ workspaceId: workspaceId });
-    console.log(`   📊 Total audit logs in CORE workspace: ${totalChangeLogs}\n`);
+    
 
     // Update workspace usage statistics
-    console.log('📊 Updating workspace usage statistics...');
+    
     coreWorkspace.usage = {
       userCount: totalUsers,
       taskCount: totalTasks,
       teamCount: totalTeams,
     };
     await coreWorkspace.save();
-    console.log('   ✅ Usage statistics updated\n');
+    
 
     // Summary
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('✅ Migration completed successfully!');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    console.log('📊 CORE Workspace Summary:');
-    console.log(`   Name: ${coreWorkspace.name}`);
-    console.log(`   Type: ${coreWorkspace.type}`);
-    console.log(`   Users: ${totalUsers}`);
-    console.log(`   Tasks: ${totalTasks}`);
-    console.log(`   Teams: ${totalTeams}`);
-    console.log(`   Notifications: ${totalNotifications}`);
-    console.log(`   Audit Logs: ${totalChangeLogs}`);
-    console.log();
-    console.log('🎉 All existing data has been migrated to the CORE workspace.');
-    console.log('   Your TaskFlow instance is now multi-workspace enabled!');
-    console.log();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
   } catch (error) {
-    console.error('\n❌ Migration failed:', error);
-    console.error('\nError details:', error.message);
-    console.error('\nStack trace:', error.stack);
+    
+    
+    
     process.exit(1);
   } finally {
     await mongoose.connection.close();
-    console.log('👋 Database connection closed');
+    
   }
 }
 
 // Run migration
-console.log('═══════════════════════════════════════════');
-console.log('  TaskFlow Workspace Migration Script     ');
-console.log('═══════════════════════════════════════════\n');
+
+
+
 
 migrateToWorkspaces();

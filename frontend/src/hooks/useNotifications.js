@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+﻿import { useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import notificationService from '../utils/notificationService';
 
@@ -76,19 +76,16 @@ export const useNotifications = () => {
 
     // Check if notifications are supported
     if (!notificationService.isNotificationSupported()) {
-      console.warn('Notifications not supported in this browser');
       return;
     }
 
     // Get current permission status
     const permission = notificationService.getPermissionStatus();
-    console.log('Notification permission status:', permission);
 
     // Set up socket listeners for real-time notifications
     if (socket) {
       // Generic notification handler
       const handleNotification = (data) => {
-        console.log('Received notification:', data);
         
         if (data.type === 'task_assigned' && data.task) {
           queueNotification('assigned', data.task);
@@ -98,12 +95,10 @@ export const useNotifications = () => {
       };
 
       const handleTaskCreated = (task) => {
-        console.log('Task created event:', task);
         queueNotification('created', task);
       };
 
       const handleTaskUpdated = (task) => {
-        console.log('Task updated event:', task);
         
         // Check if current user is involved in this task
         const isAssigned = task.assigned_to?.some(u => u._id === user.id || u === user.id);
@@ -115,7 +110,6 @@ export const useNotifications = () => {
       };
 
       const handleTaskAssigned = (data) => {
-        console.log('Task assigned event:', data);
         
         // Check if task is assigned to current user
         const task = data.task || data;
@@ -131,7 +125,6 @@ export const useNotifications = () => {
       };
 
       const handleCommentAdded = (data) => {
-        console.log('Comment added event:', data);
         
         const task = data.task || data;
         // Check if current user is involved in this task
@@ -157,9 +150,7 @@ export const useNotifications = () => {
       // Periodic check for connection health (every 30 seconds)
       const healthCheckInterval = setInterval(() => {
         if (socket.connected) {
-          console.log('Socket connected, notification system active');
         } else {
-          console.warn('Socket disconnected, notifications may not work');
         }
       }, 30000);
 
@@ -183,10 +174,8 @@ export const useNotifications = () => {
       try {
         if ('wakeLock' in navigator) {
           wakeLock = await navigator.wakeLock.request('screen');
-          console.log('Wake lock acquired for better notifications');
         }
       } catch (err) {
-        console.log('Wake lock not available:', err);
       }
     };
 

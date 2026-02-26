@@ -1,4 +1,4 @@
-import * as brevoAPI from '@getbrevo/brevo';
+﻿import * as brevoAPI from '@getbrevo/brevo';
 import nodemailer from 'nodemailer';
 
 // Brevo API Client
@@ -38,10 +38,6 @@ const getDefaultSender = () => ({
 // Send email using Brevo SMTP
 const sendWithBrevoSMTP = async (to, subject, htmlContent, from = null) => {
   try {
-    console.log('🔍 Checking Brevo SMTP configuration...');
-    console.log('   API Key present:', !!process.env.BREVO_API_KEY);
-    console.log('   Login Email present:', !!process.env.BREVO_LOGIN_EMAIL);
-    console.log('   Sender email:', from?.email || getDefaultSender().email);
     
     const transporter = getSmtpTransporter();
     if (!transporter) {
@@ -53,7 +49,6 @@ const sendWithBrevoSMTP = async (to, subject, htmlContent, from = null) => {
       ? to.map(recipient => typeof recipient === 'string' ? recipient : recipient.email).join(', ')
       : (typeof to === 'string' ? to : to.email);
 
-    console.log('📤 Attempting to send email via Brevo SMTP...');
     const result = await transporter.sendMail({
       from: `"${sender.name}" <${sender.email}>`,
       to: recipients,
@@ -61,7 +56,6 @@ const sendWithBrevoSMTP = async (to, subject, htmlContent, from = null) => {
       html: htmlContent
     });
 
-    console.log('✅ Email sent via Brevo SMTP:', result.messageId);
     
     return {
       success: true,
@@ -70,10 +64,6 @@ const sendWithBrevoSMTP = async (to, subject, htmlContent, from = null) => {
       provider: 'brevo-smtp'
     };
   } catch (error) {
-    console.error('❌ Brevo SMTP error details:');
-    console.error('   Message:', error.message);
-    console.error('   Code:', error.code);
-    console.error('   Response:', error.response);
     
     return {
       success: false,
@@ -87,9 +77,6 @@ const sendWithBrevoSMTP = async (to, subject, htmlContent, from = null) => {
 // Send email using Brevo API
 const sendWithBrevoAPI = async (to, subject, htmlContent, from = null) => {
   try {
-    console.log('🔍 Checking Brevo API configuration...');
-    console.log('   API Key present:', !!process.env.BREVO_API_KEY);
-    console.log('   Sender email:', from?.email || getDefaultSender().email);
     
     const client = getBrevoClient();
     if (!client) {
@@ -102,9 +89,7 @@ const sendWithBrevoAPI = async (to, subject, htmlContent, from = null) => {
     sendSmtpEmail.subject = subject;
     sendSmtpEmail.htmlContent = htmlContent;
 
-    console.log('📤 Attempting to send email via Brevo API...');
     const result = await client.sendTransacEmail(sendSmtpEmail);
-    console.log('✅ Email sent via Brevo API:', result.response?.statusCode || 'success');
     
     return {
       success: true,
@@ -113,11 +98,6 @@ const sendWithBrevoAPI = async (to, subject, htmlContent, from = null) => {
       provider: 'brevo-api'
     };
   } catch (error) {
-    console.error('❌ Brevo API error details:');
-    console.error('   Message:', error.message);
-    console.error('   Status:', error.response?.status);
-    console.error('   Status Text:', error.response?.statusText);
-    console.error('   Response Body:', JSON.stringify(error.response?.body || error.response?.data));
     
     return {
       success: false,
@@ -132,7 +112,6 @@ import brevoService from '../services/brevoEmailService.js';
 
 // Send email using Brevo API only
 export const sendEmail = async (to, subject, htmlContent, from = null) => {
-  console.log('📧 Sending email via Brevo Service to:', to);
   return await brevoService.send({
     to,
     subject,
@@ -386,13 +365,13 @@ const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
         <div class="logo-container">
           <img src="https://taskflow-nine-phi.vercel.app/logo.png" alt="TaskFlow Logo" />
         </div>
-        <h1>Welcome to TaskFlow! 🚀</h1>
+        <h1>Welcome to TaskFlow! ðŸš€</h1>
         <p>Your account is ready to go</p>
       </div>
       
       <div class="content">
         <div class="greeting">
-          👋 Hi <strong>${fullName}</strong>!
+          ðŸ‘‹ Hi <strong>${fullName}</strong>!
         </div>
         
         <div class="message">
@@ -402,54 +381,54 @@ const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
 
         <div class="credentials-box">
           <h3>
-            <span>🔐</span>
+            <span>ðŸ”</span>
             Your Login Credentials
           </h3>
           <div class="credential-item">
-            <span class="credential-label">📧 Email Address</span>
+            <span class="credential-label">ðŸ“§ Email Address</span>
             <div class="credential-value">${email}</div>
           </div>
           <div class="credential-item">
-            <span class="credential-label">🔑 Temporary Password</span>
+            <span class="credential-label">ðŸ”‘ Temporary Password</span>
             <div class="credential-value">${password}</div>
           </div>
         </div>
 
         <div class="security-notice">
-          <div style="font-size: 24px;">⚠️</div>
-          <p><strong>Security First:</strong> Please change your password after your first login. Head to Settings → Change Password to set a secure password of your choice.</p>
+          <div style="font-size: 24px;">âš ï¸</div>
+          <p><strong>Security First:</strong> Please change your password after your first login. Head to Settings â†’ Change Password to set a secure password of your choice.</p>
         </div>
 
         <div class="button-container">
-          <a href="${appUrl}" class="btn">🚀 Launch TaskFlow</a>
+          <a href="${appUrl}" class="btn">ðŸš€ Launch TaskFlow</a>
         </div>
 
         <div class="divider"></div>
 
         <div class="features">
-          <h3>✨ What's Waiting for You</h3>
+          <h3>âœ¨ What's Waiting for You</h3>
           
           <div class="feature-grid">
             <div class="feature-item">
-              <div class="feature-icon">📋</div>
+              <div class="feature-icon">ðŸ“‹</div>
               <div class="feature-title">Task Management</div>
               <div class="feature-text">Create, assign, and track tasks with ease</div>
             </div>
             
             <div class="feature-item">
-              <div class="feature-icon">📊</div>
+              <div class="feature-icon">ðŸ“Š</div>
               <div class="feature-title">Kanban Boards</div>
               <div class="feature-text">Visualize workflow with drag-and-drop</div>
             </div>
             
             <div class="feature-item">
-              <div class="feature-icon">👥</div>
+              <div class="feature-icon">ðŸ‘¥</div>
               <div class="feature-title">Team Collaboration</div>
               <div class="feature-text">Work together in real-time</div>
             </div>
             
             <div class="feature-item">
-              <div class="feature-icon">📈</div>
+              <div class="feature-icon">ðŸ“ˆ</div>
               <div class="feature-title">Analytics & Reports</div>
               <div class="feature-text">Track progress with insights</div>
             </div>
@@ -459,8 +438,8 @@ const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
         <div class="divider"></div>
 
         <div class="message" style="text-align: center;">
-          <p style="font-size: 16px; color: #4a5568;">Need help getting started? Your admin team is here to support you! 💪</p>
-          <p style="font-size: 18px; font-weight: 600; color: #667eea; margin-top: 20px;">Let's make productivity happen! 🎯</p>
+          <p style="font-size: 16px; color: #4a5568;">Need help getting started? Your admin team is here to support you! ðŸ’ª</p>
+          <p style="font-size: 18px; font-weight: 600; color: #667eea; margin-top: 20px;">Let's make productivity happen! ðŸŽ¯</p>
         </div>
       </div>
 
@@ -469,7 +448,7 @@ const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
         <p>Collaborative Task Management System</p>
         <p style="margin-top: 20px; font-size: 12px; opacity: 0.8;">This is an automated message. Please do not reply.</p>
         <p style="margin-top: 15px;">
-          <a href="${appUrl}" style="color: #90cdf4; text-decoration: none;">🌐 Visit TaskFlow</a>
+          <a href="${appUrl}" style="color: #90cdf4; text-decoration: none;">ðŸŒ Visit TaskFlow</a>
         </p>
       </div>
     </div>
@@ -506,7 +485,7 @@ export const sendVerificationEmail = async (fullName, email, verificationCode, p
 <body>
   <div class="container">
     <div class="header">
-      <h1>🎉 Welcome to ${workspaceName}!</h1>
+      <h1>ðŸŽ‰ Welcome to ${workspaceName}!</h1>
       <p>Verify your email to get started</p>
     </div>
     <div class="content">
@@ -527,7 +506,7 @@ export const sendVerificationEmail = async (fullName, email, verificationCode, p
       </div>
 
       <div class="warning">
-        <strong>⚠️ Important:</strong>
+        <strong>âš ï¸ Important:</strong>
         <ul style="margin: 10px 0;">
           <li>This verification code expires in 24 hours</li>
           <li>Keep your credentials safe</li>
@@ -554,14 +533,11 @@ export const sendVerificationEmail = async (fullName, email, verificationCode, p
     const result = await sendEmail(email, subject, htmlContent);
 
     if (result.success) {
-      console.log('✅ Verification email sent successfully');
     } else {
-      console.error('❌ Failed to send verification email:', result.error);
     }
 
     return result;
   } catch (error) {
-    console.error('❌ Error sending verification email:', error);
     return { success: false, status: 'error', error: error.message };
   }
 };
@@ -574,19 +550,16 @@ export const sendCredentialEmail = async (fullName, email, password) => {
       : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
 
     const htmlContent = getCredentialEmailTemplate(fullName, email, password, appUrl);
-    const subject = '🎉 Welcome to TaskFlow - Your Account is Ready!';
+    const subject = 'ðŸŽ‰ Welcome to TaskFlow - Your Account is Ready!';
 
     const result = await sendEmail(email, subject, htmlContent);
     
     if (result.success) {
-      console.log('✅ Credential email sent successfully');
     } else {
-      console.error('❌ Failed to send credential email:', result.error);
     }
     
     return result;
   } catch (error) {
-    console.error('❌ Error sending credential email:', error);
     return { success: false, status: 'error', error: error.message };
   }
 };
@@ -618,7 +591,7 @@ const getTaskAssignmentTemplate = (userName, taskTitle, taskDescription, priorit
 <body>
   <div class="container">
     <div class="header">
-      <h1>📋 New Task Assigned</h1>
+      <h1>ðŸ“‹ New Task Assigned</h1>
     </div>
     <div class="content">
       <p>Hello <strong>${userName}</strong>,</p>
@@ -651,19 +624,16 @@ export const sendTaskAssignmentEmail = async (userName, userEmail, taskTitle, ta
       : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
 
     const htmlContent = getTaskAssignmentTemplate(userName, taskTitle, taskDescription, priority, dueDate, appUrl);
-    const subject = `📋 New Task Assigned: ${taskTitle}`;
+    const subject = `ðŸ“‹ New Task Assigned: ${taskTitle}`;
 
     const result = await sendEmail(userEmail, subject, htmlContent);
     
     if (result.success) {
-      console.log('✅ Task assignment email sent successfully');
     } else {
-      console.error('❌ Failed to send task assignment email:', result.error);
     }
     
     return result;
   } catch (error) {
-    console.error('❌ Error sending task assignment email:', error);
     return { success: false, status: 'error', error: error.message };
   }
 };
@@ -692,7 +662,7 @@ const getTaskStatusTemplate = (userName, taskTitle, oldStatus, newStatus, update
 <body>
   <div class="container">
     <div class="header">
-      <h1>🔄 Task Status Updated</h1>
+      <h1>ðŸ”„ Task Status Updated</h1>
     </div>
     <div class="content">
       <p>Hello <strong>${userName}</strong>,</p>
@@ -701,7 +671,7 @@ const getTaskStatusTemplate = (userName, taskTitle, oldStatus, newStatus, update
         <h2 style="margin-top: 0; color: #136dec;">${taskTitle}</h2>
         <div class="status-change">
           <span class="status status-old">${oldStatus}</span>
-          <span class="arrow">→</span>
+          <span class="arrow">â†’</span>
           <span class="status status-new">${newStatus}</span>
         </div>
         <p style="text-align: center; color: #666;"><em>Updated by ${updatedBy}</em></p>
@@ -727,20 +697,16 @@ export const sendTaskStatusEmail = async (userName, userEmail, taskTitle, oldSta
       : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
 
     const htmlContent = getTaskStatusTemplate(userName, taskTitle, oldStatus, newStatus, updatedBy, appUrl);
-    const subject = `🔄 Task Status Updated: ${taskTitle}`;
+    const subject = `ðŸ”„ Task Status Updated: ${taskTitle}`;
 
-    console.log('📧 Sending task status email via Brevo API to:', userEmail);
     const result = await sendEmail(userEmail, subject, htmlContent);
     
     if (result.success) {
-      console.log('✅ Task status email sent successfully');
     } else {
-      console.error('❌ Failed to send task status email:', result.error);
     }
     
     return result;
   } catch (error) {
-    console.error('❌ Error sending task status email:', error);
     return { success: false, status: 'error', error: error.message };
   }
 };
@@ -768,7 +734,7 @@ const getDueDateReminderTemplate = (userName, taskTitle, taskDescription, dueDat
 <body>
   <div class="container">
     <div class="header">
-      <h1>⏰ Task Due Date Reminder</h1>
+      <h1>â° Task Due Date Reminder</h1>
     </div>
     <div class="content">
       <p>Hello <strong>${userName}</strong>,</p>
@@ -800,20 +766,16 @@ export const sendDueDateReminder = async (userName, userEmail, taskTitle, taskDe
       : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
 
     const htmlContent = getDueDateReminderTemplate(userName, taskTitle, taskDescription, dueDate, appUrl);
-    const subject = `⏰ Reminder: ${taskTitle} - Due Soon`;
+    const subject = `â° Reminder: ${taskTitle} - Due Soon`;
 
-    console.log('📧 Sending due date reminder via Brevo API to:', userEmail);
     const result = await sendEmail(userEmail, subject, htmlContent);
     
     if (result.success) {
-      console.log('✅ Due date reminder sent successfully');
     } else {
-      console.error('❌ Failed to send due date reminder:', result.error);
     }
     
     return result;
   } catch (error) {
-    console.error('❌ Error sending due date reminder:', error);
     return { success: false, status: 'error', error: error.message };
   }
 };
@@ -838,7 +800,7 @@ const getPasswordResetTemplate = (fullName, resetToken) => {
 <body>
   <div class="container">
     <div class="header">
-      <h1>🔐 Password Reset Request</h1>
+      <h1>ðŸ” Password Reset Request</h1>
     </div>
     <div class="content">
       <p>Hello ${fullName},</p>
@@ -849,7 +811,7 @@ const getPasswordResetTemplate = (fullName, resetToken) => {
       </div>
       <p style="text-align: center; color: #666; font-size: 14px;">Enter this code on the password reset page</p>
       <div class="warning">
-        <strong>⚠️ Important:</strong>
+        <strong>âš ï¸ Important:</strong>
         <ul style="margin: 10px 0;">
           <li>This code will expire in 1 hour</li>
           <li>Do not share this code with anyone</li>
@@ -894,7 +856,7 @@ export const sendPasswordResetEmail = async (fullName, email, newPassword) => {
 <body>
   <div class="container">
     <div class="header">
-      <h1>🔐 Password Reset Successful</h1>
+      <h1>ðŸ” Password Reset Successful</h1>
       <p>Your password has been updated</p>
     </div>
     <div class="content">
@@ -909,7 +871,7 @@ export const sendPasswordResetEmail = async (fullName, email, newPassword) => {
       <p style="text-align: center; color: #666; font-size: 14px;">Use this password to log in to your account</p>
 
       <div class="warning">
-        <strong>⚠️ Security Reminder:</strong>
+        <strong>âš ï¸ Security Reminder:</strong>
         <ul style="margin: 10px 0;">
           <li>Change this password after your next login</li>
           <li>Keep your credentials secure</li>
@@ -933,18 +895,14 @@ export const sendPasswordResetEmail = async (fullName, email, newPassword) => {
 
     const subject = 'Password Reset Successful - TaskFlow';
 
-    console.log('📧 Sending password reset confirmation email via Brevo API to:', email);
     const result = await sendEmail(email, subject, htmlContent);
 
     if (result.success) {
-      console.log('✅ Password reset confirmation email sent successfully');
     } else {
-      console.error('❌ Failed to send password reset confirmation email:', result.error);
     }
 
     return result;
   } catch (error) {
-    console.error('❌ Error sending password reset confirmation email:', error);
     return { success: false, status: 'error', error: error.message };
   }
 };
@@ -955,18 +913,14 @@ export const sendPasswordResetLink = async (full_name, email, resetToken) => {
     const htmlContent = getPasswordResetTemplate(full_name, resetToken);
     const subject = 'Reset Your Password - TaskFlow';
 
-    console.log('📧 Sending password reset email via Brevo API to:', email);
     const result = await sendEmail(email, subject, htmlContent);
     
     if (result.success) {
-      console.log(`✅ Password reset email sent successfully to ${email}`);
     } else {
-      console.error('❌ Failed to send password reset email:', result.error);
     }
     
     return result;
   } catch (error) {
-    console.error(`❌ Error sending password reset email to ${email}:`, error);
     return { success: false, error: error.message };
   }
 };
@@ -990,7 +944,7 @@ const getCommentNotificationTemplate = (userName, commenterName, taskTitle, comm
 <body>
   <div class="container">
     <div class="header">
-      <h1>💬 New Comment on Task</h1>
+      <h1>ðŸ’¬ New Comment on Task</h1>
     </div>
     <div class="content">
       <p>Hello <strong>${userName}</strong>,</p>
@@ -998,7 +952,7 @@ const getCommentNotificationTemplate = (userName, commenterName, taskTitle, comm
       <div class="comment-box">
         <h3 style="margin-top: 0; color: #136dec;">${taskTitle}</h3>
         <p style="background: #f0f4ff; padding: 15px; border-radius: 5px; font-style: italic;">"${commentText}"</p>
-        <p style="color: #666; font-size: 14px; margin-top: 10px;">— ${commenterName}</p>
+        <p style="color: #666; font-size: 14px; margin-top: 10px;">â€” ${commenterName}</p>
       </div>
       <p>Click below to view the full conversation:</p>
       <a href="${appUrl}" class="btn">View Task</a>
@@ -1021,20 +975,16 @@ export const sendCommentNotification = async (userName, userEmail, commenterName
       : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
 
     const htmlContent = getCommentNotificationTemplate(userName, commenterName, taskTitle, commentText, appUrl);
-    const subject = `💬 New Comment: ${taskTitle}`;
+    const subject = `ðŸ’¬ New Comment: ${taskTitle}`;
 
-    console.log('📧 Sending comment notification via Brevo API to:', userEmail);
     const result = await sendEmail(userEmail, subject, htmlContent);
     
     if (result.success) {
-      console.log('✅ Comment notification sent successfully');
     } else {
-      console.error('❌ Failed to send comment notification:', result.error);
     }
     
     return result;
   } catch (error) {
-    console.error('❌ Error sending comment notification:', error);
     return { success: false, status: 'error', error: error.message };
   }
 };
@@ -1074,7 +1024,7 @@ export const sendOverdueTaskReminder = async (userName, userEmail, taskTitle, da
 <body>
   <div class="container">
     <div class="header">
-      <h1>🚨 Overdue Task Alert</h1>
+      <h1>ðŸš¨ Overdue Task Alert</h1>
     </div>
     <div class="content">
       <p>Hello <strong>${userName}</strong>,</p>
@@ -1095,20 +1045,16 @@ export const sendOverdueTaskReminder = async (userName, userEmail, taskTitle, da
 </html>
     `;
 
-    const subject = `🚨 Overdue Task: ${taskTitle}`;
+    const subject = `ðŸš¨ Overdue Task: ${taskTitle}`;
 
-    console.log('📧 Sending overdue task reminder via Brevo API to:', userEmail);
     const result = await sendEmail(userEmail, subject, htmlContent);
     
     if (result.success) {
-      console.log('✅ Overdue task reminder sent successfully');
     } else {
-      console.error('❌ Failed to send overdue task reminder:', result.error);
     }
     
     return result;
   } catch (error) {
-    console.error('❌ Error sending overdue task reminder:', error);
     return { success: false, status: 'error', error: error.message };
   }
 };
@@ -1140,7 +1086,7 @@ export const sendWeeklyReport = async (userName, userEmail, reportData) => {
 <body>
   <div class="container">
     <div class="header">
-      <h1>📊 Your Weekly Report</h1>
+      <h1>ðŸ“Š Your Weekly Report</h1>
     </div>
     <div class="content">
       <p>Hello <strong>${userName}</strong>,</p>
@@ -1175,20 +1121,16 @@ export const sendWeeklyReport = async (userName, userEmail, reportData) => {
 </html>
     `;
 
-    const subject = '📊 Your Weekly TaskFlow Report';
+    const subject = 'ðŸ“Š Your Weekly TaskFlow Report';
 
-    console.log('📧 Sending weekly report via Brevo API to:', userEmail);
     const result = await sendEmail(userEmail, subject, htmlContent);
     
     if (result.success) {
-      console.log('✅ Weekly report sent successfully');
     } else {
-      console.error('❌ Failed to send weekly report:', result.error);
     }
     
     return result;
   } catch (error) {
-    console.error('❌ Error sending weekly report:', error);
     return { success: false, status: 'error', error: error.message };
   }
 };

@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
@@ -81,7 +81,6 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      console.warn('⚠️ CORS blocked request from origin:', origin);
       callback(null, true); // Allow in production, log for monitoring
     }
   },
@@ -100,16 +99,13 @@ app.set('io', io);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log('✅ Client connected:', socket.id);
 
   // Join user to their own room (for personal notifications)
   socket.on('join', (userId) => {
     socket.join(userId);
-    console.log(`User ${userId} joined their room`);
   });
 
   socket.on('disconnect', () => {
-    console.log('❌ Client disconnected:', socket.id);
   });
 });
 
@@ -180,7 +176,6 @@ app.post('/api/test-email-send', async (req, res) => {
     // Import email service dynamically
     const { sendCredentialEmail } = await import('./utils/emailService.js');
     
-    console.log('🧪 Testing email send to:', email);
     
     // Try to send email synchronously with timeout
     const result = await Promise.race([
@@ -190,7 +185,6 @@ app.post('/api/test-email-send', async (req, res) => {
       )
     ]);
     
-    console.log('🧪 Email test result:', result);
     
     res.json({
       success: result.success,
@@ -198,7 +192,6 @@ app.post('/api/test-email-send', async (req, res) => {
       details: result
     });
   } catch (error) {
-    console.error('🧪 Email test error:', error);
     res.status(500).json({
       success: false,
       message: 'Email test failed',
@@ -218,7 +211,6 @@ app.use((req, res) => {
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
   res.status(err.status || 500).json({
     message: err.message || 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
@@ -228,13 +220,12 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
-  console.log(`
-╔════════════════════════════════════════╗
-║   🚀 CTMS Backend Server Running      ║
-║   📡 Port: ${PORT}                      ║
-║   🌍 Environment: ${process.env.NODE_ENV || 'development'}     ║
-║   🔌 Socket.IO: Enabled                ║
-╚════════════════════════════════════════╝
+â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+â•‘   ðŸš€ CTMS Backend Server Running      â•‘
+â•‘   ðŸ“¡ Port: ${PORT}                      â•‘
+â•‘   ðŸŒ Environment: ${process.env.NODE_ENV || 'development'}     â•‘
+â•‘   ðŸ”Œ Socket.IO: Enabled                â•‘
+â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   `);
 });
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -43,18 +43,15 @@ const Login = () => {
     setLoading(true);
 
     const result = await login(formData.email, formData.password);
-    console.log('Login result:', result);
 
     if (result.success) {
       // Check if workspace selection is required
       if (result.requiresWorkspaceSelection) {
-        console.log('Multiple workspaces detected:', result.workspaces);
         setLoginUserData(result.user);
         setAvailableWorkspaces(result.workspaces);
         setShowWorkspaceSelector(true);
       } else {
         // Single workspace - navigate directly
-        console.log('Single workspace, navigating to dashboard');
         navigate('/dashboard');
       }
     } else {
@@ -74,20 +71,15 @@ const Login = () => {
   };
 
   const handleWorkspaceSelect = async (workspace) => {
-    console.log('handleWorkspaceSelect called with:', workspace);
     try {
       const result = await selectWorkspace(workspace, loginUserData);
-      console.log('selectWorkspace result:', result);
       if (result.success) {
-        console.log('Navigating to dashboard');
         navigate('/dashboard');
       } else {
-        console.error('Workspace selection failed:', result);
         setError(result.message || 'Failed to select workspace. Please try again.');
         setShowWorkspaceSelector(false);
       }
     } catch (error) {
-      console.error('Error in handleWorkspaceSelect:', error);
       setError('An error occurred while selecting workspace.');
       setShowWorkspaceSelector(false);
     }
@@ -165,7 +157,7 @@ const Login = () => {
                   value={formData.password}
                   onChange={handleChange}
                   className={`flex w-full min-w-0 resize-none overflow-hidden rounded ${theme === 'dark' ? 'text-white border-[#282f39] bg-[#111418] placeholder:text-[#9da8b9]' : 'text-gray-900 border-gray-300 bg-white placeholder:text-gray-400'} focus:outline-0 focus:ring-2 focus:ring-[#136dec] border focus:border-[#136dec] h-12 px-4 pr-12 text-base font-normal transition-colors`}
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   required
                   data-testid="login-password"
                 />
@@ -218,7 +210,7 @@ const Login = () => {
                       onClick={() => navigate('/verify-email', { state: { email: formData.email } })}
                       className="mt-2 text-red-600 dark:text-red-400 underline hover:text-red-800 dark:hover:text-red-300 font-semibold"
                     >
-                      Go to verification page →
+                      Go to verification page â†’
                     </button>
                   )}
                 </div>
@@ -281,7 +273,7 @@ const Login = () => {
         {/* Page Footer */}
         <div className="mt-8 flex flex-col items-center gap-4">
           <p className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} font-normal`}>
-            © 2025 TaskFlow. Enterprise Edition.
+            Â© 2025 TaskFlow. Enterprise Edition.
           </p>
         </div>
       </div>

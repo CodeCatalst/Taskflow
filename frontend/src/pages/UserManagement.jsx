@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -75,7 +75,6 @@ export default function UserManagement() {
       const response = await api.get('/teams');
       setTeams(response.data.teams || []);
     } catch (err) {
-      console.error('Failed to fetch teams:', err);
     }
   };
 
@@ -406,7 +405,7 @@ export default function UserManagement() {
               </button>
               <div>
                 <h2 className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-base sm:text-lg md:text-xl font-bold leading-tight`}>User & Team Management</h2>
-                <p className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} text-[10px] sm:text-xs mt-0.5 sm:mt-1`}>{users.length} users • {teams.length} teams</p>
+                <p className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} text-[10px] sm:text-xs mt-0.5 sm:mt-1`}>{users.length} users â€¢ {teams.length} teams</p>
               </div>
             </div>
             <div className="flex gap-1.5 sm:gap-2">
@@ -976,7 +975,7 @@ export default function UserManagement() {
             <div className="space-y-5 sm:space-y-6">
               {/* Instructions */}
               <div className={`p-4 rounded-lg ${currentTheme.surfaceSecondary} border ${currentTheme.border}`}>
-                <h3 className={`text-xs sm:text-sm font-bold ${currentTheme.text} uppercase tracking-wider mb-2`}>📋 Import Instructions</h3>
+                <h3 className={`text-xs sm:text-sm font-bold ${currentTheme.text} uppercase tracking-wider mb-2`}>ðŸ“‹ Import Instructions</h3>
                 <ul className={`text-xs sm:text-sm ${currentTheme.textSecondary} space-y-1.5 list-disc list-inside`}>
                   <li><strong>Required fields:</strong> full_name, email, password, role</li>
                   <li><strong>Optional fields:</strong> team (single), teams (multiple, comma-separated), employment_status</li>
@@ -1035,7 +1034,7 @@ export default function UserManagement() {
               {/* Results Section */}
               {bulkImportResults && (
                 <div className={`p-4 rounded-lg ${currentTheme.surfaceSecondary} border ${currentTheme.border} space-y-3`}>
-                  <h3 className={`text-xs sm:text-sm font-bold ${currentTheme.text} uppercase tracking-wider`}>📊 Import Results</h3>
+                  <h3 className={`text-xs sm:text-sm font-bold ${currentTheme.text} uppercase tracking-wider`}>ðŸ“Š Import Results</h3>
                   
                   {/* Summary Stats */}
                   <div className="grid grid-cols-3 gap-2">
@@ -1057,7 +1056,7 @@ export default function UserManagement() {
                   {bulkImportResults.teamsCreated && bulkImportResults.teamsCreated.length > 0 && (
                     <div className="bg-purple-500/10 border border-purple-500/30 rounded p-3">
                       <p className="text-sm text-purple-400 font-medium mb-2">
-                        ✨ Created {bulkImportResults.teamsCreated.length} new team(s):
+                        âœ¨ Created {bulkImportResults.teamsCreated.length} new team(s):
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {bulkImportResults.teamsCreated.map((team, idx) => (
@@ -1072,7 +1071,7 @@ export default function UserManagement() {
                   {/* Success Details */}
                   {bulkImportResults.successful.length > 0 && (
                     <div className="bg-green-500/10 border border-green-500/30 rounded p-3">
-                      <p className="text-sm text-green-400 font-medium mb-2">✓ Successfully Imported Users:</p>
+                      <p className="text-sm text-green-400 font-medium mb-2">âœ“ Successfully Imported Users:</p>
                       <div className="space-y-1.5 max-h-32 overflow-y-auto">
                         {bulkImportResults.successful.slice(0, 5).map((user, idx) => (
                           <div key={idx} className="text-xs text-green-300 flex justify-between gap-2">
@@ -1092,7 +1091,7 @@ export default function UserManagement() {
                   {/* Failed Details */}
                   {bulkImportResults.failed.length > 0 && (
                     <div className="bg-red-500/10 border border-red-500/30 rounded p-3">
-                      <p className="text-sm text-red-400 font-medium mb-2">✗ Failed Imports:</p>
+                      <p className="text-sm text-red-400 font-medium mb-2">âœ— Failed Imports:</p>
                       <div className="space-y-1.5 max-h-40 overflow-y-auto">
                         {bulkImportResults.failed.map((fail, idx) => (
                           <div key={idx} className="text-xs">
@@ -1121,7 +1120,7 @@ export default function UserManagement() {
                 >
                   {bulkImportLoading ? (
                     <>
-                      <span className="animate-spin">⏳</span>
+                      <span className="animate-spin">â³</span>
                       Importing...
                     </>
                   ) : (

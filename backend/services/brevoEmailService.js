@@ -1,4 +1,4 @@
-import * as brevoAPI from '@getbrevo/brevo';
+﻿import * as brevoAPI from '@getbrevo/brevo';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -29,7 +29,6 @@ class BrevoEmailService {
         apiInstance.setApiKey(brevoAPI.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
         this.client = apiInstance;
       } catch (error) {
-        console.error('❌ Failed to initialize Brevo client:', error.message);
         this.client = null;
       }
     }
@@ -47,7 +46,6 @@ class BrevoEmailService {
           this.layoutTemplate = fs.readFileSync(layoutPath, 'utf8');
         }
       } catch (error) {
-        console.error('❌ Failed to load email layout:', error.message);
       }
     }
     return this.layoutTemplate;
@@ -151,7 +149,6 @@ class BrevoEmailService {
         provider: 'brevo-api'
       };
     } catch (error) {
-      console.error('❌ Brevo email send error:', error.message);
       return {
         success: false,
         error: error.message,

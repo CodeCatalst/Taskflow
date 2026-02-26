@@ -10,27 +10,13 @@ const __dirname = path.dirname(__filename);
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '.env') });
 
-console.log('🧪 Email Configuration Test Tool');
-console.log('================================\n');
-
 // Check environment variables
-console.log('📋 Current Configuration:');
-console.log('  EMAIL_HOST:', process.env.EMAIL_HOST || '❌ NOT SET');
-console.log('  EMAIL_PORT:', process.env.EMAIL_PORT || '❌ NOT SET');
-console.log('  EMAIL_SECURE:', process.env.EMAIL_SECURE || '❌ NOT SET');
-console.log('  EMAIL_USER:', process.env.EMAIL_USER || '❌ NOT SET');
-console.log('  EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '✅ SET' : '❌ NOT SET');
-console.log('  NODE_ENV:', process.env.NODE_ENV || 'development');
-console.log('');
-
 // Validate configuration
 const isConfigured = process.env.EMAIL_HOST && 
                      process.env.EMAIL_USER && 
                      process.env.EMAIL_PASSWORD;
 
 if (!isConfigured) {
-  console.error('❌ Email configuration is incomplete!');
-  console.error('   Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASSWORD in your .env file');
   process.exit(1);
 }
 
@@ -57,11 +43,6 @@ const configurations = [
 ];
 
 async function testConfiguration(config) {
-  console.log(`\n🔍 Testing: ${config.name}`);
-  console.log(`   Host: ${config.host}`);
-  console.log(`   Port: ${config.port}`);
-  console.log(`   Secure: ${config.secure}`);
-  
   const transporter = createTransport({
     host: config.host,
     port: config.port,
@@ -82,24 +63,17 @@ async function testConfiguration(config) {
   });
 
   try {
-    console.log('   ⏳ Verifying connection...');
     const startTime = Date.now();
     await transporter.verify();
     const duration = Date.now() - startTime;
-    console.log(`   ✅ Connection successful! (${duration}ms)`);
+    `);
     transporter.close();
     return true;
   } catch (error) {
-    console.log(`   ❌ Connection failed: ${error.message}`);
-    console.log(`   Error Code: ${error.code || 'N/A'}`);
-    
     if (error.code === 'ETIMEDOUT') {
-      console.log('   💡 Timeout - Port may be blocked by firewall/hosting platform');
-    } else if (error.code === 'EAUTH') {
-      console.log('   💡 Authentication failed - Check your email and App Password');
-    } else if (error.code === 'ECONNREFUSED') {
-      console.log('   💡 Connection refused - Wrong host or port');
-    }
+      } else if (error.code === 'EAUTH') {
+      } else if (error.code === 'ECONNREFUSED') {
+      }
     
     try {
       transporter.close();
@@ -111,18 +85,11 @@ async function testConfiguration(config) {
 }
 
 async function sendTestEmail() {
-  console.log('\n\n📧 Attempting to send test email...');
-  console.log('================================\n');
-  
   const testEmail = process.argv[2] || process.env.EMAIL_USER;
   
   if (!testEmail) {
-    console.error('❌ No test email provided!');
-    console.error('   Usage: node test-email-production.js your-email@example.com');
     return;
   }
-  
-  console.log(`   Recipient: ${testEmail}`);
   
   // Find working configuration
   const workingConfig = await (async () => {
@@ -134,17 +101,8 @@ async function sendTestEmail() {
   })();
   
   if (!workingConfig) {
-    console.error('\n❌ No working configuration found!');
-    console.error('   All connection attempts failed.');
-    console.error('\n💡 Recommendations:');
-    console.error('   1. Verify your Gmail App Password is correct');
-    console.error('   2. Check if your hosting platform blocks SMTP ports');
-    console.error('   3. Consider using SendGrid, Mailgun, or AWS SES');
     process.exit(1);
   }
-  
-  console.log(`\n✅ Using working configuration: ${workingConfig.name}`);
-  console.log('   Creating transporter...');
   
   const transporter = createTransport({
     host: workingConfig.host,
@@ -203,24 +161,13 @@ Test Time: ${new Date().toLocaleString()}
   };
   
   try {
-    console.log('   📤 Sending email...');
     const info = await transporter.sendMail(mailOptions);
-    console.log('\n✅✅✅ Test email sent successfully! ✅✅✅');
-    console.log(`   Message ID: ${info.messageId}`);
-    console.log(`   Response: ${info.response}`);
-    console.log(`   To: ${testEmail}`);
-    console.log('\n💡 Check your inbox (and spam folder) for the test email.');
+    for the test email.');
     
     transporter.close();
   } catch (error) {
-    console.error('\n❌ Failed to send test email!');
-    console.error(`   Error: ${error.message}`);
-    console.error(`   Code: ${error.code || 'N/A'}`);
-    
     if (error.code === 'ETIMEDOUT') {
-      console.error('\n💡 Timeout error - Common on hosting platforms');
-      console.error('   The email may still have been sent - check your inbox');
-      console.error('   Consider using a transactional email service (SendGrid, Mailgun)');
+      ');
     }
     
     try {
@@ -232,11 +179,7 @@ Test Time: ${new Date().toLocaleString()}
 }
 
 // Run tests
-console.log('\n🚀 Starting Email Configuration Tests...');
 sendTestEmail().then(() => {
-  console.log('\n================================');
-  console.log('🏁 Test completed!');
-}).catch(error => {
-  console.error('\n💥 Test failed with error:', error);
+  }).catch(error => {
   process.exit(1);
 });

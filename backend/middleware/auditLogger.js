@@ -55,7 +55,6 @@ export const auditLogger = (options = {}) => {
 
         // Log asynchronously without blocking response
         logChange(logData).catch(err => {
-          console.error('Audit logging failed:', err);
         });
       }
 
@@ -134,6 +133,5 @@ export const logEvent = async (req, options) => {
       user_ip
     });
   } catch (error) {
-    console.error('Error logging event:', error);
   }
 };

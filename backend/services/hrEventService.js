@@ -1,4 +1,4 @@
-import EmailTemplate from '../models/EmailTemplate.js';
+﻿import EmailTemplate from '../models/EmailTemplate.js';
 import User from '../models/User.js';
 import brevoEmailService from './brevoEmailService.js';
 import { logChange } from '../utils/changeLogService.js';
@@ -41,14 +41,12 @@ class HrEventService {
     */
    static async handleEvent(event, data, workspaceId) {
      try {
-       console.log(`🔄 Processing HR event: ${event}`, data);
 
        // Determine recipient type and validate
        let recipientEmail = data.employeeEmail || data.recipientEmail || data.email;
        let recipientName = data.employeeName || data.recipientName || data.name;
 
        if (!recipientEmail) {
-         console.log(`🚫 Skipping email for ${event}: No recipient email provided`);
          return {
            success: false,
            reason: 'No recipient email',
@@ -60,7 +58,6 @@ class HrEventService {
        if (data.employeeId && data.source !== 'EXTERNAL') {
          const employee = await User.findById(data.employeeId);
          if (!employee || employee.employmentStatus !== 'ACTIVE') {
-           console.log(`🚫 Skipping email for ${event}: Employee not ACTIVE (status: ${employee?.employmentStatus})`);
            return {
              success: false,
              reason: 'Employee not active',
@@ -76,7 +73,6 @@ class HrEventService {
       // Get template code from mapping
       const templateCode = this.EVENT_TEMPLATE_MAP[event];
       if (!templateCode) {
-        console.log(`⚠️ No template mapping for event: ${event}`);
         return { success: false, reason: 'No template mapping', event };
       }
 
@@ -91,7 +87,6 @@ class HrEventService {
       });
 
       if (!template) {
-        console.log(`⚠️ Template not found: ${templateCode} for workspace ${workspaceId}`);
         return { success: false, reason: 'Template not found', event, templateCode };
       }
 
@@ -125,7 +120,6 @@ class HrEventService {
         workspaceId
       });
 
-      console.log(`✅ HR email sent for ${event}:`, emailResult);
 
       return {
         success: emailResult.success,
@@ -136,7 +130,6 @@ class HrEventService {
       };
 
     } catch (error) {
-      console.error(`❌ Error handling HR event ${event}:`, error);
 
       // Log error
       await logChange({

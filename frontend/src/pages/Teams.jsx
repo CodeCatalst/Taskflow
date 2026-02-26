@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -87,7 +87,10 @@ const Teams = () => {
       const response = await api.get('/users');
       setUsers(response.data.users);
     } catch (error) {
+<<<<<<< Updated upstream
       // Error fetching users
+=======
+>>>>>>> Stashed changes
     }
   };
 
@@ -187,6 +190,17 @@ const Teams = () => {
       confirmText: 'Remove',
       cancelText: 'Cancel',
       variant: 'warning',
+<<<<<<< Updated upstream
+=======
+      onConfirm: async () => {
+        try {
+          await api.delete(`/teams/${teamId}/members/${userId}`);
+          fetchTeams();
+        } catch (error) {
+          alert(error.response?.data?.message || 'Failed to remove member');
+        }
+      },
+>>>>>>> Stashed changes
     });
 
     if (confirmed) {
@@ -232,7 +246,7 @@ const Teams = () => {
 
     const confirmed = await confirmModal.show({
       title: 'Delete All Teams',
-      message: `⚠️ DANGER: You are about to delete ALL ${teams.length} team(s). All members will be unassigned. This action CANNOT be undone. Are you absolutely sure?`,
+      message: `âš ï¸ DANGER: You are about to delete ALL ${teams.length} team(s). All members will be unassigned. This action CANNOT be undone. Are you absolutely sure?`,
       confirmText: `Delete ${teams.length} Team(s)`,
       cancelText: 'Cancel',
       variant: 'danger',
@@ -744,7 +758,7 @@ const Teams = () => {
                 <div>
                   <h2 className="text-2xl font-bold text-white">Add Members to {selectedTeam.name}</h2>
                   <p className="text-sm text-[#9da8b9] mt-1">
-                    {availableUsers.length} user(s) available • {selectedTeam.members?.length || 0} current member(s)
+                    {availableUsers.length} user(s) available â€¢ {selectedTeam.members?.length || 0} current member(s)
                   </p>
                 </div>
                 <button
@@ -804,7 +818,7 @@ const Teams = () => {
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-[#136dec]/10 to-transparent rounded-[0.125rem] border border-[#136dec]/20">
                   <div>
                     <span className="text-sm font-semibold text-white block">
-                      {isMultiSelect ? '✓ Multi-Select Mode Active' : 'Single Select Mode'}
+                      {isMultiSelect ? 'âœ“ Multi-Select Mode Active' : 'Single Select Mode'}
                     </span>
                     <span className="text-xs text-[#9da8b9]">
                       {isMultiSelect ? `${selectedUserIds.length} user(s) selected` : 'Select one user at a time'}
@@ -823,7 +837,7 @@ const Teams = () => {
                         : 'bg-[#136dec] text-white hover:bg-[#1158c7] shadow-lg shadow-[#136dec]/25'
                     }`}
                   >
-                    {isMultiSelect ? '← Single Select' : 'Multi-Select →'}
+                    {isMultiSelect ? 'â† Single Select' : 'Multi-Select â†’'}
                   </button>
                 </div>
 
@@ -833,7 +847,7 @@ const Teams = () => {
                   <div>
                     <div className="flex justify-between items-center mb-3 px-1">
                       <label className="text-sm font-medium text-white">
-                        {filteredUsers.length} user(s) • {selectedUserIds.length} selected
+                        {filteredUsers.length} user(s) â€¢ {selectedUserIds.length} selected
                       </label>
                       <button
                         type="button"
@@ -841,8 +855,8 @@ const Teams = () => {
                         className="text-sm font-medium text-[#136dec] hover:text-[#1158c7] transition-colors"
                       >
                         {selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0
-                          ? '✗ Deselect All'
-                          : '✓ Select All'}
+                          ? 'âœ— Deselect All'
+                          : 'âœ“ Select All'}
                       </button>
                     </div>
                     <div className="border border-[#282f39] rounded-[0.125rem] max-h-96 overflow-y-auto bg-[#111418]">

@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import Comment from '../models/Comment.js';
 import Task from '../models/Task.js';
@@ -19,7 +19,6 @@ router.get('/:taskId/comments', authenticate, async (req, res) => {
 
     res.json({ comments, count: comments.length });
   } catch (error) {
-    console.error('Get comments error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -72,7 +71,6 @@ router.post('/:taskId/comments', authenticate, async (req, res) => {
 
     res.status(201).json({ message: 'Comment added', comment: populatedComment });
   } catch (error) {
-    console.error('Add comment error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

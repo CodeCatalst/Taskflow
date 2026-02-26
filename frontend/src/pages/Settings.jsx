@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+﻿import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -174,39 +174,32 @@ const Settings = () => {
   };
 
   const handleDeleteWorkspace = async () => {
-    console.log('🗑️ Delete workspace initiated');
     
     try {
       const confirmed = await confirmModal.show({
         title: 'Delete Workspace & Account',
-        message: `Are you absolutely sure you want to delete your workspace "${user?.workspace?.name}"?\n\nThis will PERMANENTLY DELETE:\n• Your account\n• All users in this workspace\n• All tasks and projects\n• All teams\n• All data and settings\n\nThis action cannot be undone!`,
+        message: `Are you absolutely sure you want to delete your workspace "${user?.workspace?.name}"?\n\nThis will PERMANENTLY DELETE:\nâ€¢ Your account\nâ€¢ All users in this workspace\nâ€¢ All tasks and projects\nâ€¢ All teams\nâ€¢ All data and settings\n\nThis action cannot be undone!`,
         confirmText: 'Yes, Delete Everything',
         variant: 'danger'
       });
 
-      console.log('First confirmation result:', confirmed);
       if (!confirmed) {
-        console.log('User cancelled first confirmation');
         return;
       }
 
       // Second confirmation for extra safety
       const doubleConfirmed = await confirmModal.show({
-        title: '⚠️ FINAL WARNING',
-        message: `Last chance to change your mind!\n\nClicking "Confirm Deletion" will PERMANENTLY and IRREVERSIBLY delete:\n\n• Workspace: ${user?.workspace?.name}\n• Your account: ${user?.email}\n• ${user?.workspace?.type === 'COMMUNITY' ? 'All community' : 'All'} data\n\nThere is NO way to recover this data!`,
+        title: 'âš ï¸ FINAL WARNING',
+        message: `Last chance to change your mind!\n\nClicking "Confirm Deletion" will PERMANENTLY and IRREVERSIBLY delete:\n\nâ€¢ Workspace: ${user?.workspace?.name}\nâ€¢ Your account: ${user?.email}\nâ€¢ ${user?.workspace?.type === 'COMMUNITY' ? 'All community' : 'All'} data\n\nThere is NO way to recover this data!`,
         confirmText: 'Confirm Deletion',
         variant: 'danger'
       });
 
-      console.log('Second confirmation result:', doubleConfirmed);
       if (!doubleConfirmed) {
-        console.log('User cancelled second confirmation');
         return;
       }
 
-      console.log('✅ Both confirmations passed, deleting workspace...');
       const response = await api.delete('/workspaces/my-workspace/delete');
-      console.log('Delete response:', response.data);
       
       // Logout and redirect to home page
       await logout();
@@ -216,7 +209,6 @@ const Settings = () => {
         } 
       });
     } catch (error) {
-      console.error('❌ Delete workspace error:', error);
       alert(error.response?.data?.message || 'Failed to delete workspace. Please contact support.');
     }
   };
@@ -545,7 +537,7 @@ const Settings = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <span className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}>Browser Support:</span>
                     <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {'Notification' in window ? '✅ Supported' : '❌ Not Supported'}
+                      {'Notification' in window ? 'âœ… Supported' : 'âŒ Not Supported'}
                     </span>
                     
                     <span className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}>Permission:</span>
@@ -555,12 +547,12 @@ const Settings = () => {
                     
                     <span className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}>Service Worker:</span>
                     <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {'serviceWorker' in navigator ? '✅ Available' : '❌ Not Available'}
+                      {'serviceWorker' in navigator ? 'âœ… Available' : 'âŒ Not Available'}
                     </span>
                     
                     <span className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}>SW Registered:</span>
                     <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {navigator.serviceWorker?.controller ? '✅ Yes' : '⚠️ No'}
+                      {navigator.serviceWorker?.controller ? 'âœ… Yes' : 'âš ï¸ No'}
                     </span>
                   </div>
                   
@@ -612,7 +604,7 @@ const Settings = () => {
                           <li>All activity history and logs</li>
                         </ul>
                         <p className={`text-sm ${theme === 'dark' ? 'text-red-400' : 'text-red-700'} mt-3 font-bold`}>
-                          ⚠️ This action cannot be undone! All data will be lost forever.
+                          âš ï¸ This action cannot be undone! All data will be lost forever.
                         </p>
                       </div>
                       <button

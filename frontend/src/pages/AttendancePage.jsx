@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -75,7 +75,6 @@ export default function AttendancePage() {
       const response = await api.get('/users');
       setUsers(response.data.users || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
     }
   };
 
@@ -87,7 +86,6 @@ export default function AttendancePage() {
       });
       setAttendance(response.data.records);
     } catch (error) {
-      console.error('Error fetching attendance:', error);
     } finally {
       setLoading(false);
     }
@@ -100,7 +98,6 @@ export default function AttendancePage() {
       });
       setSummary(response.data.summary);
     } catch (error) {
-      console.error('Error fetching summary:', error);
     }
   };
 
@@ -119,7 +116,6 @@ export default function AttendancePage() {
       );
       setCheckedIn(todayRecord && todayRecord.checkIn && !todayRecord.checkOut);
     } catch (error) {
-      console.error('Error checking today attendance:', error);
     }
   };
 

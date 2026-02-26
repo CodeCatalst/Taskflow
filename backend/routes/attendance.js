@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
 import { requireCoreWorkspace } from '../middleware/workspaceGuard.js';
@@ -43,7 +43,6 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
 
     res.json({ success: true, records });
   } catch (error) {
-    console.error('Get attendance error:', error);
     res.status(500).json({ message: 'Failed to fetch attendance records' });
   }
 });
@@ -90,7 +89,6 @@ router.post('/checkin', authenticate, requireCoreWorkspace, async (req, res) => 
 
     res.json({ success: true, attendance });
   } catch (error) {
-    console.error('Check-in error:', error);
     res.status(500).json({ message: 'Failed to check in' });
   }
 });
@@ -131,7 +129,6 @@ router.post('/checkout', authenticate, requireCoreWorkspace, async (req, res) =>
 
     res.json({ success: true, attendance });
   } catch (error) {
-    console.error('Check-out error:', error);
     res.status(500).json({ message: 'Failed to check out' });
   }
 });
@@ -199,7 +196,6 @@ router.post('/mark', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
 
     res.json({ success: true, attendance });
   } catch (error) {
-    console.error('Mark attendance error:', error);
     res.status(500).json({ message: 'Failed to mark attendance' });
   }
 });
@@ -240,7 +236,6 @@ router.put('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']
 
     res.json({ success: true, attendance });
   } catch (error) {
-    console.error('Override attendance error:', error);
     res.status(500).json({ message: 'Failed to override attendance' });
   }
 });
@@ -279,7 +274,6 @@ router.get('/summary/:userId?', authenticate, requireCoreWorkspace, async (req, 
 
     res.json({ success: true, summary, records });
   } catch (error) {
-    console.error('Get summary error:', error);
     res.status(500).json({ message: 'Failed to fetch summary' });
   }
 });

@@ -4,9 +4,10 @@ A **modern**, **comprehensive**, and **role-based** task management system built
 
 ---
 
-## 🆕 Recent Updates (December 2025)
+## 🆕 Recent Updates (February 2026)
 
 ### ✅ Major Fixes & Enhancements
+- **HR Email System Overhaul** - Complete unified email template engine with Brevo integration
 - **Landing Page** - Production-ready conversion-focused page with cinematic UI
 - **Dashboard Search & Filters** - Fixed non-functional search bar and filter panel
 - **Enhanced Analytics** - Added 5 new graphs (11 total) with advanced metrics
@@ -16,6 +17,13 @@ A **modern**, **comprehensive**, and **role-based** task management system built
 - **PWA Install Banner** - Smart installation prompt on dashboard
 - **Export Functionality** - Fixed dropdown positioning for Excel/PDF export
 - **Workspace Activation** - Enhanced control for activating/deactivating workspaces
+
+### 📧 Unified HR Email System (New)
+- **Single Template Engine** - Handlebars-based unified HTML template
+- **20+ Email Types** - Supporting hiring, interviewing, onboarding, and exit workflows
+- **Brevo API Integration** - Reliable transactional email delivery
+- **Smart Conditional Rendering** - Dynamic content based on email type
+- **Category-based Dashboard** - Visual organization of email templates in HR Dashboard
 
 ### 📊 New Analytics Graphs
 - Weekly Progress (8-week trend line chart)
@@ -382,6 +390,8 @@ A **modern**, **comprehensive**, and **role-based** task management system built
 - **Node-Cron** - Scheduled tasks
 - **ExcelJS** - Excel report generation
 - **jsPDF** - PDF report generation
+- **Handlebars** - HTML email templating
+- **Brevo (Sendinblue)** - Transactional email API
 
 ### Frontend
 - **React 18** - UI library
@@ -432,6 +442,10 @@ TaskFlow/
 │   │   ├── scheduler.js       # Cron job scheduler
 │   │   ├── reportGenerator.js # Report generation utilities
 │   │   └── changeLogService.js # Audit logging service
+│   ├── services/
+│   │   ├── emailTemplateService.js # Handlebars template rendering
+│   │   ├── brevoEmailService.js    # Brevo API integration
+│   │   └── hrActionService.js      # HR email business logic
 │   ├── scripts/
 │   │   ├── seedAdmin.js       # Create default admin user
 │   │   ├── cleanupAdminUsers.js # Admin user cleanup
@@ -862,6 +876,12 @@ If you see **"Your workspace has been deactivated. Please contact support."**:
 - [PWA Notification Documentation](./PWA_NOTIFICATION_DOCUMENTATION.md)
 - [Notification Testing Guide](./NOTIFICATION_TESTING_GUIDE.md)
 - [Notification Troubleshooting](./NOTIFICATION_TROUBLESHOOTING.md)
+
+### HR Module & Email Automation (New)
+- [**Unified Email System Guide**](./UNIFIED_EMAIL_SYSTEM.md) - Complete guide to the Handlebars/Brevo email engine
+- [**HR API Reference**](./API_REFERENCE_HR_MODULE.md) - API endpoints for HR operations
+- [**HR Email System README**](./HR_EMAIL_SYSTEM_README.md) - Module-specific documentation
+- [**Email System Implementation Summary**](./IMPLEMENTATION_SUMMARY.md)
 
 ### Technical Guides
 - [Automatic Logout Test Guide](./AUTOMATIC_LOGOUT_TEST_GUIDE.md) - Session management testing

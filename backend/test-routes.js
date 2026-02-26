@@ -18,6 +18,4 @@ app._router.stack.forEach(middleware => {
   }
 });
 
-console.log('Registered routes:');
-routes.forEach(r => console.log('  ' + r));
-console.log('\n✅ Routes loaded successfully!');
+routes.forEach(r => );

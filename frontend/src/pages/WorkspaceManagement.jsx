@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
 import { useConfirmModal } from '../hooks/useConfirmModal';
@@ -69,13 +69,10 @@ export default function WorkspaceManagement() {
 
   const fetchWorkspaces = async () => {
     try {
-      console.log('📋 Fetching workspaces...');
       setLoading(true);
       const response = await axios.get('/workspaces');
-      console.log('✅ Workspaces fetched:', response.data);
       setWorkspaces(response.data);
     } catch (error) {
-      console.error('❌ Error fetching workspaces:', error);
       showError('Failed to fetch workspaces: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
@@ -91,18 +88,15 @@ export default function WorkspaceManagement() {
     }
 
     try {
-      console.log('📝 Creating workspace:', formData);
       setProcessing(true);
       
       const response = await axios.post('/workspaces', formData);
-      console.log('✅ Workspace created:', response.data);
       
       setShowCreateModal(false);
       setFormData({ name: '', type: 'COMMUNITY', ownerEmail: '' });
       showSuccess('Workspace created successfully!');
       fetchWorkspaces();
     } catch (error) {
-      console.error('❌ Error creating workspace:', error);
       showError('Failed to create workspace: ' + (error.response?.data?.message || error.message));
     } finally {
       setProcessing(false);
@@ -118,18 +112,15 @@ export default function WorkspaceManagement() {
     }
 
     try {
-      console.log('📝 Updating workspace:', selectedWorkspace._id, editData);
       setProcessing(true);
       
       const response = await axios.put(`/workspaces/${selectedWorkspace._id}`, editData);
-      console.log('✅ Workspace updated:', response.data);
       
       setShowEditModal(false);
       setSelectedWorkspace(null);
       showSuccess('Workspace updated successfully!');
       fetchWorkspaces();
     } catch (error) {
-      console.error('❌ Error updating workspace:', error);
       showError('Failed to update workspace: ' + (error.response?.data?.message || error.message));
     } finally {
       setProcessing(false);
@@ -149,18 +140,15 @@ export default function WorkspaceManagement() {
     }
 
     try {
-      console.log('🗑️ Deleting workspace:', selectedWorkspace._id);
       setProcessing(true);
       setShowDeletePrompt(false);
       
       const response = await axios.delete(`/workspaces/${selectedWorkspace._id}`);
-      console.log('✅ Workspace deleted:', response.data);
       
       const deleted = response.data.deleted || {};
-      showSuccess(`Workspace deleted successfully!\n\nDeleted:\n• ${deleted.users || 0} users\n• ${deleted.tasks || 0} tasks\n• ${deleted.teams || 0} teams`);
+      showSuccess(`Workspace deleted successfully!\n\nDeleted:\nâ€¢ ${deleted.users || 0} users\nâ€¢ ${deleted.tasks || 0} tasks\nâ€¢ ${deleted.teams || 0} teams`);
       fetchWorkspaces();
     } catch (error) {
-      console.error('❌ Error deleting workspace:', error);
       showError('Failed to delete workspace: ' + (error.response?.data?.message || error.message));
     } finally {
       setProcessing(false);
@@ -182,16 +170,13 @@ export default function WorkspaceManagement() {
     if (!confirmed) return;
 
     try {
-      console.log(`🔄 ${action}ing workspace:`, workspace._id);
       setProcessing(true);
       
       const response = await axios.patch(`/workspaces/${workspace._id}/toggle-status`);
-      console.log(`✅ Workspace ${action}d:`, response.data);
       
       showSuccess(`Workspace ${action}d successfully!`);
       fetchWorkspaces();
     } catch (error) {
-      console.error(`❌ Error ${action}ing workspace:`, error);
       showError(`Failed to ${action} workspace: ` + (error.response?.data?.message || error.message));
     } finally {
       setProcessing(false);
@@ -624,7 +609,7 @@ export default function WorkspaceManagement() {
 
             <div className={`mb-6 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               <p className="mb-4">
-                ⚠️ You are about to delete workspace <strong>"{selectedWorkspace.name}"</strong>
+                âš ï¸ You are about to delete workspace <strong>"{selectedWorkspace.name}"</strong>
               </p>
               <p className="mb-4">
                 This will permanently delete ALL data:

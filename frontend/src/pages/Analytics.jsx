@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -83,7 +83,6 @@ const Analytics = () => {
       setTasks(response.data.tasks);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching tasks:', error);
       setLoading(false);
     }
   };
@@ -94,7 +93,6 @@ const Analytics = () => {
       setTeams(response.data.teams);
     } catch (error) {
       if (error.response?.status !== 403) {
-        console.error('Error fetching teams:', error);
       }
     }
   };
@@ -105,7 +103,6 @@ const Analytics = () => {
       setUsers(response.data.users);
     } catch (error) {
       if (error.response?.status !== 403) {
-        console.error('Error fetching users:', error);
       }
     }
   };
@@ -405,7 +402,6 @@ const Analytics = () => {
     try {
       generateExcelReport(filteredTasks, analyticsData, filters);
     } catch (error) {
-      console.error('Error generating Excel report:', error);
       alert('Error generating Excel report. Please try again.');
     }
   };
@@ -415,7 +411,6 @@ const Analytics = () => {
       generateComprehensivePDFReport(filteredTasks, analyticsData, filters, user, reportPeriod);
       setShowReportOptions(false);
     } catch (error) {
-      console.error('Error generating PDF report:', error);
       alert('Error generating PDF report. Please try again.');
     }
   };

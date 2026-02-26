@@ -1,4 +1,4 @@
-import cron from 'node-cron';
+﻿import cron from 'node-cron';
 import Task from '../models/Task.js';
 import User from '../models/User.js';
 import Team from '../models/Team.js';
@@ -29,7 +29,6 @@ export const initializeScheduler = () => {
 // Send overdue task reminders to users
 const sendOverdueReminders = async () => {
   try {
-    console.log('🔔 Starting overdue reminders automation...');
     
     // WORKSPACE SUPPORT: Get all workspaces
     const workspaces = await Workspace.find({});
@@ -41,7 +40,6 @@ const sendOverdueReminders = async () => {
     // Process each workspace separately
     for (const workspace of workspaces) {
       try {
-        console.log(`  📦 Processing workspace: ${workspace.name} (${workspace.type})`);
         
         // Log automation trigger per workspace
         await logChange({
@@ -66,7 +64,6 @@ const sendOverdueReminders = async () => {
         .populate('team_id', 'name');
 
         if (tasks.length === 0) {
-          console.log(`    ℹ️  No overdue tasks for ${workspace.name}`);
           continue;
         }
 
@@ -113,18 +110,14 @@ const sendOverdueReminders = async () => {
         
         if (result.success) {
           successCount++;
-          console.log(`  ✅ Sent reminder to ${userData.fullName} (${userData.tasks.length} tasks)`);
         } else {
           failCount++;
-          console.log(`  ❌ Failed to send to ${userData.fullName}: ${result.error}`);
         }
       } catch (error) {
         failCount++;
-        console.error(`  ❌ Error sending to ${email}:`, error.message);
       }
     }
 
-        console.log(`    📊 ${workspace.name} Summary: ${successCount} sent, ${failCount} failed`);
         
         totalSuccessCount += successCount;
         totalFailCount += failCount;
@@ -145,7 +138,6 @@ const sendOverdueReminders = async () => {
           workspaceId: workspace._id
         });
       } catch (workspaceError) {
-        console.error(`    ❌ Error processing workspace ${workspace.name}:`, workspaceError.message);
         
         // Log workspace-specific error
         await logChange({
@@ -163,16 +155,13 @@ const sendOverdueReminders = async () => {
       }
     }
 
-    console.log(`\n📊 Global Summary: ${totalSuccessCount} sent, ${totalFailCount} failed across ${workspaces.length} workspace(s)`);
   } catch (error) {
-    console.error('❌ Error in sendOverdueReminders:', error);
   }
 };
 
 // Generate and send weekly reports to admins
 const sendWeeklyReports = async () => {
   try {
-    console.log('📊 Generating weekly reports...');
     
     // WORKSPACE SUPPORT: Get all workspaces
     const workspaces = await Workspace.find({});
@@ -183,7 +172,6 @@ const sendWeeklyReports = async () => {
     // Process each workspace separately
     for (const workspace of workspaces) {
       try {
-        console.log(`  📦 Processing workspace: ${workspace.name} (${workspace.type})`);
         
         // Log automation trigger per workspace
         await logChange({
@@ -211,7 +199,6 @@ const sendWeeklyReports = async () => {
       new Date(task.created_at) >= sevenDaysAgo
     );
 
-    console.log(`📝 Total tasks: ${allTasks.length}, This week: ${weekTasks.length}`);
 
     // Calculate analytics
     const overdueTasks = allTasks.filter(isTaskOverdue);
@@ -247,10 +234,8 @@ const sendWeeklyReports = async () => {
       : '0.0';
 
     // Generate reports
-    console.log('📄 Generating Excel report...');
     const excelBuffer = await generateExcelReport(allTasks, analytics);
     
-    console.log('📄 Generating PDF report...');
     const pdfBuffer = generatePDFReport(allTasks, analytics);
 
     const now = new Date();
@@ -292,11 +277,9 @@ const sendWeeklyReports = async () => {
         });
 
         if (admins.length === 0) {
-          console.log(`    ℹ️  No admin/HR users found in ${workspace.name}`);
           continue;
         }
 
-        console.log(`    📧 Sending reports to ${admins.length} admin/HR users...`);
     let successCount = 0;
     let failCount = 0;
 
@@ -311,18 +294,14 @@ const sendWeeklyReports = async () => {
         
         if (result.success) {
           successCount++;
-          console.log(`  ✅ Sent report to ${admin.full_name} (${admin.email})`);
         } else {
           failCount++;
-          console.log(`  ❌ Failed to send to ${admin.full_name}: ${result.error}`);
         }
       } catch (error) {
         failCount++;
-        console.error(`  ❌ Error sending to ${admin.email}:`, error.message);
       }
     }
 
-        console.log(`    📊 ${workspace.name} Summary: ${successCount} sent, ${failCount} failed`);
         
         totalSuccessCount += successCount;
         totalFailCount += failCount;
@@ -346,7 +325,6 @@ const sendWeeklyReports = async () => {
           workspaceId: workspace._id
         });
       } catch (workspaceError) {
-        console.error(`    ❌ Error processing workspace ${workspace.name}:`, workspaceError.message);
         
         // Log workspace-specific error
         await logChange({
@@ -364,20 +342,16 @@ const sendWeeklyReports = async () => {
       }
     }
 
-    console.log(`\n📊 Global Summary: ${totalSuccessCount} reports sent, ${totalFailCount} failed across ${workspaces.length} workspace(s)`);
   } catch (error) {
-    console.error('❌ Error in sendWeeklyReports:', error);
   }
 };
 
 // Manual trigger functions (for testing)
 export const triggerOverdueReminders = async () => {
-  console.log('🔧 Manually triggering overdue reminders...');
   await sendOverdueReminders();
 };
 
 export const triggerWeeklyReports = async () => {
-  console.log('🔧 Manually triggering weekly reports...');
   await sendWeeklyReports();
 };
 

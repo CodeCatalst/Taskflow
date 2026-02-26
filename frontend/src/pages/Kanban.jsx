@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -100,7 +100,6 @@ const Kanban = () => {
       setTasks(response.data.tasks);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching tasks:', error);
       setLoading(false);
     }
   };
@@ -111,7 +110,6 @@ const Kanban = () => {
       setUsers(response.data.users);
     } catch (error) {
       if (error.response?.status !== 403) {
-        console.error('Error fetching users:', error);
       }
     }
   };
@@ -122,7 +120,6 @@ const Kanban = () => {
       setTeams(response.data.teams);
     } catch (error) {
       if (error.response?.status !== 403) {
-        console.error('Error fetching teams:', error);
       }
     }
   };
@@ -144,7 +141,6 @@ const Kanban = () => {
       setSelectedTeamMembers([]);
       fetchTasks();
     } catch (error) {
-      console.error('Error creating task:', error);
       alert(error.response?.data?.message || 'Failed to create task');
     }
   };
@@ -162,7 +158,6 @@ const Kanban = () => {
         prev.map((t) => (t._id === taskId ? updatedTask : t))
       );
     } catch (error) {
-      console.error('Error updating task:', error);
       alert(error.response?.data?.message || 'Failed to update task');
       fetchTasks();
     }
@@ -180,7 +175,6 @@ const Kanban = () => {
           await api.delete(`/tasks/${taskId}`);
           fetchTasks();
         } catch (error) {
-          console.error('Error deleting task:', error);
           alert(error.response?.data?.message || 'Failed to delete task');
         }
       },
@@ -230,7 +224,6 @@ const Kanban = () => {
       await handleUpdateTask(draggedTask._id, { status: newStatus });
       setDraggedTask(null);
     } catch (error) {
-      console.error('Error updating task status:', error);
       setDraggedTask(null);
     }
   };
@@ -460,7 +453,7 @@ const Kanban = () => {
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-3 sm:p-6">
           {/* Mobile hint */}
           <div className="lg:hidden mb-2 flex items-center gap-2 text-xs text-[#9da8b9]">
-            <span>← Swipe to see more columns →</span>
+            <span>â† Swipe to see more columns â†’</span>
           </div>
 
           <div className="flex h-full gap-3 sm:gap-4 pb-4" style={{ minWidth: 'max-content' }}>

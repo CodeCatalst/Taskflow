@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
 import { requireCoreWorkspace } from '../middleware/workspaceGuard.js';
@@ -26,7 +26,6 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
 
     res.json({ success: true, holidays });
   } catch (error) {
-    console.error('Get holidays error:', error);
     res.status(500).json({ message: 'Failed to fetch holidays' });
   }
 });
@@ -59,7 +58,6 @@ router.post('/', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']),
 
     res.status(201).json({ success: true, holiday });
   } catch (error) {
-    console.error('Create holiday error:', error);
     res.status(500).json({ message: 'Failed to create holiday' });
   }
 });
@@ -96,7 +94,6 @@ router.put('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr']
 
     res.json({ success: true, holiday });
   } catch (error) {
-    console.error('Update holiday error:', error);
     res.status(500).json({ message: 'Failed to update holiday' });
   }
 });
@@ -127,7 +124,6 @@ router.delete('/:id', authenticate, requireCoreWorkspace, checkRole(['admin', 'h
 
     res.json({ success: true, message: 'Holiday deleted' });
   } catch (error) {
-    console.error('Delete holiday error:', error);
     res.status(500).json({ message: 'Failed to delete holiday' });
   }
 });

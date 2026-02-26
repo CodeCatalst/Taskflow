@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -110,7 +110,6 @@ export default function HRDashboard() {
         fetchEmailTemplates()
       ]);
     } catch (error) {
-      console.error('Error fetching HR data:', error);
     } finally {
       setLoading(false);
     }
@@ -121,7 +120,6 @@ export default function HRDashboard() {
       const response = await api.get('/users');
       setUsers(response.data.users || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
     }
   };
 
@@ -140,7 +138,6 @@ export default function HRDashboard() {
       );
       setTodayAttendance(todayRecords);
     } catch (error) {
-      console.error('Error fetching today attendance:', error);
     }
   };
 
@@ -154,7 +151,6 @@ export default function HRDashboard() {
       });
       setSummary(response.data.summary);
     } catch (error) {
-      console.error('Error fetching summary:', error);
     }
   };
 
@@ -168,7 +164,6 @@ export default function HRDashboard() {
       });
       setMonthlyAttendance(response.data.records);
     } catch (error) {
-      console.error('Error fetching monthly attendance:', error);
     }
   };
 
@@ -177,7 +172,6 @@ export default function HRDashboard() {
       const response = await api.get('/hr/leaves');
       setLeaveRequests(response.data.requests || []);
     } catch (error) {
-      console.error('Error fetching leave requests:', error);
     }
   };
 
@@ -186,7 +180,6 @@ export default function HRDashboard() {
       const response = await api.get('/hr/leave-types');
       setLeaveTypes(response.data.leaveTypes || []);
     } catch (error) {
-      console.error('Error fetching leave types:', error);
     }
   };
 
@@ -201,7 +194,6 @@ export default function HRDashboard() {
       setCalendarEvents(response.data.events || []);
       setHolidays(response.data.events?.filter(e => e.type === 'holiday') || []);
     } catch (error) {
-      console.error('Error fetching calendar:', error);
     }
   };
 
@@ -336,7 +328,6 @@ export default function HRDashboard() {
 
       alert('HR Report exported successfully!');
     } catch (error) {
-      console.error('Export error:', error);
       alert('Failed to export report');
     }
   };
@@ -347,20 +338,15 @@ export default function HRDashboard() {
       const response = await api.get('/hr/email-templates/config');
       setEmailConfig(response.data.config);
     } catch (error) {
-      console.error('Error fetching email config:', error);
     }
   };
 
   // Fetch email templates
   const fetchEmailTemplates = async () => {
     try {
-      console.log('Fetching email templates...');
       const response = await api.get('/hr/email-templates');
-      console.log('Templates response:', response.data);
       setEmailTemplates(response.data.templates || []);
-      console.log('Templates set:', response.data.templates || []);
     } catch (error) {
-      console.error('Error fetching email templates:', error);
     }
   };
 
@@ -537,7 +523,6 @@ export default function HRDashboard() {
         if (recipientMode === 'INTERNAL') {
           const user = users.find(u => u._id === recipientData);
           if (!user?.email) {
-            console.warn(`Skipping user ${recipientData}: no email address`);
             errorCount++;
             continue;
           }
@@ -572,9 +557,7 @@ export default function HRDashboard() {
           });
 
           successCount++;
-          console.log(`Email sent to ${recipientObj.email}`);
         } catch (emailError) {
-          console.error(`Failed to send email to ${recipientObj.email}:`, emailError);
           errorCount++;
         }
       }
@@ -803,7 +786,6 @@ export default function HRDashboard() {
 
       setUserAttendanceStats(stats);
     } catch (error) {
-      console.error('Error fetching user attendance:', error);
       setUserAttendanceHistory([]);
       setUserAttendanceStats(null);
     }
@@ -849,7 +831,6 @@ export default function HRDashboard() {
       setEmployeeAction(null);
       fetchUsers(); // Refresh the list
     } catch (error) {
-      console.error('Employee action error:', error);
       alert(error.response?.data?.message || `Failed to ${employeeAction} employee`);
     }
   };
@@ -1659,7 +1640,7 @@ export default function HRDashboard() {
                             <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Who's receiving this?</h3>
                             <p className={`text-sm ${currentTheme.textSecondary}`}>
                               {recipientMode === 'INTERNAL' ? 'Internal Team Members' : 'External Candidates/Contacts'}
-                              {' • '} 
+                              {' â€¢ '} 
                               Selected {emailRecipients.length} recipients
                             </p>
                           </div>

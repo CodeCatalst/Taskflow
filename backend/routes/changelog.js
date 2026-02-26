@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
 import { requireAuditLogs } from '../middleware/workspaceGuard.js';
@@ -29,12 +29,12 @@ router.get('/', authenticate, checkRole(['admin']), async (req, res) => {
       workspace_id  // Allow system admins to filter by specific workspace
     } = req.query;
 
-    // Admins (role: 'admin') can see all logs across all workspaces
-    // Community admins can only see their workspace's logs
+    // System admins (admins without workspace) can see all logs across all workspaces
+    // Workspace admins can only see their workspace's logs
     let workspaceFilter = req.context.workspaceId;
     
-    if (req.user.role === 'admin') {
-      // Admin: show all logs from all workspaces, or filter by specific workspace if provided
+    if (req.context.isSystemAdmin) {
+      // System Admin: show all logs from all workspaces, or filter by specific workspace if provided
       workspaceFilter = workspace_id || null;  // null means all workspaces
     }
 
@@ -48,12 +48,11 @@ router.get('/', authenticate, checkRole(['admin']), async (req, res) => {
       end_date,
       search,
       workspaceId: workspaceFilter,
-      includeAllWorkspaces: req.user.role === 'admin' && !workspace_id  // Admins see all workspaces
+      includeAllWorkspaces: req.context.isSystemAdmin && !workspace_id  // System admins see all workspaces
     });
 
     res.json(result);
   } catch (error) {
-    console.error('Error fetching change logs:', error);
     res.status(500).json({ message: 'Error fetching change logs', error: error.message });
   }
 });
@@ -72,7 +71,6 @@ router.get('/stats', authenticate, checkRole(['admin']), async (req, res) => {
 
     res.json(stats);
   } catch (error) {
-    console.error('Error fetching change log stats:', error);
     res.status(500).json({ message: 'Error fetching statistics', error: error.message });
   }
 });
@@ -95,7 +93,16 @@ router.get('/export', authenticate, checkRole(['admin']), async (req, res) => {
 
     const query = {};
 
-    // Admins see logs from all workspaces (no workspaceId filter)
+    // System admins see all logs, workspace admins see only their workspace
+    let workspaceFilter = req.context.workspaceId;
+    if (req.context.isSystemAdmin) {
+      // System Admin: show all logs from all workspaces
+      // workspaceFilter remains null (no filter)
+    } else {
+      // Workspace admin: filter by their workspace
+      query.workspaceId = workspaceFilter;
+    }
+
     if (event_type) query.event_type = event_type;
     if (user_id) query.user_id = user_id;
     if (target_type) query.target_type = target_type;
@@ -136,7 +143,6 @@ router.get('/export', authenticate, checkRole(['admin']), async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=changelog-${Date.now()}.csv`);
     res.send(csv);
   } catch (error) {
-    console.error('Error exporting change logs:', error);
     res.status(500).json({ message: 'Error exporting change logs', error: error.message });
   }
 });
@@ -177,7 +183,6 @@ router.get('/event-types', authenticate, checkRole(['admin']), async (req, res) 
 
     res.json(eventTypes);
   } catch (error) {
-    console.error('Error fetching event types:', error);
     res.status(500).json({ message: 'Error fetching event types', error: error.message });
   }
 });
@@ -202,7 +207,6 @@ router.delete('/clear', authenticate, checkRole(['admin']), async (req, res) => 
       deleted_count: result.deletedCount
     });
   } catch (error) {
-    console.error('Error clearing change logs:', error);
     res.status(500).json({ message: 'Error clearing change logs', error: error.message });
   }
 });

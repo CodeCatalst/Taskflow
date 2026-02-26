@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireCoreWorkspace } from '../middleware/workspaceGuard.js';
 import Attendance from '../models/Attendance.js';
@@ -112,7 +112,6 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
 
     res.json({ success: true, events, holidays, attendance, leaves });
   } catch (error) {
-    console.error('Get calendar error:', error);
     res.status(500).json({ message: 'Failed to fetch calendar data' });
   }
 });

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
 /**
@@ -45,7 +45,6 @@ export const WorkspaceProvider = ({ children }) => {
         const parsed = JSON.parse(storedWorkspace);
         setWorkspace(parsed);
       } catch (error) {
-        console.error('Failed to parse stored workspace:', error);
         localStorage.removeItem('workspace');
       }
     }
@@ -55,7 +54,6 @@ export const WorkspaceProvider = ({ children }) => {
         const parsed = JSON.parse(storedWorkspaces);
         setAllWorkspaces(parsed);
       } catch (error) {
-        console.error('Failed to parse stored workspaces:', error);
         localStorage.removeItem('allWorkspaces');
       }
     }
@@ -75,12 +73,10 @@ export const WorkspaceProvider = ({ children }) => {
           // If stored workspace ID differs from user.workspace.id, keep the stored one
           // (it's newer because switchWorkspace updated it before reload)
           if (parsed.id && parsed.id !== user.workspace.id) {
-            console.log('Using stored workspace after switch:', parsed.id);
             // Don't update from user.workspace - keep the stored one
             return;
           }
         } catch (e) {
-          console.error('Failed to parse stored workspace:', e);
         }
       }
       updateWorkspace(user.workspace);
@@ -135,11 +131,9 @@ export const WorkspaceProvider = ({ children }) => {
    */
   const switchWorkspace = async (workspaceId) => {
     try {
-      console.log('Switching to workspace:', workspaceId);
       const token = localStorage.getItem('accessToken');
       
       if (!token) {
-        console.error('No access token found');
         return false;
       }
       
@@ -154,12 +148,10 @@ export const WorkspaceProvider = ({ children }) => {
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Workspace switch failed:', errorData);
         throw new Error(errorData.message || 'Failed to switch workspace');
       }
       
       const data = await response.json();
-      console.log('Workspace switched successfully:', data);
       updateWorkspace(data.workspace);
       
       // Also update the user object in localStorage to reflect new workspace
@@ -169,9 +161,7 @@ export const WorkspaceProvider = ({ children }) => {
           const user = JSON.parse(storedUser);
           user.workspace = data.workspace;
           localStorage.setItem('user', JSON.stringify(user));
-          console.log('Updated user object with new workspace');
         } catch (e) {
-          console.error('Failed to update user object:', e);
         }
       }
       
@@ -180,7 +170,6 @@ export const WorkspaceProvider = ({ children }) => {
       
       return true;
     } catch (error) {
-      console.error('Switch workspace error:', error);
       return false;
     }
   };
@@ -190,11 +179,9 @@ export const WorkspaceProvider = ({ children }) => {
    */
   const fetchAllWorkspaces = async () => {
     try {
-      console.log('Fetching all workspaces...');
       const token = localStorage.getItem('accessToken');
       
       if (!token) {
-        console.error('No access token found');
         return [];
       }
       
@@ -207,18 +194,15 @@ export const WorkspaceProvider = ({ children }) => {
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Failed to fetch workspaces:', errorData);
         throw new Error('Failed to fetch workspaces');
       }
       
       const data = await response.json();
-      console.log('Workspaces fetched:', data.workspaces);
       setAllWorkspaces(data.workspaces);
       localStorage.setItem('allWorkspaces', JSON.stringify(data.workspaces));
       
       return data.workspaces;
     } catch (error) {
-      console.error('Fetch workspaces error:', error);
       return [];
     }
   };

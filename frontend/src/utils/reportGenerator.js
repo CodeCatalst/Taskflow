@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+﻿import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -470,7 +470,6 @@ export const generatePDFReport = (tasks, analyticsData, filters, user) => {
   const timestamp = new Date().toISOString().slice(0, 10);
   doc.save(`TaskFlow_Report_${timestamp}.pdf`);
   } catch (error) {
-    console.error('Error in generatePDFReport:', error);
     throw error;
   }
 };

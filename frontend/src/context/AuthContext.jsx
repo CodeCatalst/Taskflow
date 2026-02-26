@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect, useRef } from 'react';
+﻿import { createContext, useState, useContext, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { io } from 'socket.io-client';
 import notificationService from '../utils/notificationService';
@@ -85,18 +85,15 @@ export const AuthProvider = ({ children }) => {
 
   const selectWorkspace = async (workspace, userData) => {
     try {
-      console.log('selectWorkspace called with:', { workspace, userData });
       
       // Switch to selected workspace
       const switchResponse = await api.post('/auth/switch-workspace', { 
         workspaceId: workspace.id 
       });
-      console.log('Switch workspace response:', switchResponse.data);
 
       // Fetch all workspaces
       const workspacesResponse = await api.get('/auth/my-workspaces');
       const allWorkspaces = workspacesResponse.data.workspaces || [];
-      console.log('Fetched workspaces:', allWorkspaces);
 
       // Update user with selected workspace
       const userWithWorkspace = {
@@ -109,10 +106,8 @@ export const AuthProvider = ({ children }) => {
       setUser(userWithWorkspace);
       initializeSocket(userData.id);
 
-      console.log('Workspace selection complete');
       return { success: true };
     } catch (error) {
-      console.error('Error in selectWorkspace:', error);
       return {
         success: false,
         message: error.response?.data?.message || 'Failed to select workspace'

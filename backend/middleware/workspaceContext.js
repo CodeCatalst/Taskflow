@@ -169,7 +169,6 @@ const workspaceContext = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Workspace context middleware error:', error);
     res.status(500).json({ 
       message: 'Failed to resolve workspace context',
       error: error.message 

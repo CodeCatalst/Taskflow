@@ -16,11 +16,11 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 async function createMultiWorkspaceTestUser() {
   try {
-    console.log('🧪 Creating multi-workspace test user...\n');
+    
 
     // Connect to MongoDB
     await mongoose.connect(MONGODB_URI);
-    console.log('✅ Connected to MongoDB\n');
+    
 
     // Create or find test workspaces
     let workspace1 = await Workspace.findOne({ name: 'Engineering CORE' });
@@ -39,7 +39,7 @@ async function createMultiWorkspaceTestUser() {
         }
       });
       await workspace1.save();
-      console.log('✅ Created workspace: Engineering CORE');
+      
     }
 
     let workspace2 = await Workspace.findOne({ name: 'Marketing Hub' });
@@ -58,7 +58,7 @@ async function createMultiWorkspaceTestUser() {
         }
       });
       await workspace2.save();
-      console.log('✅ Created workspace: Marketing Hub');
+      
     }
 
     let workspace3 = await Workspace.findOne({ name: 'Design Studio' });
@@ -77,7 +77,7 @@ async function createMultiWorkspaceTestUser() {
         }
       });
       await workspace3.save();
-      console.log('✅ Created workspace: Design Studio');
+      
     }
 
     // Create test user email
@@ -87,7 +87,7 @@ async function createMultiWorkspaceTestUser() {
     let testUser = await User.findOne({ email: testEmail });
 
     if (testUser) {
-      console.log('\n⚠️  Test user already exists. Updating workspaces...');
+      
       
       // Update workspaces array
       testUser.workspaces = [
@@ -114,7 +114,7 @@ async function createMultiWorkspaceTestUser() {
       testUser.workspaceId = workspace1._id;
 
       await testUser.save();
-      console.log('✅ Updated existing test user with multiple workspaces');
+      
     } else {
       // Create new test user
       testUser = new User({
@@ -148,27 +148,27 @@ async function createMultiWorkspaceTestUser() {
       });
 
       await testUser.save();
-      console.log('✅ Created new test user with multiple workspaces');
+      
     }
 
-    console.log('\n' + '='.repeat(60));
-    console.log('TEST USER CREATED SUCCESSFULLY');
-    console.log('='.repeat(60));
-    console.log('Email:    ', testEmail);
-    console.log('Password: ', 'Test@123');
-    console.log('\nWorkspaces:');
-    console.log('1. Engineering CORE (CORE) - Role: admin');
-    console.log('2. Marketing Hub (COMMUNITY) - Role: hr');
-    console.log('3. Design Studio (CORE) - Role: member');
-    console.log('='.repeat(60));
-    console.log('\n📝 Login with these credentials to test multi-workspace selection!');
-    console.log('   You should see a workspace selection screen after login.\n');
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
   } catch (error) {
-    console.error('❌ Error:', error);
+    
   } finally {
     await mongoose.disconnect();
-    console.log('👋 Disconnected from MongoDB');
+    
     process.exit(0);
   }
 }

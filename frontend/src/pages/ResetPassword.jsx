@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { Lock, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
@@ -19,15 +19,11 @@ const ResetPassword = () => {
 
   useEffect(() => {
     const tokenParam = searchParams.get('token');
-    console.log('🔍 Reset password page loaded');
-    console.log('   URL:', window.location.href);
-    console.log('   Token from URL:', tokenParam);
     
     if (!tokenParam) {
       setError('Invalid reset link. Please request a new password reset.');
     } else {
       setToken(tokenParam);
-      console.log('✅ Token set:', tokenParam);
     }
   }, [searchParams]);
 
@@ -48,18 +44,15 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      console.log('🔐 Resetting password with token:', token);
       const response = await api.post('/auth/reset-password', {
         token,
         newPassword
       });
-      console.log('✅ Password reset successful:', response.data);
       setSuccess(true);
       setTimeout(() => {
         navigate('/login');
       }, 3000);
     } catch (err) {
-      console.error('❌ Reset password error:', err);
       setError(err.response?.data?.message || 'Failed to reset password. Please try again.');
     } finally {
       setLoading(false);
@@ -206,7 +199,7 @@ const ResetPassword = () => {
         {/* Footer */}
         <div className="text-center mt-6">
           <p className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
-            © 2026 TaskFlow. All rights reserved.
+            Â© 2026 TaskFlow. All rights reserved.
           </p>
         </div>
       </div>

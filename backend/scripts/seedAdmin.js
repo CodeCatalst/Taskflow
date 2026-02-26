@@ -14,7 +14,7 @@ async function run() {
 
     let user = await User.findOne({ email });
     if (user) {
-      console.log(`Admin user already exists: ${email} (role: ${user.role})`);
+      
       process.exit(0);
     }
 
@@ -26,10 +26,10 @@ async function run() {
     });
 
     await user.save();
-    console.log('✅ Admin user created:', { id: user._id.toString(), email });
+    
     process.exit(0);
   } catch (err) {
-    console.error('❌ Failed to seed admin user:', err);
+    
     process.exit(1);
   } finally {
     await mongoose.connection.close();

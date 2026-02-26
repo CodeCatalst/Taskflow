@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
 import { requireCoreWorkspace } from '../middleware/workspaceGuard.js';
@@ -21,7 +21,6 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
     const { status, userId, workspaceId: filterWorkspaceId } = req.query;
     const workspaceId = req.context?.workspaceId || req.user.currentWorkspaceId || req.user.workspaceId;
 
-    console.log('🔍 Leave Requests Query Debug:', {
       userRole: req.user.role,
       contextRole: req.context?.currentRole,
       workspaceId,
@@ -57,7 +56,6 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
       query.status = status;
     }
 
-    console.log('🔍 Final Query:', query);
 
     const requests = await LeaveRequest.find(query)
       .populate('userId', 'full_name email profile_picture')
@@ -67,11 +65,9 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    console.log('📊 Found Requests:', requests.length);
 
     res.json({ success: true, requests });
   } catch (error) {
-    console.error('Get leave requests error:', error);
     res.status(500).json({ message: 'Failed to fetch leave requests' });
   }
 });
@@ -141,15 +137,10 @@ router.post('/', authenticate, requireCoreWorkspace, async (req, res) => {
 
     // Log notification (email sending would go here)
     for (const hr of hrUsers) {
-      console.log(`📧 [Email Queue] Leave request notification to ${hr.email}`);
-      console.log(`   Employee: ${req.user.full_name}`);
-      console.log(`   Leave Type: ${leaveType.name}`);
-      console.log(`   Duration: ${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`);
     }
 
     res.status(201).json({ success: true, leaveRequest });
   } catch (error) {
-    console.error('Create leave request error:', error);
     res.status(500).json({ message: 'Failed to create leave request' });
   }
 });
@@ -319,7 +310,6 @@ router.post('/bulk', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
       res.status(201).json({ success: true, leaveRequest });
     }
   } catch (error) {
-    console.error('Bulk leave marking error:', error);
     res.status(500).json({ message: 'Failed to mark leave' });
   }
 });
@@ -367,7 +357,6 @@ router.patch('/:id/status', authenticate, requireCoreWorkspace, checkRole(['admi
 
     res.json({ success: true, leaveRequest: updatedLeave });
   } catch (error) {
-    console.error('HR leave action error:', error);
     res.status(500).json({ message: error.message || 'Failed to process leave action' });
   }
 });
@@ -397,7 +386,6 @@ router.get('/balance/:userId?', authenticate, requireCoreWorkspace, async (req, 
 
     res.json({ success: true, balances });
   } catch (error) {
-    console.error('Get leave balance error:', error);
     res.status(500).json({ message: 'Failed to fetch leave balance' });
   }
 });
@@ -418,7 +406,6 @@ router.get('/balances', authenticate, requireCoreWorkspace, checkRole(['admin', 
 
     res.json({ success: true, balances });
   } catch (error) {
-    console.error('Get all leave balances error:', error);
     res.status(500).json({ message: 'Failed to fetch leave balances' });
   }
 });
@@ -458,7 +445,6 @@ router.patch('/:id/notes', authenticate, requireCoreWorkspace, checkRole(['admin
 
     res.json({ success: true, leaveRequest: updatedLeave });
   } catch (error) {
-    console.error('Update leave notes error:', error);
     res.status(500).json({ message: 'Failed to update leave notes' });
   }
 });
@@ -510,7 +496,6 @@ router.delete('/:id', authenticate, requireCoreWorkspace, async (req, res) => {
 
     res.json({ success: true, message: 'Leave request cancelled' });
   } catch (error) {
-    console.error('Cancel leave request error:', error);
     res.status(500).json({ message: 'Failed to cancel leave request' });
   }
 });
