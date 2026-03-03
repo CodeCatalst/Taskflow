@@ -25,6 +25,7 @@
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
+    "mongodb-memory-server": "^11.0.1",
     "mongoose": "^8.0.0",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",

@@ -1,5 +1,6 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 import { logChange } from '../utils/changeLogService.js';
@@ -30,6 +31,10 @@ router.post('/register', (req, res) => {
 // Login
 router.post('/login', validateLogin, async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'Service temporarily unavailable' });
+    }
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -53,9 +58,9 @@ router.post('/login', validateLogin, async (req, res) => {
     const accessToken = generateAccessToken(user._id, user.role);
     const refreshToken = generateRefreshToken(user._id);
 
-    // Log login event
+    // Prepare login audit payload (non-blocking)
     const user_ip = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
-    await logChange({
+    const loginAuditPayload = {
       event_type: 'user_login',
       user: user,
       user_ip,
@@ -65,7 +70,7 @@ router.post('/login', validateLogin, async (req, res) => {
         role: user.role,
         team_id: user.team_id
       }
-    });
+    };
 
     res.json({
       message: 'Login successful',
@@ -79,15 +84,24 @@ router.post('/login', validateLogin, async (req, res) => {
       accessToken,
       refreshToken
     });
+
+    // Log login event without blocking response
+    logChange(loginAuditPayload).catch((logError) => {
+      console.error('Login audit log error:', logError);
+    });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
 // Refresh token
 router.post('/refresh', async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'Service temporarily unavailable' });
+    }
+
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
@@ -116,7 +130,7 @@ router.post('/refresh', async (req, res) => {
     });
   } catch (error) {
     console.error('Refresh token error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
