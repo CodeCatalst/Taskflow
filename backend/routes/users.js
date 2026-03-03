@@ -645,7 +645,7 @@ async function processBulkUsers(usersData, currentUser) {
 
       // Try to send credential email (don't fail import if email fails)
       try {
-        await sendCredentialEmail(userData.email, userData.password);
+        await sendCredentialEmail(userData.full_name, userData.email, userData.password);
       } catch (emailError) {
         console.error(`Failed to send email to ${userData.email}:`, emailError);
       }

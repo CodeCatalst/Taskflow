@@ -504,6 +504,15 @@ const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
 // Send credential email to new user
 export const sendCredentialEmail = async (fullName, email, password) => {
   try {
+    if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      console.error('❌ Cannot send credential email: missing EMAIL_HOST, EMAIL_USER, or EMAIL_PASSWORD');
+      return {
+        success: false,
+        status: 'error',
+        error: 'Email service not configured'
+      };
+    }
+
     const transporter = createTransporter();
     // Use Vercel URL in production, fallback to CLIENT_URL or localhost
     const appUrl = process.env.NODE_ENV === 'production' 
@@ -553,19 +562,7 @@ ${appUrl}
       `.trim()
     };
 
-    // Send email in background
-    transporter.sendMail(mailOptions)
-      .then(info => {
-        // Email sent successfully
-      })
-      .catch(error => {
-        console.error('❌ Failed to send credential email');
-        console.error('   To:', email);
-        console.error('   Error:', error.message);
-      });
-    
-    // Return immediately without waiting
-    return { success: true, status: 'queued', message: 'Email queued for sending' };
+    return sendEmailAsync(transporter, mailOptions);
   } catch (error) {
     console.error('❌ Error in sendCredentialEmail:', error);
     return { success: false, status: 'error', error: error.message };
