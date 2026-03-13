@@ -334,6 +334,18 @@ const Kanban = () => {
     return name.substring(0, 2).toUpperCase();
   };
 
+  const normalizeAssignedIds = (assigned_to) => {
+    if (!assigned_to) return [];
+    const arr = Array.isArray(assigned_to) ? assigned_to : [assigned_to];
+    return arr.map((u) => (typeof u === 'object' && u !== null ? u._id : u)).filter(Boolean);
+  };
+
+  const normalizeAssignedUsers = (assigned_to) => {
+    if (!assigned_to) return [];
+    const arr = Array.isArray(assigned_to) ? assigned_to : [assigned_to];
+    return arr.filter((u) => typeof u === 'object' && u !== null);
+  };
+
   const canEditTask = (task) => {
     if (['admin', 'hr', 'team_lead', 'community_admin'].includes(user?.role)) return true;
     return task.created_by?._id === user?.id || normalizeAssignedIds(task.assigned_to).includes(user?.id);

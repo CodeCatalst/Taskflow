@@ -417,6 +417,18 @@ const Tasks = () => {
     return name.substring(0, 2).toUpperCase();
   };
 
+  const normalizeAssignedIds = (assigned_to) => {
+    if (!assigned_to) return [];
+    const arr = Array.isArray(assigned_to) ? assigned_to : [assigned_to];
+    return arr.map((u) => (typeof u === 'object' && u !== null ? u._id : u)).filter(Boolean);
+  };
+
+  const normalizeAssignedUsers = (assigned_to) => {
+    if (!assigned_to) return [];
+    const arr = Array.isArray(assigned_to) ? assigned_to : [assigned_to];
+    return arr.filter((u) => typeof u === 'object' && u !== null);
+  };
+
   if (loading) {
     return (
       <div className={`h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-[#111418] text-white' : 'bg-gray-50 text-gray-900'} font-['Inter']`}>
