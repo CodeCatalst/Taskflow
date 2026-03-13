@@ -281,7 +281,7 @@ const Kanban = () => {
       filtered = filtered.filter((t) => t.team_id && (t.team_id._id === filters.team || t.team_id === filters.team));
     }
     if (filters.assigned_to) {
-      filtered = filtered.filter((t) => t.assigned_to && t.assigned_to.some(u => (u._id || u) === filters.assigned_to));
+      filtered = filtered.filter((t) => normalizeAssignedIds(t.assigned_to).includes(filters.assigned_to));
     }
     if (filters.priority) {
       filtered = filtered.filter((t) => t.priority === filters.priority);
@@ -301,10 +301,8 @@ const Kanban = () => {
     }
     if (filters.showMyTasksOnly) {
       filtered = filtered.filter((t) => {
-        if (!t.assigned_to) return false;
-        const assignedIds = Array.isArray(t.assigned_to)
-          ? t.assigned_to.map(u => typeof u === 'object' ? u._id : u)
-          : [typeof t.assigned_to === 'object' ? t.assigned_to._id : t.assigned_to];
+        const assignedIds = normalizeAssignedIds(t.assigned_to);
+        if (assignedIds.length === 0) return false;
         const isAssignedToUser = assignedIds.includes(user?.id);
         if (user?.role === 'member') {
           const belongsToUserTeam = user.team_id && t.team_id &&
@@ -338,7 +336,7 @@ const Kanban = () => {
 
   const canEditTask = (task) => {
     if (['admin', 'hr', 'team_lead', 'community_admin'].includes(user?.role)) return true;
-    return task.created_by._id === user?.id || (task.assigned_to && task.assigned_to.some(u => u._id === user?.id));
+    return task.created_by?._id === user?.id || normalizeAssignedIds(task.assigned_to).includes(user?.id);
   };
 
   const canDeleteTask = (task) => {
@@ -518,15 +516,15 @@ const Kanban = () => {
                           </p>
                           <div className={`flex items-center justify-between border-t ${theme === 'dark' ? 'border-[#3e454f]/50' : 'border-gray-200'} pt-2 mt-auto`}>
                             <div className="flex -space-x-2">
-                              {task.assigned_to && task.assigned_to.length > 0 ? (
-                                task.assigned_to.slice(0, 2).map((assignee, idx) => (
+                              {normalizeAssignedUsers(task.assigned_to).length > 0 ? (
+                                normalizeAssignedUsers(task.assigned_to).slice(0, 2).map((assignee, idx) => (
                                   <div
                                     key={assignee._id || idx}
                                     className={`size-5 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-[8px] text-white font-bold ring-2 ring-[#282f39] ${isDone ? 'grayscale' : ''
                                       }`}
-                                    title={assignee.full_name}
+                                    title={assignee.full_name || 'Unknown User'}
                                   >
-                                    {getUserInitials(assignee.full_name)}
+                                    {getUserInitials(assignee.full_name || 'Unknown User')}
                                   </div>
                                 ))
                               ) : (
@@ -534,9 +532,9 @@ const Kanban = () => {
                                   ?
                                 </div>
                               )}
-                              {task.assigned_to && task.assigned_to.length > 2 && (
+                              {normalizeAssignedUsers(task.assigned_to).length > 2 && (
                                 <div className="size-5 rounded-full bg-[#3e454f] flex items-center justify-center text-[8px] text-white font-bold ring-2 ring-[#282f39]">
-                                  +{task.assigned_to.length - 2}
+                                  +{normalizeAssignedUsers(task.assigned_to).length - 2}
                                 </div>
                               )}
                             </div>
@@ -778,13 +776,13 @@ const Kanban = () => {
                     )}
                   </div>
                   <div>
-                    {selectedTask.assigned_to && selectedTask.assigned_to.length > 0 && (
+                    {normalizeAssignedUsers(selectedTask.assigned_to).length > 0 && (
                       <div className={`text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
                         <span className="font-medium">Assigned to:</span>
                         <div className="mt-1 flex flex-wrap gap-1">
-                          {selectedTask.assigned_to.map((user) => (
-                            <span key={user._id} className="inline-block bg-blue-500/10 text-blue-400 text-xs px-2 py-1 rounded border border-blue-500/20">
-                              {user.full_name}
+                          {normalizeAssignedUsers(selectedTask.assigned_to).map((assignedUser, index) => (
+                            <span key={assignedUser._id || `${assignedUser.full_name || 'unknown'}-${index}`} className="inline-block bg-blue-500/10 text-blue-400 text-xs px-2 py-1 rounded border border-blue-500/20">
+                              {assignedUser.full_name || 'Unknown User'}
                             </span>
                           ))}
                         </div>
