@@ -206,7 +206,9 @@ router.get('/', authenticate, async (req, res) => {
       .populate('team_id', 'name')
       .sort({ created_at: -1 });
 
-    const sanitizedTasks = tasks.map(sanitizeTask);
+    // Filter out null/invalid tasks before sanitizing
+    const validTasks = tasks.filter(task => task && task._id);
+    const sanitizedTasks = validTasks.map(sanitizeTask);
     res.json({ tasks: sanitizedTasks, count: sanitizedTasks.length });
   } catch (error) {
     console.error('Get tasks error:', error);

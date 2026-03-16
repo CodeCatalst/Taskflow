@@ -543,7 +543,7 @@ const Tasks = () => {
             </div>
           ) : (
             <ResponsiveGrid cols={{ base: 1, sm: 1, md: 2 }} gap="md">
-              {filteredTasks.map((task) => (
+              {filteredTasks.filter(task => task && task._id).map((task) => (
                 <TaskCard
                   key={task._id}
                   task={task}
@@ -586,7 +586,7 @@ const Tasks = () => {
                 </tr>
               </thead>
               <tbody className={`divide-y ${theme === 'dark' ? 'divide-[#282f39]' : 'divide-gray-200'}`}>
-                {filteredTasks.map((task, index) => (
+                {filteredTasks.filter(task => task && task._id).map((task, index) => (
                   <tr
                     key={task._id}
                     className={`group transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-[#161b22]' : 'hover:bg-gray-100'} ${index % 2 === 1 ? (theme === 'dark' ? 'bg-[#1c2027]/30' : 'bg-gray-50') : ''}`}
