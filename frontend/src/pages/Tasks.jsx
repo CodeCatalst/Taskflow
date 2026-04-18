@@ -104,7 +104,7 @@ const Tasks = () => {
       filtered = filtered.filter((t) => t.team_id && (t.team_id._id === filters.team || t.team_id === filters.team));
     }
     if (filters.assigned_to) {
-      filtered = filtered.filter((t) => t.assigned_to && t.assigned_to.some(u => (u._id || u) === filters.assigned_to));
+      filtered = filtered.filter((t) => normalizeAssignedIds(t.assigned_to).includes(filters.assigned_to));
     }
     if (filters.dueDateFrom) {
       filtered = filtered.filter((t) => t.due_date && new Date(t.due_date) >= new Date(filters.dueDateFrom));
@@ -121,10 +121,8 @@ const Tasks = () => {
     }
     if (filters.showMyTasksOnly) {
       filtered = filtered.filter((t) => {
-        if (!t.assigned_to) return false;
-        const assignedIds = Array.isArray(t.assigned_to)
-          ? t.assigned_to.map(u => typeof u === 'object' ? u._id : u)
-          : [typeof t.assigned_to === 'object' ? t.assigned_to._id : t.assigned_to];
+        const assignedIds = normalizeAssignedIds(t.assigned_to);
+        if (assignedIds.length === 0) return false;
         const isAssignedToUser = assignedIds.includes(user?.id);
         if (user?.role === 'member') {
           const belongsToUserTeam = user.team_id && t.team_id &&
@@ -233,7 +231,7 @@ const Tasks = () => {
     setSelectedTeamMembers(members);
     setEditingTask({
       ...task,
-      assigned_to: task.assigned_to ? (Array.isArray(task.assigned_to) ? task.assigned_to.map(u => u._id || u) : [task.assigned_to._id || task.assigned_to]) : [],
+      assigned_to: normalizeAssignedIds(task.assigned_to),
       team_id: task.team_id?._id || task.team_id || '',
     });
     setShowEditModal(true);
@@ -393,7 +391,7 @@ const Tasks = () => {
 
   const canEditTask = (task) => {
     if (['admin', 'hr', 'team_lead', 'community_admin'].includes(user?.role)) return true;
-    return task.created_by._id === user?.id || task.assigned_to?._id === user?.id;
+    return task.created_by?._id === user?.id || normalizeAssignedIds(task.assigned_to).includes(user?.id);
   };
 
   const canDeleteTask = (task) => {
@@ -408,6 +406,18 @@ const Tasks = () => {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
+  };
+
+  const normalizeAssignedIds = (assigned_to) => {
+    if (!assigned_to) return [];
+    const arr = Array.isArray(assigned_to) ? assigned_to : [assigned_to];
+    return arr.map((u) => (typeof u === 'object' && u !== null ? u._id : u)).filter(Boolean);
+  };
+
+  const normalizeAssignedUsers = (assigned_to) => {
+    if (!assigned_to) return [];
+    const arr = Array.isArray(assigned_to) ? assigned_to : [assigned_to];
+    return arr.filter((u) => typeof u === 'object' && u !== null);
   };
 
   if (loading) {
@@ -524,7 +534,7 @@ const Tasks = () => {
             </div>
           ) : (
             <ResponsiveGrid cols={{ base: 1, sm: 1, md: 2 }} gap="md">
-              {filteredTasks.map((task) => (
+              {filteredTasks.filter(task => task && task._id).map((task) => (
                 <TaskCard
                   key={task._id}
                   task={task}
@@ -567,7 +577,7 @@ const Tasks = () => {
                 </tr>
               </thead>
               <tbody className={`divide-y ${theme === 'dark' ? 'divide-[#282f39]' : 'divide-gray-200'}`}>
-                {filteredTasks.map((task, index) => (
+                {filteredTasks.filter(task => task && task._id).map((task, index) => (
                   <tr
                     key={task._id}
                     className={`group transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-[#161b22]' : 'hover:bg-gray-100'} ${index % 2 === 1 ? (theme === 'dark' ? 'bg-[#1c2027]/30' : 'bg-gray-50') : ''}`}
@@ -606,14 +616,14 @@ const Tasks = () => {
                       </select>
                     </td>
                     <td className="py-2.5 px-3">
-                      {task.assigned_to && task.assigned_to.length > 0 ? (
+                      {normalizeAssignedUsers(task.assigned_to).length > 0 ? (
                         <div className="flex items-center gap-2">
                           <div className="size-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-[10px] text-white font-bold">
-                            {getUserInitials(task.assigned_to[0].full_name)}
+                            {getUserInitials(normalizeAssignedUsers(task.assigned_to)[0].full_name)}
                           </div>
                           <span className={`text-xs ${theme === 'dark' ? 'text-[#d1d5db]' : 'text-gray-700'}`}>
-                            {task.assigned_to[0].full_name}
-                            {task.assigned_to.length > 1 && ` +${task.assigned_to.length - 1}`}
+                            {normalizeAssignedUsers(task.assigned_to)[0].full_name || 'Unknown User'}
+                            {normalizeAssignedUsers(task.assigned_to).length > 1 && ` +${normalizeAssignedUsers(task.assigned_to).length - 1}`}
                           </span>
                         </div>
                       ) : (
@@ -1160,13 +1170,13 @@ const Tasks = () => {
                   )}
                 </div>
                 <div>
-                  {selectedTask.assigned_to && selectedTask.assigned_to.length > 0 && (
+                  {normalizeAssignedUsers(selectedTask.assigned_to).length > 0 && (
                     <div className={`text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
                       <span className="font-medium">Assigned to:</span>
                       <div className="mt-1">
-                        {selectedTask.assigned_to.map((user) => (
-                          <span key={user._id} className="inline-block bg-blue-500/10 text-blue-400 text-xs px-2 py-1 rounded mr-1 mb-1 border border-blue-500/20">
-                            {user.full_name}
+                        {normalizeAssignedUsers(selectedTask.assigned_to).map((assignedUser, index) => (
+                          <span key={assignedUser._id || `${assignedUser.full_name || 'unknown'}-${index}`} className="inline-block bg-blue-500/10 text-blue-400 text-xs px-2 py-1 rounded mr-1 mb-1 border border-blue-500/20">
+                            {assignedUser.full_name || 'Unknown User'}
                           </span>
                         ))}
                       </div>

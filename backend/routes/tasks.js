@@ -11,6 +11,21 @@ import getClientIP from '../utils/getClientIP.js';
 
 const router = express.Router();
 
+const sanitizeAssignedTo = (assignedTo) => {
+  if (!assignedTo) return [];
+  const assignees = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+  return assignees.filter(Boolean);
+};
+
+const sanitizeTask = (task) => {
+  if (!task) return task;
+  const plainTask = typeof task.toObject === 'function' ? task.toObject() : task;
+  return {
+    ...plainTask,
+    assigned_to: sanitizeAssignedTo(plainTask.assigned_to),
+  };
+};
+
 // WORKSPACE SUPPORT: All task routes are now scoped by workspace
 // workspaceContext middleware is applied in server.js
 
@@ -18,14 +33,15 @@ const router = express.Router();
 router.post('/', authenticate, checkTaskLimit, async (req, res) => {
   try {
     const { title, description, priority, assigned_to, team_id, due_date } = req.body;
+    const cleanedAssignedTo = sanitizeAssignedTo(assigned_to);
 
     // Members can only create tasks for themselves
     // Admins, HR, and Team Leads can assign to anyone
     if (req.user.role === 'member') {
       // If assigned_to is provided and is an array, check if member is trying to assign to others
-      if (assigned_to && Array.isArray(assigned_to) && assigned_to.length > 0) {
+      if (cleanedAssignedTo.length > 0) {
         // Check if trying to assign to someone other than themselves
-        const assigningToOthers = assigned_to.some(userId => userId !== req.user._id.toString());
+        const assigningToOthers = cleanedAssignedTo.some(userId => userId !== req.user._id.toString());
         if (assigningToOthers) {
           return res.status(403).json({ message: 'Members can only create tasks for themselves' });
         }
@@ -37,7 +53,7 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
       description,
       priority,
       created_by: req.user._id,
-      assigned_to: assigned_to && assigned_to.length > 0 ? assigned_to : [req.user._id],
+      assigned_to: cleanedAssignedTo.length > 0 ? cleanedAssignedTo : [req.user._id],
       team_id: team_id || undefined, // Fix: Use undefined instead of empty string or null if not valid
       due_date,
       workspaceId: req.context?.workspaceId || req.user.workspaceId || null  // WORKSPACE SUPPORT (fallback to user's workspace, null for system admins)
@@ -55,8 +71,8 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
     }
 
     // Create notifications if assigned to users
-    if (assigned_to && assigned_to.length > 0) {
-      const notifications = assigned_to
+    if (cleanedAssignedTo.length > 0) {
+      const notifications = cleanedAssignedTo
         .filter(userId => userId.toString() !== req.user._id.toString())
         .map(userId => ({
           user_id: userId,
@@ -76,7 +92,7 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
 
         // Emit socket events for both notification and task assignment
         if (req.app.get('io')) {
-          assigned_to
+          cleanedAssignedTo
             .filter(userId => userId.toString() !== req.user._id.toString())
             .forEach(userId => {
               // Emit notification event to specific user
@@ -110,29 +126,29 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
         priority: task.priority,
         status: task.status,
         due_date: task.due_date,
-        assigned_to: assigned_to
+        assigned_to: cleanedAssignedTo
       },
       workspaceId: req.context?.workspaceId || req.user.workspaceId
     });
 
     // Emit socket events for task creation (to all users) and task assignment (to specific users)
     if (req.app.get('io')) {
-      req.app.get('io').emit('task:created', populatedTask);
+      req.app.get('io').emit('task:created', sanitizeTask(populatedTask));
 
       // Also emit task:assigned event to assigned users specifically
-      if (assigned_to && assigned_to.length > 0) {
-        assigned_to
+      if (cleanedAssignedTo.length > 0) {
+        cleanedAssignedTo
           .filter(userId => userId.toString() !== req.user._id.toString())
           .forEach(userId => {
             req.app.get('io').to(userId.toString()).emit('task:assigned', {
-              task: populatedTask,
+              task: sanitizeTask(populatedTask),
               assigned_by: req.user.full_name
             });
           });
       }
     }
 
-    res.status(201).json({ message: 'Task created', task: populatedTask });
+    res.status(201).json({ message: 'Task created', task: sanitizeTask(populatedTask) });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -189,7 +205,10 @@ router.get('/', authenticate, async (req, res) => {
       .populate('team_id', 'name')
       .sort({ created_at: -1 });
 
-    res.json({ tasks, count: tasks.length });
+    // Filter out null/invalid tasks before sanitizing
+    const validTasks = tasks.filter(task => task && task._id);
+    const sanitizedTasks = validTasks.map(sanitizeTask);
+    res.json({ tasks: sanitizedTasks, count: sanitizedTasks.length });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -214,7 +233,7 @@ router.get('/:id', authenticate, async (req, res) => {
     // Check permissions
     if (req.user.role === 'member') {
       const isCreator = task.created_by._id.toString() === req.user._id.toString();
-      const isAssigned = task.assigned_to?.some(userId => userId.toString() === req.user._id.toString());
+      const isAssigned = sanitizeAssignedTo(task.assigned_to).some(userId => userId.toString() === req.user._id.toString());
       
       // MULTIPLE TEAMS SUPPORT: Members can view tasks from their teams
       let isFromUserTeam = false;
@@ -242,7 +261,7 @@ router.get('/:id', authenticate, async (req, res) => {
       }
     }
 
-    res.json({ task });
+    res.json({ task: sanitizeTask(task) });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -263,7 +282,7 @@ router.patch('/:id', authenticate, async (req, res) => {
 
     // Check permissions
     const isCreator = task.created_by.toString() === req.user._id.toString();
-    const isAssigned = task.assigned_to?.some(userId => userId.toString() === req.user._id.toString());
+    const isAssigned = sanitizeAssignedTo(task.assigned_to).some(userId => userId.toString() === req.user._id.toString());
     
     // MULTIPLE TEAMS SUPPORT: Team leads can edit tasks from any of their teams
     let isTeamLead = false;
@@ -281,6 +300,7 @@ router.patch('/:id', authenticate, async (req, res) => {
     }
 
     const { title, description, status, priority, assigned_to, due_date, progress } = req.body;
+    const cleanedAssignedTo = assigned_to !== undefined ? sanitizeAssignedTo(assigned_to) : undefined;
 
     const oldStatus = task.status;
     const oldTitle = task.title;
@@ -288,7 +308,7 @@ router.patch('/:id', authenticate, async (req, res) => {
     const oldPriority = task.priority;
     const oldDueDate = task.due_date;
     const oldTeamId = task.team_id;
-    const oldAssignedTo = task.assigned_to ? task.assigned_to.map(id => id.toString()) : [];
+    const oldAssignedTo = sanitizeAssignedTo(task.assigned_to).map(id => id.toString());
 
     if (title) task.title = title;
     if (description !== undefined) task.description = description;
@@ -298,8 +318,8 @@ router.patch('/:id', authenticate, async (req, res) => {
     if (progress !== undefined) task.progress = progress;
 
     // Only certain roles can reassign
-    if (assigned_to !== undefined && ['admin', 'hr', 'team_lead', 'community_admin'].includes(req.user.role)) {
-      task.assigned_to = Array.isArray(assigned_to) ? assigned_to : [];
+    if (cleanedAssignedTo !== undefined && ['admin', 'hr', 'team_lead', 'community_admin'].includes(req.user.role)) {
+      task.assigned_to = cleanedAssignedTo;
     }
 
     if (req.body.team_id !== undefined) {
@@ -345,9 +365,9 @@ router.patch('/:id', authenticate, async (req, res) => {
     }
 
     // Create notification for reassignment
-    if (assigned_to !== undefined && Array.isArray(assigned_to) && ['admin', 'hr', 'team_lead', 'community_admin'].includes(req.user.role)) {
+    if (cleanedAssignedTo !== undefined && ['admin', 'hr', 'team_lead', 'community_admin'].includes(req.user.role)) {
       // Find newly assigned users (not previously assigned)
-      const newAssignedIds = assigned_to.map(id => id.toString());
+      const newAssignedIds = cleanedAssignedTo.map(id => id.toString());
       const newlyAssigned = newAssignedIds.filter(id => !oldAssignedTo.includes(id) && id !== req.user._id.toString());
 
       if (newlyAssigned.length > 0) {
@@ -449,10 +469,10 @@ router.patch('/:id', authenticate, async (req, res) => {
 
     // Emit socket event
     if (req.app.get('io')) {
-      req.app.get('io').emit('task:updated', updatedTask);
+      req.app.get('io').emit('task:updated', sanitizeTask(updatedTask));
     }
 
-    res.json({ message: 'Task updated', task: updatedTask });
+    res.json({ message: 'Task updated', task: sanitizeTask(updatedTask) });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
