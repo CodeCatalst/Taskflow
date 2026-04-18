@@ -21,14 +21,6 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
     const { status, userId, workspaceId: filterWorkspaceId } = req.query;
     const workspaceId = req.context?.workspaceId || req.user.currentWorkspaceId || req.user.workspaceId;
 
-      userRole: req.user.role,
-      contextRole: req.context?.currentRole,
-      workspaceId,
-      allWorkspaceIds: req.context?.allWorkspaceIds,
-      filterWorkspaceId,
-      userId
-    });
-
     const query = {};
 
     // HR and Admin see requests from ALL their workspaces
@@ -458,7 +450,7 @@ router.delete('/:id', authenticate, requireCoreWorkspace, async (req, res) => {
       _id: req.params.id,
       workspaceId,
       userId: req.user._id
-    });
+    }).populate('leaveTypeId', 'name code').populate('userId', 'full_name email');
 
     if (!leaveRequest) {
       return res.status(404).json({ message: 'Leave request not found' });
@@ -467,6 +459,13 @@ router.delete('/:id', authenticate, requireCoreWorkspace, async (req, res) => {
     if (leaveRequest.status !== 'pending') {
       return res.status(400).json({ message: 'Cannot cancel processed request' });
     }
+
+    // Store leave details for logging before modification
+    const leaveTypeName = leaveRequest.leaveTypeId?.name || 'Unknown';
+    const employeeName = leaveRequest.userId?.full_name || req.user.full_name || 'Unknown';
+    const requestStartDate = leaveRequest.startDate;
+    const requestEndDate = leaveRequest.endDate;
+    const requestDays = leaveRequest.days;
 
     // Restore pending balance
     const currentYear = new Date().getFullYear();
@@ -484,13 +483,23 @@ router.delete('/:id', authenticate, requireCoreWorkspace, async (req, res) => {
     leaveRequest.status = 'cancelled';
     await leaveRequest.save();
 
+    // Log with specific event type and detailed metadata
     await logChange({
+      event_type: 'leave_cancelled',
       userId: req.user._id,
       workspaceId,
-      action: 'delete',
+      action: 'cancel',
       entity: 'leave_request',
       entityId: leaveRequest._id,
-      details: { action: 'cancelled' },
+      description: `Leave request cancelled: ${leaveTypeName} (${requestDays} day(s)) from ${requestStartDate?.toISOString().split('T')[0]} to ${requestEndDate?.toISOString().split('T')[0]}`,
+      metadata: {
+        leaveType: leaveTypeName,
+        employeeName: employeeName,
+        startDate: requestStartDate,
+        endDate: requestEndDate,
+        days: requestDays,
+        previousStatus: 'pending'
+      },
       ipAddress: getClientIP(req)
     });
 

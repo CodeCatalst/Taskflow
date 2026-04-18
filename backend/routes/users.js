@@ -12,6 +12,7 @@ import HrActionService from '../services/hrActionService.js';
 import multer from 'multer';
 import xlsx from 'xlsx';
 import getClientIP from '../utils/getClientIP.js';
+import { validatePasswordStrength } from '../utils/security.js';
 
 const router = express.Router();
 
@@ -37,7 +38,13 @@ const upload = multer({
 const validateUserCreation = [
   body('full_name').trim().notEmpty().withMessage('Full name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('password').custom((value, { req }) => {
+    const validation = validatePasswordStrength(value);
+    if (!validation.isValid) {
+      throw new Error(validation.errors.join('. '));
+    }
+    return true;
+  }),
   body('role').isIn(['admin', 'hr', 'team_lead', 'member', 'community_admin']).withMessage('Invalid role')
 ];
 
@@ -164,8 +171,12 @@ router.post('/me/change-password', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Both old and new passwords are required' });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ message: 'New password must be at least 6 characters long' });
+    // Validate password strength
+    const validation = validatePasswordStrength(newPassword);
+    if (!validation.isValid) {
+      return res.status(400).json({ 
+        message: validation.errors.join('. ')
+      });
     }
 
     // Get user with password hash
@@ -430,6 +441,23 @@ router.post('/bulk-delete', authenticate, checkRole(['admin', 'hr']), ...require
       { $inc: { 'usage.userCount': -result.deletedCount } }
     );
 
+    // Log bulk user deletion
+    const user_ip = getClientIP(req);
+    await logChange({
+      event_type: 'user_bulk_deleted',
+      user: req.user,
+      user_ip,
+      target_type: 'user',
+      action: 'Bulk deleted users',
+      description: `${req.user.full_name} bulk deleted ${result.deletedCount} user(s)`,
+      metadata: {
+        deletedUserIds: idsToDelete,
+        deletedCount: result.deletedCount,
+        attemptedCount: idsToDelete.length
+      },
+      workspaceId: req.context.workspaceId
+    });
+
     // Emit socket event for bulk user deletion
     if (req.app.get('io')) {
       req.app.get('io').emit('users:bulk-deleted', { userIds: idsToDelete, count: result.deletedCount });
@@ -608,6 +636,25 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res)
     // Delete the user
     await User.findByIdAndDelete(id);
 
+    // Log user deletion
+    const user_ip = getClientIP(req);
+    await logChange({
+      event_type: 'user_deleted',
+      user: req.user,
+      user_ip,
+      target_type: 'user',
+      target_id: user._id.toString(),
+      target_name: user.full_name,
+      action: 'Deleted user',
+      description: `${req.user.full_name} deleted user account for ${user.full_name} (${user.email}) with role ${user.role}`,
+      metadata: {
+        email: user.email,
+        role: user.role,
+        full_name: user.full_name
+      },
+      workspaceId: req.context.workspaceId
+    });
+
     // Update workspace user count
     await Workspace.findByIdAndUpdate(
       req.context.workspaceId,
@@ -631,8 +678,12 @@ router.patch('/:id/password', authenticate, checkRole(['admin', 'hr', 'community
     const { password } = req.body;
     const { id } = req.params;
 
-    if (!password || password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    // Validate password strength
+    const validation = validatePasswordStrength(password);
+    if (!validation.isValid) {
+      return res.status(400).json({ 
+        message: validation.errors.join('. ')
+      });
     }
 
     const user = await User.findById(id);

@@ -10,6 +10,7 @@ const changeLogSchema = new mongoose.Schema({
       'user_created',
       'user_updated',
       'user_deleted',
+      'user_bulk_deleted',
       'task_created',
       'task_updated',
       'task_deleted',
@@ -19,6 +20,7 @@ const changeLogSchema = new mongoose.Schema({
       'team_created',
       'team_updated',
       'team_deleted',
+      'team_bulk_deleted',
       'team_member_added',
       'team_member_removed',
       'report_generated',
@@ -30,6 +32,8 @@ const changeLogSchema = new mongoose.Schema({
       'bulk_import',
       'password_reset_request',
       'password_reset',
+      'changelog_cleared',
+      'leave_cancelled',
       'system_event'
     ]
   },

@@ -9,14 +9,29 @@ import { logChange } from '../utils/changeLogService.js';
 import { authenticate } from '../middleware/auth.js';
 import getClientIP from '../utils/getClientIP.js';
 import { sendVerificationEmail, sendPasswordResetLink } from '../utils/emailService.js';
+import { 
+  recordFailedLogin, 
+  clearFailedLoginAttempts, 
+  isIPBlocked, 
+  getIPBlockStatus,
+  securityLogger,
+  validatePasswordStrength,
+  recordSuspiciousActivity
+} from '../utils/security.js';
 
 const router = express.Router();
 
-// Validation middleware
+// Validation middleware - Strong password requirements
 const validateRegistration = [
   body('full_name').trim().notEmpty().withMessage('Full name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+  body('password').custom((value, { req }) => {
+    const validation = validatePasswordStrength(value);
+    if (!validation.isValid) {
+      throw new Error(validation.errors.join('. '));
+    }
+    return true;
+  })
 ];
 
 const validateLogin = [
@@ -38,7 +53,13 @@ router.post('/register-community', [
   body('workspace_name').trim().notEmpty().withMessage('Workspace name is required'),
   body('full_name').trim().notEmpty().withMessage('Full name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+  body('password').custom((value, { req }) => {
+    const validation = validatePasswordStrength(value);
+    if (!validation.isValid) {
+      throw new Error(validation.errors.join('. '));
+    }
+    return true;
+  })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -140,6 +161,21 @@ router.post('/login', validateLogin, async (req, res) => {
     }
 
     const { email, password } = req.body;
+    const clientIP = getClientIP(req);
+
+    // Check if IP is blocked
+    if (isIPBlocked(clientIP)) {
+      const blockStatus = getIPBlockStatus(clientIP);
+      securityLogger('blocked_ip_login_attempt', {
+        ip: clientIP,
+        email,
+        blockedUntil: blockStatus.blockedUntil
+      });
+      return res.status(429).json({ 
+        message: 'Too many failed login attempts. Please try again later.',
+        blockedUntil: blockStatus.blockedUntil
+      });
+    }
 
     // Find user with team and workspace populated
     const user = await User.findOne({ email })
@@ -148,11 +184,19 @@ router.post('/login', validateLogin, async (req, res) => {
       .populate('workspaceId', 'name type settings');
     
     if (!user) {
+      // Record failed attempt even if user doesn't exist (prevent email enumeration timing)
+      recordFailedLogin(clientIP, email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Check if user is deactivated
     if (user.employmentStatus === 'INACTIVE') {
+      recordFailedLogin(clientIP, email);
+      securityLogger('inactive_account_login_attempt', {
+        ip: clientIP,
+        email,
+        userId: user._id
+      });
       return res.status(403).json({
         message: 'Your account has been deactivated. Please contact your administrator for assistance.',
         accountDeactivated: true
@@ -161,6 +205,7 @@ router.post('/login', validateLogin, async (req, res) => {
 
     // Check if email is verified (only for community admins)
     if (user.role === 'community_admin' && !user.isEmailVerified) {
+      recordFailedLogin(clientIP, email);
       return res.status(403).json({
         message: 'Please verify your email address before logging in. Check your inbox for the verification code.',
         requiresVerification: true,
@@ -257,12 +302,33 @@ router.post('/login', validateLogin, async (req, res) => {
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      // Record failed login attempt
+      const failStatus = recordFailedLogin(clientIP, email);
+      
+      securityLogger('failed_login', {
+        ip: clientIP,
+        email,
+        attempts: failStatus.attempts,
+        remainingAttempts: failStatus.remainingAttempts
+      });
+      
+      // Check if this attempt triggered a block
+      if (failStatus.isBlocked) {
+        recordSuspiciousActivity(clientIP, 'multiple_failed_logins', {
+          email,
+          attempts: failStatus.attempts
+        });
+      }
+      
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user._id, user.role);
-    const refreshToken = generateRefreshToken(user._id);
+    // Clear failed login attempts on successful login
+    clearFailedLoginAttempts(clientIP);
+
+    // Generate tokens with IP for tracking
+    const accessToken = generateAccessToken(user._id, user.role, clientIP);
+    const refreshToken = generateRefreshToken(user._id, clientIP);
 
     // Log login event
     const user_ip = getClientIP(req);
@@ -316,6 +382,7 @@ router.post('/login', validateLogin, async (req, res) => {
 router.post('/refresh', async (req, res) => {
   try {
     const { refreshToken } = req.body;
+    const clientIP = getClientIP(req);
 
     if (!refreshToken) {
       return res.status(400).json({ message: 'Refresh token required' });
@@ -324,6 +391,10 @@ router.post('/refresh', async (req, res) => {
     // Verify refresh token
     const decoded = verifyRefreshToken(refreshToken);
     if (!decoded) {
+      securityLogger('invalid_refresh_token', {
+        ip: clientIP,
+        path: req.path
+      });
       return res.status(401).json({ message: 'Invalid refresh token' });
     }
 
@@ -334,6 +405,10 @@ router.post('/refresh', async (req, res) => {
       .populate('workspaceId', 'name type settings');
     
     if (!user) {
+      securityLogger('refresh_user_not_found', {
+        ip: clientIP,
+        userId: decoded.userId
+      });
       return res.status(401).json({ message: 'User not found' });
     }
 
@@ -351,9 +426,16 @@ router.post('/refresh', async (req, res) => {
       });
     }
 
-    // Generate new tokens
-    const newAccessToken = generateAccessToken(user._id, user.role);
-    const newRefreshToken = generateRefreshToken(user._id);
+    // Generate new tokens with IP for token rotation
+    const newAccessToken = generateAccessToken(user._id, user.role, clientIP);
+    const newRefreshToken = generateRefreshToken(user._id, clientIP);
+
+    // Log token refresh
+    securityLogger('token_refresh', {
+      userId: user._id,
+      email: user.email,
+      ip: clientIP
+    });
 
     res.json({
       user: {
@@ -593,7 +675,13 @@ router.post('/forgot-password', [
 router.post('/reset-password', [
   body('email').isEmail().withMessage('Valid email is required'),
   body('token').notEmpty().withMessage('Reset token is required'),
-  body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+  body('newPassword').custom((value, { req }) => {
+    const validation = validatePasswordStrength(value);
+    if (!validation.isValid) {
+      throw new Error(validation.errors.join('. '));
+    }
+    return true;
+  })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -649,11 +737,6 @@ router.post('/switch-workspace', authenticate, async (req, res) => {
   try {
     const { workspaceId } = req.body;
     
-      userId: req.user._id,
-      userRole: req.user.role,
-      requestedWorkspace: workspaceId
-    });
-    
     if (!workspaceId) {
       return res.status(400).json({ message: 'Workspace ID is required' });
     }
@@ -666,7 +749,6 @@ router.post('/switch-workspace', authenticate, async (req, res) => {
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
-    
     
     // Admins can access any workspace, regular users need to belong to it
     if (req.user.role !== 'admin' && !req.user.belongsToWorkspace(workspaceId)) {

@@ -91,6 +91,10 @@ export const TEMPLATE_VARIABLE_REGISTRY = {
   REJOIN_INVITE: {
     required: ['name'],
     optional: []
+  },
+  CORE_TEAM_FEEDBACK: {
+    required: ['deadline', 'feedbackLink'],
+    optional: ['senderName', 'senderRole']
   }
 };
 

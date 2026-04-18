@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import Workspace from '../models/Workspace.js';
+import mongoose from 'mongoose';
 
 /**
  * Workspace Context Middleware
@@ -34,8 +35,36 @@ const workspaceContext = async (req, res, next) => {
     // Check for workspace override in header (for workspace switching)
     const requestedWorkspaceId = req.headers['x-workspace-id'];
     
+    // Validate workspace ID format if provided (prevents injection attacks)
+    if (requestedWorkspaceId && !mongoose.Types.ObjectId.isValid(requestedWorkspaceId)) {
+      return res.status(400).json({ 
+        message: 'Invalid workspace ID format',
+        error: 'INVALID_WORKSPACE_ID'
+      });
+    }
+    
     let activeWorkspaceId = requestedWorkspaceId || user.currentWorkspaceId || user.workspaceId;
     
+    // Skip workspace resolution for workspace creation endpoint
+    // This allows users without workspaces to create their first workspace
+    if (req.path === '/' && req.method === 'POST') {
+      req.context = {
+        workspaceId: null,
+        workspaceType: 'NONE',
+        workspaceName: null,
+        workspace: null,
+        isSystemAdmin: false,
+        allWorkspaceIds: [],
+        user: {
+          id: user._id,
+          email: user.email,
+          role: user.role,
+          full_name: user.full_name,
+        },
+      };
+      return next();
+    }
+
     // If user has no workspace set
     if (!activeWorkspaceId) {
       // ADMIN PRIVILEGE: Admins can exist without workspace (system-wide access)
@@ -71,9 +100,8 @@ const workspaceContext = async (req, res, next) => {
         const firstActiveWorkspace = user.workspaces.find(ws => ws.isActive);
         if (firstActiveWorkspace) {
           activeWorkspaceId = firstActiveWorkspace.workspaceId;
-          // Update user's current workspace
-          user.currentWorkspaceId = activeWorkspaceId;
-          await user.save();
+          // Note: We no longer auto-save user in middleware to avoid side effects
+          // The currentWorkspaceId is set in memory for this request only
         } else {
           return res.status(403).json({ 
             message: 'User has no active workspaces. Please contact support.',

@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
 
 // Import routes
@@ -66,6 +68,49 @@ initializeScheduler();
 // Trust proxy - required to get real client IP behind reverse proxies (Render, Vercel, Nginx, etc.)
 app.set('trust proxy', true);
 
+// Security middleware - Helmet for HTTP security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  crossOriginEmbedderPolicy: true,
+}));
+
+// Rate limiting configuration
+// General API rate limit
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: { message: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Strict rate limiting for authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs (login, register, password reset)
+  message: { message: 'Too many authentication attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+});
+
+// Apply general rate limiting to all routes
+app.use('/api', generalLimiter);
+
+// Apply stricter rate limiting to auth routes
+app.use('/api/auth', authLimiter);
+
+// Request size limiting - prevent large payload attacks
+app.use(express.json({ limit: '500kb' }));
+app.use(express.urlencoded({ extended: true, limit: '500kb' }));
+
 // Middleware - Enhanced CORS configuration
 app.use(cors({
   origin: function(origin, callback) {
@@ -81,7 +126,9 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(null, true); // Allow in production, log for monitoring
+      callback(null, true); // Allow in development only - block in production
+      // Uncomment below line to enforce strict CORS in production:
+      // callback(new Error('Not allowed by CORS policy'));
     }
   },
   credentials: true,
@@ -220,13 +267,12 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
-â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-â•‘   ðŸš€ CTMS Backend Server Running      â•‘
-â•‘   ðŸ“¡ Port: ${PORT}                      â•‘
-â•‘   ðŸŒ Environment: ${process.env.NODE_ENV || 'development'}     â•‘
-â•‘   ðŸ”Œ Socket.IO: Enabled                â•‘
-â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  `);
+  console.log('===========================================');
+  console.log('   🚀 CTMS Backend Server Running');
+  console.log(`   📡 Port: ${PORT}`);
+  console.log(`   🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log('   🔌 Socket.IO: Enabled');
+  console.log('===========================================');
 });
 
 export default app;

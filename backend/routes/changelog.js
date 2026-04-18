@@ -2,8 +2,9 @@
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/roleCheck.js';
 import { requireAuditLogs } from '../middleware/workspaceGuard.js';
-import { getChangeLogs, getChangeLogStats, exportChangeLogs } from '../utils/changeLogService.js';
+import { getChangeLogs, getChangeLogStats, exportChangeLogs, logChange } from '../utils/changeLogService.js';
 import ChangeLog from '../models/ChangeLog.js';
+import getClientIP from '../utils/getClientIP.js';
 
 const router = express.Router();
 
@@ -200,6 +201,24 @@ router.delete('/clear', authenticate, checkRole(['admin']), async (req, res) => 
 
     const result = await ChangeLog.deleteMany({
       created_at: { $lt: cutoffDate }
+    });
+
+    // Log the changelog clear operation
+    const user_ip = getClientIP(req);
+    await logChange({
+      event_type: 'changelog_cleared',
+      user: req.user,
+      user_ip,
+      target_type: 'changelog',
+      action: 'Cleared changelog logs',
+      description: `${req.user.full_name} cleared ${result.deletedCount} changelog record(s) older than ${days} days`,
+      metadata: {
+        deletedCount: result.deletedCount,
+        clearMethod: 'age_based',
+        daysThreshold: parseInt(days),
+        cutoffDate: cutoffDate.toISOString()
+      },
+      workspaceId: req.context.workspaceId
     });
 
     res.json({

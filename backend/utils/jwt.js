@@ -1,18 +1,36 @@
 import jwt from 'jsonwebtoken';
 
-export const generateAccessToken = (userId, role) => {
+// Token configuration
+const ACCESS_TOKEN_EXPIRY = '1h';  // Reduced from 24h for better security
+const REFRESH_TOKEN_EXPIRY = '24h';  // Reduced from 7d for better security
+
+export const generateAccessToken = (userId, role, ip = null) => {
+  const payload = { userId, role };
+  
+  // Include IP address for validation (optional, can be null)
+  if (ip) {
+    payload.ip = ip;
+  }
+  
   return jwt.sign(
-    { userId, role },
+    payload,
     process.env.JWT_SECRET,
-    { expiresIn: '15m' }
+    { expiresIn: ACCESS_TOKEN_EXPIRY }
   );
 };
 
-export const generateRefreshToken = (userId) => {
+export const generateRefreshToken = (userId, ip = null) => {
+  const payload = { userId };
+  
+  // Include IP for refresh token tracking
+  if (ip) {
+    payload.ip = ip;
+  }
+  
   return jwt.sign(
-    { userId },
+    payload,
     process.env.REFRESH_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: REFRESH_TOKEN_EXPIRY }
   );
 };
 

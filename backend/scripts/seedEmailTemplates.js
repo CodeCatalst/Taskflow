@@ -1868,6 +1868,109 @@ const predefinedTemplates = [
     `
   },
   {
+    name: 'Core Team Feedback',
+    code: 'CORE_TEAM_FEEDBACK',
+    subject: 'Shaping Our Next Phase - Core Team Feedback',
+    category: 'engagement',
+    isPredefined: true,
+    variables: [
+      { name: 'deadline', description: 'Feedback submission deadline', example: 'April 30, 2026' },
+      { name: 'feedbackLink', description: 'Core team feedback form URL', example: 'https://forms.gle/example' },
+      { name: 'senderName', description: 'Sender name', example: 'Alex Johnson' },
+      { name: 'senderRole', description: 'Sender role/title', example: 'Operations Lead' }
+    ],
+    htmlContent: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Core Team Feedback</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f6f8">
+    <tr>
+      <td align="center">
+
+        <!-- Main Container -->
+        <table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="margin-top:30px; border-radius:8px; overflow:hidden;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#1a73e8; padding:20px; text-align:center; color:#ffffff; font-size:22px; font-weight:bold;">
+              Shaping Our Next Phase
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:30px; color:#333333; font-size:14px; line-height:1.6;">
+
+              <p style="margin-top:0;">Hi Team,</p>
+
+              <p>
+                We are at a pivotal stage where the quality of our decisions and execution will define what we build next.
+              </p>
+
+              <p>
+                To move forward with clarity and alignment, I am inviting each of you to share your perspective through the
+                <strong>Core Team Feedback Form</strong>. This is not a routine exercise, it is a strategic input channel that will directly influence how we refine our workflows, strengthen collaboration, and elevate our standards.
+              </p>
+
+              <!-- CTA Button -->
+              <p style="text-align:center; margin:30px 0;">
+                <a href="{{feedbackLink}}" style="background-color:#1a73e8; color:#ffffff; text-decoration:none; padding:12px 24px; border-radius:5px; font-weight:bold; display:inline-block;">
+                  Submit Feedback
+                </a>
+              </p>
+
+              <p>
+                I ask that you approach this thoughtfully and candidly. Strong teams are built on honest insight, not assumptions. Your voice here matters, not just for reflection, but for action.
+              </p>
+
+              <p>
+                Please complete the form by <strong>{{deadline}}</strong>.
+              </p>
+
+              <p>
+                We are building something that requires both ownership and openness. This is one of those moments where both come together.
+              </p>
+
+              <p>
+                If there is anything you feel needs deeper discussion, my inbox is always open.
+              </p>
+
+              <p>
+                Let us use this to raise the bar.
+              </p>
+
+              <p style="margin-bottom:0;">
+                Best,<br>
+                <strong>{{senderName}}</strong><br>
+                {{senderRole}}
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#f1f3f4; padding:15px; text-align:center; font-size:12px; color:#888888;">
+              &copy; 2026 Your Organization | Internal Communication
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+    `
+  },
+  {
     name: 'Contact Form Acknowledgement',
     code: 'CONTACT_ACK',
     subject: 'Thank You for Reaching Out!',

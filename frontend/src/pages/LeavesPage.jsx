@@ -764,46 +764,12 @@ export default function LeavesPage() {
                 <div className="mb-6">
                   <h4 className={`text-sm font-semibold ${currentTheme.text} mb-3`}>Existing Leave Types</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-<<<<<<< Updated upstream
                     {leaveTypes.map((type) => {
-                      // Find the corresponding balance for this leave type
                       const balance = leaveBalances.find(b => b.leaveTypeId?._id === type._id);
-                      
                       return (
                         <div
                           key={type._id}
                           className={`${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded-lg p-3 flex items-center justify-between hover:border-blue-500/50 transition-colors`}
-=======
-                    {leaveTypes.map((type) => (
-                      <div
-                        key={type._id}
-                        className={`${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded-lg p-3 flex items-center justify-between hover:border-blue-500/50 transition-colors`}
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <div
-                            className="w-4 h-4 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: type.color }}
-                          ></div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h5 className={`text-sm font-semibold ${currentTheme.text} truncate`}>
-                                {type.name}
-                              </h5>
-                              <span className={`text-xs px-2 py-0.5 rounded ${currentTheme.surfaceSecondary} ${currentTheme.textSecondary} border ${currentTheme.border}`}>
-                                {type.code}
-                              </span>
-                            </div>
-                            <p className={`text-xs ${currentTheme.textSecondary} mt-0.5`}>
-                              {type.annualQuota} days/year
-                              {type.carryForward && ` â€¢ Carry forward: ${type.maxCarryForward} days`}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleEditLeaveType(type)}
-                          className="ml-2 px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex-shrink-0"
->>>>>>> Stashed changes
                         >
                           <div className="flex items-center gap-3 flex-1">
                             <div

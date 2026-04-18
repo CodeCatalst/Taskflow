@@ -165,15 +165,14 @@ router.get('/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// Create new workspace (System Admin only - only system admins can create workspaces)
-router.post('/', requireAdmin, async (req, res) => {
+// Create new workspace - Allow any authenticated user to create their own workspace
+// Note: This route bypasses workspaceContext middleware which is handled in the middleware itself
+router.post('/', async (req, res) => {
   try {
-    // Only system admins can create new workspaces
-    if (!req.context.isSystemAdmin) {
-      return res.status(403).json({ message: 'Only system administrators can create new workspaces' });
-    }
+    // Allow any authenticated user to create a workspace
+    // They will become the owner/admin of the new workspace
     
-    const { name, type, ownerEmail } = req.body;
+    const { name, type } = req.body;
 
     // Validation
     if (!name || !type) {
@@ -196,20 +195,31 @@ router.post('/', requireAdmin, async (req, res) => {
       });
     }
 
-    // Find owner if email provided
-    let ownerId = null;
-    if (ownerEmail) {
-      const owner = await User.findOne({ email: ownerEmail });
-      if (owner) {
-        ownerId = owner._id;
-      }
+    // The authenticated user who creates the workspace becomes its owner
+    // Use req.user directly - it's set by the authenticate middleware
+    const currentUserId = req.user._id;
+    const currentUser = await User.findById(currentUserId);
+    
+    if (!currentUser) {
+      return res.status(404).json({ message: 'User not found' });
     }
-
-    // Create workspace
+    
+    // Prevent users who already have a workspace from creating a new one
+    // (they should use switch-workspace instead)
+    if (currentUser.workspaceId && currentUser.workspaces && currentUser.workspaces.length > 0) {
+      return res.status(400).json({ 
+        message: 'You already have a workspace. Use the workspace switcher to create a new one or contact support.' 
+      });
+    }
+    
+    // Determine the role for the new workspace
+    const workspaceRole = type === 'COMMUNITY' ? 'community_admin' : 'admin';
+    
+    // Create workspace with the current user as owner
     const workspace = new Workspace({
       name,
       type,
-      owner: ownerId,
+      owner: currentUserId,
       settings: {
         features: type === 'CORE' 
           ? ['analytics', 'reports', 'changelog', 'automation', 'teams']
@@ -222,17 +232,31 @@ router.post('/', requireAdmin, async (req, res) => {
 
     await workspace.save();
 
-    // If owner email provided, assign workspace to owner
-    if (ownerId) {
-      const owner = await User.findById(ownerId);
-      if (owner) {
-        owner.workspaceId = workspace._id;
-        if (owner.role === 'member') {
-          owner.role = 'admin';
-        }
-        await owner.save();
-      }
+    // Add the creator to the workspace as admin - using the method that handles duplicates properly
+    // Update user's role based on workspace type (but preserve higher roles)
+    if (type === 'COMMUNITY') {
+      currentUser.role = 'community_admin';
+    } else if (currentUser.role === 'member') {
+      currentUser.role = 'admin';
     }
+    
+    // Add workspace to user's workspaces array using the helper method
+    // This method handles existing entries properly
+    try {
+      await currentUser.addToWorkspace(workspace._id, workspaceRole);
+    } catch (workspaceError) {
+      // If addToWorkspace fails (e.g., user already in workspace), continue with the rest
+      console.error('Error adding user to workspace:', workspaceError.message);
+    }
+    
+    // Also update legacy field if not already set
+    if (!currentUser.workspaceId) {
+      currentUser.workspaceId = workspace._id;
+    }
+    if (!currentUser.currentWorkspaceId) {
+      currentUser.currentWorkspaceId = workspace._id;
+    }
+    await currentUser.save();
 
     // Log workspace creation
     await logChange({
@@ -253,7 +277,8 @@ router.post('/', requireAdmin, async (req, res) => {
       workspace
     });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to create workspace' });
+    console.error('Workspace creation error:', error);
+    res.status(500).json({ message: 'Failed to create workspace', error: error.message });
   }
 });
 

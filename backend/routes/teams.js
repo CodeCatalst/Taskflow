@@ -5,6 +5,8 @@ import { checkTeamLimit } from '../middleware/workspaceGuard.js';
 import Team from '../models/Team.js';
 import User from '../models/User.js';
 import Workspace from '../models/Workspace.js';
+import { logChange } from '../utils/changeLogService.js';
+import getClientIP from '../utils/getClientIP.js';
 
 const router = express.Router();
 
@@ -437,7 +439,6 @@ router.delete('/:id/members/:userId', authenticate, checkRole(['admin', 'hr', 'c
   try {
     const { id, userId } = req.params;
 
-<<<<<<< Updated upstream
     // Validate MongoDB ObjectIDs
     if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({ message: 'Invalid team ID format' });
@@ -445,13 +446,10 @@ router.delete('/:id/members/:userId', authenticate, checkRole(['admin', 'hr', 'c
     if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({ message: 'Invalid user ID format' });
     }
-=======
->>>>>>> Stashed changes
 
     // WORKSPACE SUPPORT: Verify team exists in workspace
     const team = await Team.findOne({ _id: id, workspaceId: req.context.workspaceId });
     if (!team) {
-<<<<<<< Updated upstream
       return res.status(404).json({ message: 'Team not found in your workspace' });
     }
 
@@ -465,14 +463,6 @@ router.delete('/:id/members/:userId', authenticate, checkRole(['admin', 'hr', 'c
         message: 'User is not a member of this team',
         debug: `Team has ${team.members.length} members`
       });
-=======
-      return res.status(404).json({ message: 'Team not found' });
-    }
-
-    // Check if user is actually a member
-    if (!team.members.some(m => m.toString() === userId)) {
-      return res.status(400).json({ message: 'User is not a member of this team' });
->>>>>>> Stashed changes
     }
 
     // Prevent removing HR or Team Lead from their own team
@@ -486,41 +476,26 @@ router.delete('/:id/members/:userId', authenticate, checkRole(['admin', 'hr', 'c
       });
     }
 
-<<<<<<< Updated upstream
+    // Get user details for logging before removal
+    const removedUser = await User.findOne({ _id: userId, workspaceId: req.context.workspaceId }).select('full_name email');
+    const removedUserName = removedUser ? removedUser.full_name : 'Unknown';
+    const removedUserEmail = removedUser ? removedUser.email : 'Unknown';
+
     // Remove from team using $pull with workspace scoping for consistency
     const result = await Team.findOneAndUpdate(
       { _id: id, workspaceId: req.context.workspaceId },
       { $pull: { members: userId } },
       { new: true }
     );
-=======
-
-    // Remove from team using $pull for consistency and atomicity
-    const result = await Team.findByIdAndUpdate(id, {
-      $pull: { members: userId }
-    });
->>>>>>> Stashed changes
 
     if (!result) {
       return res.status(500).json({ message: 'Failed to remove member from team' });
     }
 
-<<<<<<< Updated upstream
-=======
-
-
->>>>>>> Stashed changes
     // MULTIPLE TEAMS SUPPORT: For Core Workspace, remove from teams array and update team_id
     const isCoreWorkspace = req.context.workspaceType === 'CORE';
     const user = await User.findOne({ _id: userId, workspaceId: req.context.workspaceId });
     
-<<<<<<< Updated upstream
-=======
-    if (!user) {
-    } else {
-    }
-    
->>>>>>> Stashed changes
     if (isCoreWorkspace && user) {
       // Remove this team from teams array
       await User.findOneAndUpdate(
@@ -551,11 +526,30 @@ router.delete('/:id/members/:userId', authenticate, checkRole(['admin', 'hr', 'c
       .populate('lead_id', 'full_name email')
       .populate('members', 'full_name email role');
 
-<<<<<<< Updated upstream
     // Emit socket event
     if (req.app.get('io')) {
       req.app.get('io').emit('team:updated', updatedTeam);
     }
+
+    // Log team member removal
+    const user_ip = getClientIP(req);
+    await logChange({
+      event_type: 'team_member_removed',
+      user: req.user,
+      user_ip,
+      target_type: 'team',
+      target_id: id,
+      target_name: team.name,
+      action: 'Removed team member',
+      description: `${req.user.full_name} removed ${removedUserName} from team "${team.name}"`,
+      metadata: {
+        removedMemberName: removedUserName,
+        removedMemberEmail: removedUserEmail,
+        teamName: team.name,
+        workspaceId: req.context.workspaceId
+      },
+      workspaceId: req.context.workspaceId
+    });
 
     res.json({ 
       message: 'Member removed from team successfully', 
@@ -566,11 +560,6 @@ router.delete('/:id/members/:userId', authenticate, checkRole(['admin', 'hr', 'c
       message: 'Server error while removing member', 
       error: error.message 
     });
-=======
-    res.json({ message: 'Member removed from team', team: updatedTeam });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
->>>>>>> Stashed changes
   }
 });
 
@@ -636,6 +625,25 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']
       req.app.get('io').emit('team:deleted', { _id: id, name: teamName });
     }
 
+    // Log team deletion
+    const user_ip = getClientIP(req);
+    await logChange({
+      event_type: 'team_deleted',
+      user: req.user,
+      user_ip,
+      target_type: 'team',
+      target_id: id,
+      target_name: teamName,
+      action: 'Deleted team',
+      description: `${req.user.full_name} deleted team "${teamName}"`,
+      metadata: {
+        memberCount: team.members.length,
+        workspaceId: req.context.workspaceId,
+        workspaceName: req.context.workspaceName
+      },
+      workspaceId: req.context.workspaceId
+    });
+
     res.json({ 
       message: 'Team deleted successfully',
       team: { 
@@ -696,6 +704,26 @@ router.delete('/bulk/all', authenticate, checkRole(['admin', 'hr', 'community_ad
         workspaceId: req.context.workspaceId
       });
     }
+
+    // Log bulk team deletion
+    const user_ip = getClientIP(req);
+    await logChange({
+      event_type: 'team_bulk_deleted',
+      user: req.user,
+      user_ip,
+      target_type: 'team',
+      target_id: teamIds.map(id => id.toString()),
+      target_name: `Bulk delete: ${teamCount} teams`,
+      action: 'Bulk deleted teams',
+      description: `${req.user.full_name} deleted ${teamCount} team(s) in bulk`,
+      metadata: {
+        deletedTeamIds: teamIds.map(id => id.toString()),
+        deletedTeamCount: teamCount,
+        teamNames: teams.map(t => t.name),
+        workspaceId: req.context.workspaceId
+      },
+      workspaceId: req.context.workspaceId
+    });
 
     res.json({ 
       message: `Successfully deleted ${teamCount} team(s)`,

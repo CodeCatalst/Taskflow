@@ -87,10 +87,7 @@ const Teams = () => {
       const response = await api.get('/users');
       setUsers(response.data.users);
     } catch (error) {
-<<<<<<< Updated upstream
       // Error fetching users
-=======
->>>>>>> Stashed changes
     }
   };
 
@@ -190,8 +187,6 @@ const Teams = () => {
       confirmText: 'Remove',
       cancelText: 'Cancel',
       variant: 'warning',
-<<<<<<< Updated upstream
-=======
       onConfirm: async () => {
         try {
           await api.delete(`/teams/${teamId}/members/${userId}`);
@@ -200,7 +195,6 @@ const Teams = () => {
           alert(error.response?.data?.message || 'Failed to remove member');
         }
       },
->>>>>>> Stashed changes
     });
 
     if (confirmed) {
