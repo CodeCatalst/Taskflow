@@ -179,7 +179,8 @@ export const ThemeProvider = ({ children }) => {
 
   // Available themes (computed based on colorScheme)
   const getThemes = () => {
-    const colorName = colorSchemes[colorScheme].primary.split('-')[1]; // e.g., 'blue' from 'bg-blue-600'
+    const resolvedScheme = colorSchemes[colorScheme] || colorSchemes.blue;
+    const colorName = resolvedScheme.primary.split('-')[1]; // e.g., 'blue' from 'bg-blue-600'
     return {
       light: {
         name: 'Light',
@@ -217,20 +218,21 @@ export const ThemeProvider = ({ children }) => {
   };
 
   const themes = getThemes();
+  const resolvedColorScheme = colorSchemes[colorScheme] || colorSchemes.blue;
 
   // Get current theme (handle auto mode)
   const getCurrentTheme = () => {
     if (theme === 'auto') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? themes.dark : themes.light;
     }
-    return themes[theme];
+    return themes[theme] || themes.light;
   };
 
   // Apply theme to document
   useEffect(() => {
     const currentThemeObj = getCurrentTheme();
     const root = document.documentElement;
-    const currentColorScheme = colorSchemes[colorScheme];
+    const currentColorScheme = resolvedColorScheme;
 
     // Apply dark mode class
     if (currentThemeObj.name === 'Dark') {
@@ -291,7 +293,7 @@ export const ThemeProvider = ({ children }) => {
     theme,
     colorScheme,
     currentTheme: getCurrentTheme(),
-    currentColorScheme: colorSchemes[colorScheme],
+    currentColorScheme: resolvedColorScheme,
     themes,
     colorSchemes,
     toggleTheme,
