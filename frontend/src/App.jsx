@@ -15,6 +15,11 @@ import Settings from './pages/Settings';
 import Calendar from './pages/Calendar';
 import ChangeLog from './pages/ChangeLog';
 
+const noop = () => {};
+for (const method of ['log', 'debug', 'info', 'warn', 'error', 'trace']) {
+  console[method] = noop;
+}
+
 function AppContent() {
   // Initialize notifications
   useNotifications();
