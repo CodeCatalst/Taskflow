@@ -21,6 +21,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [sessionTimeout, setSessionTimeout] = useState(24); // hours
   
   // Workspace selection state
   const [showWorkspaceSelector, setShowWorkspaceSelector] = useState(false);
@@ -42,7 +43,7 @@ const Login = () => {
     setAccountDeactivated(false);
     setLoading(true);
 
-    const result = await login(formData.email, formData.password);
+    const result = await login(formData.email, formData.password, rememberMe, sessionTimeout);
 
     if (result.success) {
       // Check if workspace selection is required
@@ -157,7 +158,7 @@ const Login = () => {
                   value={formData.password}
                   onChange={handleChange}
                   className={`flex w-full min-w-0 resize-none overflow-hidden rounded ${theme === 'dark' ? 'text-white border-[#282f39] bg-[#111418] placeholder:text-[#9da8b9]' : 'text-gray-900 border-gray-300 bg-white placeholder:text-gray-400'} focus:outline-0 focus:ring-2 focus:ring-[#136dec] border focus:border-[#136dec] h-12 px-4 pr-12 text-base font-normal transition-colors`}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   required
                   data-testid="login-password"
                 />
@@ -177,19 +178,33 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Remember & Forgot Password */}
-            <div className="flex flex-wrap items-center justify-between gap-y-2 mt-1">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className={`h-4 w-4 rounded ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-300'} bg-transparent text-[#136dec] focus:ring-[#136dec] focus:ring-offset-0 transition-colors cursor-pointer`}
-                />
-                <span className={`${theme === 'dark' ? 'text-[#9da8b9] group-hover:text-white' : 'text-gray-600 group-hover:text-gray-900'} text-sm font-normal transition-colors`}>
-                  Remember for 30 days
-                </span>
-              </label>
+            {/* Session Options */}
+            <div className="flex flex-col gap-3 mt-1">
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className={`h-4 w-4 rounded ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-300'} bg-transparent text-[#136dec] focus:ring-[#136dec] focus:ring-offset-0 transition-colors cursor-pointer`}
+                  />
+                  <span className={`${theme === 'dark' ? 'text-[#9da8b9] group-hover:text-white' : 'text-gray-600 group-hover:text-gray-900'} text-sm font-normal transition-colors`}>
+                    Remember me
+                  </span>
+                </label>
+                <select
+                  value={sessionTimeout}
+                  onChange={(e) => setSessionTimeout(parseInt(e.target.value))}
+                  disabled={!rememberMe}
+                  className={`ml-2 px-2 py-1 text-sm rounded border ${theme === 'dark' ? 'border-[#282f39] bg-[#111418] text-white' : 'border-gray-300 bg-white text-gray-900'} disabled:opacity-50`}
+                >
+                  <option value={1}>1 hour</option>
+                  <option value={8}>8 hours</option>
+                  <option value={24}>24 hours</option>
+                  <option value={168}>7 days</option>
+                  <option value={720}>30 days</option>
+                </select>
+              </div>
               <Link
                 to="/forgot-password"
                 className="text-[#136dec] text-sm font-medium hover:text-blue-400 hover:underline transition-colors"

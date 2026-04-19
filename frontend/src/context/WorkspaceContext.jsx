@@ -1,4 +1,5 @@
 ﻿import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../api/axios';
 import { useAuth } from './AuthContext';
 
 /**
@@ -131,27 +132,7 @@ export const WorkspaceProvider = ({ children }) => {
    */
   const switchWorkspace = async (workspaceId) => {
     try {
-      const token = localStorage.getItem('accessToken');
-      
-      if (!token) {
-        return false;
-      }
-      
-      const response = await fetch('http://localhost:3000/api/auth/switch-workspace', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ workspaceId })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to switch workspace');
-      }
-      
-      const data = await response.json();
+      const { data } = await api.post('/auth/switch-workspace', { workspaceId });
       updateWorkspace(data.workspace);
       
       // Also update the user object in localStorage to reflect new workspace
@@ -179,25 +160,7 @@ export const WorkspaceProvider = ({ children }) => {
    */
   const fetchAllWorkspaces = async () => {
     try {
-      const token = localStorage.getItem('accessToken');
-      
-      if (!token) {
-        return [];
-      }
-      
-      const response = await fetch('http://localhost:3000/api/auth/my-workspaces', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error('Failed to fetch workspaces');
-      }
-      
-      const data = await response.json();
+      const { data } = await api.get('/auth/my-workspaces');
       setAllWorkspaces(data.workspaces);
       localStorage.setItem('allWorkspaces', JSON.stringify(data.workspaces));
       

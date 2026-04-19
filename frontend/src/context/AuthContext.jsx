@@ -1,33 +1,46 @@
 ﻿import { createContext, useState, useContext, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { io } from 'socket.io-client';
-import notificationService from '../utils/notificationService';
 
 const AuthContext = createContext(null);
+
+export { AuthContext };
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState(null);
 
-  useEffect(() => {
-    // Check if user is logged in
-    const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('accessToken');
 
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-      initializeSocket(JSON.parse(storedUser).id);
+
+  useEffect(() => {
+    // Clear legacy browser-readable tokens now that auth is cookie-only.
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+
+    // Check if user is logged in from persisted profile state.
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        initializeSocket(userData.id, userData.workspace?.id || userData.workspaceId || userData.currentWorkspaceId);
+      } catch (error) {
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
   }, []);
 
-  const initializeSocket = (userId) => {
+  const initializeSocket = (userId, workspaceId) => {
     const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+    if (socket) {
+      socket.disconnect();
+    }
     const newSocket = io(SOCKET_URL);
     
     newSocket.on('connect', () => {
-      newSocket.emit('join', userId);
+      newSocket.emit('join', { userId, workspaceId });
     });
 
     newSocket.on('disconnect', () => {
@@ -40,14 +53,10 @@ export const AuthProvider = ({ children }) => {
     setSocket(newSocket);
   };
 
-  const login = async (email, password) => {
+  const login = async (email, password, rememberMe = false, sessionTimeout = 24) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
-      const { user, workspace, workspaces, accessToken, refreshToken } = response.data;
-
-      // Store tokens immediately
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+      const response = await api.post('/auth/login', { email, password, rememberMe, sessionTimeout });
+      const { user, workspace, workspaces } = response.data;
 
       // If user has multiple workspaces, return them for selection
       if (workspaces && workspaces.length > 1) {
@@ -69,7 +78,7 @@ export const AuthProvider = ({ children }) => {
 
       localStorage.setItem('user', JSON.stringify(userWithWorkspace));
       setUser(userWithWorkspace);
-      initializeSocket(user.id);
+      initializeSocket(user.id, workspace?.id || user.workspaceId || user.currentWorkspaceId);
 
       return { success: true };
     } catch (error) {
@@ -104,7 +113,7 @@ export const AuthProvider = ({ children }) => {
 
       localStorage.setItem('user', JSON.stringify(userWithWorkspace));
       setUser(userWithWorkspace);
-      initializeSocket(userData.id);
+      initializeSocket(userData.id, workspace.id);
 
       return { success: true };
     } catch (error) {
@@ -123,14 +132,12 @@ export const AuthProvider = ({ children }) => {
         password,
         role,
       });
-      const { user, accessToken, refreshToken } = response.data;
+      const { user } = response.data;
 
       localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
 
       setUser(user);
-      initializeSocket(user.id);
+      initializeSocket(user.id, user.workspace?.id || user.workspaceId || user.currentWorkspaceId);
 
       return { success: true };
     } catch (error) {
@@ -143,8 +150,6 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('user');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
     localStorage.removeItem('lastActivityTime');
     setUser(null);
     if (socket) {
@@ -177,7 +182,16 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    return {
+      user: null,
+      loading: true,
+      socket: null,
+      login: async () => ({ success: false, message: 'Auth context not available' }),
+      selectWorkspace: async () => ({ success: false, message: 'Auth context not available' }),
+      register: async () => ({ success: false, message: 'Auth context not available' }),
+      logout: () => {},
+      updateUser: () => {},
+    };
   }
   return context;
 };

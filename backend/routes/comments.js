@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth.js';
 import Comment from '../models/Comment.js';
 import Task from '../models/Task.js';
 import Notification from '../models/Notification.js';
+import { emitUserEvent, emitWorkspaceEvent } from '../utils/socketEvents.js';
 
 const router = express.Router();
 
@@ -61,13 +62,10 @@ router.post('/:taskId/comments', authenticate, async (req, res) => {
     const populatedComment = await Comment.findById(comment._id)
       .populate('author_id', 'full_name email');
 
-    // Emit socket event
-    if (req.app.get('io')) {
-      req.app.get('io').emit('comment:added', {
-        taskId,
-        comment: populatedComment
-      });
-    }
+    emitWorkspaceEvent(req, 'comment:added', {
+      taskId,
+      comment: populatedComment
+    });
 
     res.status(201).json({ message: 'Comment added', comment: populatedComment });
   } catch (error) {

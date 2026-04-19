@@ -8,10 +8,11 @@ import workspaceContext from '../middleware/workspaceContext.js';
 import { logChange } from '../utils/changeLogService.js';
 
 const router = express.Router();
+const getEffectiveRole = (req) => req.context?.isSystemAdmin ? 'admin' : (req.context?.currentRole || req.user.role);
 
 // Admin guard middleware (allows both system admins and regular admins)
 const requireAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
+  if (getEffectiveRole(req) !== 'admin') {
     return res.status(403).json({ 
       message: 'Access denied. Administrator privileges required.' 
     });
@@ -165,13 +166,21 @@ router.get('/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// Create new workspace - Allow any authenticated user to create their own workspace
-// Note: This route bypasses workspaceContext middleware which is handled in the middleware itself
-router.post('/', async (req, res) => {
+// Admin guard middleware (allows both system admins and regular admins)
+const requireAdminOrCommunityAdmin = (req, res, next) => {
+  const effectiveRole = getEffectiveRole(req);
+  if (effectiveRole !== 'admin' && effectiveRole !== 'community_admin') {
+    return res.status(403).json({ 
+      message: 'Access denied. Administrator privileges required.' 
+    });
+  }
+  next();
+};
+
+// Create new workspace - Admins and community admins only
+// Note: Authentication is already applied globally to all routes (line 23)
+router.post('/', requireAdminOrCommunityAdmin, async (req, res) => {
   try {
-    // Allow any authenticated user to create a workspace
-    // They will become the owner/admin of the new workspace
-    
     const { name, type } = req.body;
 
     // Validation
@@ -196,20 +205,11 @@ router.post('/', async (req, res) => {
     }
 
     // The authenticated user who creates the workspace becomes its owner
-    // Use req.user directly - it's set by the authenticate middleware
     const currentUserId = req.user._id;
     const currentUser = await User.findById(currentUserId);
     
     if (!currentUser) {
       return res.status(404).json({ message: 'User not found' });
-    }
-    
-    // Prevent users who already have a workspace from creating a new one
-    // (they should use switch-workspace instead)
-    if (currentUser.workspaceId && currentUser.workspaces && currentUser.workspaces.length > 0) {
-      return res.status(400).json({ 
-        message: 'You already have a workspace. Use the workspace switcher to create a new one or contact support.' 
-      });
     }
     
     // Determine the role for the new workspace
@@ -246,7 +246,6 @@ router.post('/', async (req, res) => {
       await currentUser.addToWorkspace(workspace._id, workspaceRole);
     } catch (workspaceError) {
       // If addToWorkspace fails (e.g., user already in workspace), continue with the rest
-      console.error('Error adding user to workspace:', workspaceError.message);
     }
     
     // Also update legacy field if not already set
@@ -277,7 +276,6 @@ router.post('/', async (req, res) => {
       workspace
     });
   } catch (error) {
-    console.error('Workspace creation error:', error);
     res.status(500).json({ message: 'Failed to create workspace', error: error.message });
   }
 });

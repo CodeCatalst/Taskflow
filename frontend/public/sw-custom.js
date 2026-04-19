@@ -113,7 +113,7 @@ self.addEventListener('push', (event) => {
       self.registration.showNotification(data.title || 'TaskFlow', options)
     );
   } catch (error) {
-    console.error('Error handling push notification:', error);
+    // Ignore notification errors
   }
 });
 
@@ -126,7 +126,6 @@ self.addEventListener('sync', (event) => {
 
 async function syncTasks() {
   // Placeholder for syncing tasks when back online
-  console.log('Syncing tasks...');
 }
 
 // Handle service worker updates
@@ -136,10 +135,6 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Log service worker activation
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activated');
   event.waitUntil(clients.claim());
 });
-
-console.log('TaskFlow Service Worker loaded');

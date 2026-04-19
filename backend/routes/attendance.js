@@ -6,8 +6,10 @@ import Attendance from '../models/Attendance.js';
 import User from '../models/User.js';
 import { logChange } from '../utils/changeLogService.js';
 import getClientIP from '../utils/getClientIP.js';
+import { isValidObjectIdString } from '../utils/requestValidation.js';
 
 const router = express.Router();
+const getEffectiveRole = (req) => req.context?.isSystemAdmin ? 'admin' : (req.context?.currentRole || req.user.role);
 
 // Get attendance records (filtered by month/user)
 router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
@@ -22,9 +24,12 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
     const query = { workspaceId };
 
     // HR/Admin can view all; members can view only their own
-    if (req.user.role === 'member') {
+    if (getEffectiveRole(req) === 'member') {
       query.userId = req.user._id;
     } else if (userId) {
+      if (!isValidObjectIdString(userId)) {
+        return res.status(400).json({ message: 'Invalid userId filter' });
+      }
       query.userId = userId;
     }
 
@@ -247,7 +252,7 @@ router.get('/summary/:userId?', authenticate, requireCoreWorkspace, async (req, 
     const targetUserId = req.params.userId || req.user._id;
 
     // Members can only view their own summary
-    if (req.user.role === 'member' && targetUserId !== req.user._id.toString()) {
+    if (getEffectiveRole(req) === 'member' && targetUserId !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 

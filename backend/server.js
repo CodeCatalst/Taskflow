@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
+import { sanitizeRequestInputs } from './utils/requestSanitizer.js';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -38,6 +39,7 @@ import { initializeScheduler } from './utils/scheduler.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '.env') });
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Initialize Express app
 const app = express();
@@ -65,8 +67,26 @@ connectDB();
 // Initialize scheduler for automated tasks
 initializeScheduler();
 
-// Trust proxy - required to get real client IP behind reverse proxies (Render, Vercel, Nginx, etc.)
-app.set('trust proxy', true);
+const parseTrustProxySetting = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return isProduction ? 1 : false;
+  }
+
+  if (value === 'true') return 1;
+  if (value === 'false') return false;
+
+  const parsedNumber = Number(value);
+  if (Number.isInteger(parsedNumber) && parsedNumber >= 0) {
+    return parsedNumber;
+  }
+
+  return value;
+};
+
+const trustProxySetting = parseTrustProxySetting(process.env.TRUST_PROXY);
+
+// Only trust a specific proxy hop count (or explicit subnet config), never an unrestricted boolean.
+app.set('trust proxy', trustProxySetting);
 
 // Security middleware - Helmet for HTTP security headers
 app.use(helmet({
@@ -107,39 +127,58 @@ app.use('/api', generalLimiter);
 // Apply stricter rate limiting to auth routes
 app.use('/api/auth', authLimiter);
 
+// Special rate limiting for workspace creation to prevent abuse
+const workspaceLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 workspaces per hour per IP
+  message: { message: 'Too many workspace requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/workspaces', workspaceLimiter);
+
 // Request size limiting - prevent large payload attacks
 app.use(express.json({ limit: '500kb' }));
 app.use(express.urlencoded({ extended: true, limit: '500kb' }));
 
-// Middleware - Enhanced CORS configuration
+// Middleware - Strict CORS configuration for production security
 app.use(cors({
   origin: function(origin, callback) {
+    // Always-allowed origins for the application
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173',
       'https://taskflow-nine-phi.vercel.app'
     ];
     
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(null, true); // Allow in development only - block in production
-      // Uncomment below line to enforce strict CORS in production:
-      // callback(new Error('Not allowed by CORS policy'));
+    // Allow requests with no origin (like mobile apps or curl requests) only in development
+    if (!origin) {
+      if (isProduction) {
+        return callback(new Error('CORS: Origin header required in production'));
+      }
+      return callback(null, true);
     }
+    
+    // Strict origin check - only allow explicitly configured origins
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(new Error('Not allowed by CORS policy'));
+    }
+    
+    callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Workspace-Id'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 86400 // 24 hours
+  maxAge: 86400, // 24 hours
+  preflightContinue: false
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(sanitizeRequestInputs);
 
 // Make io accessible to routes
 app.set('io', io);
@@ -147,9 +186,14 @@ app.set('io', io);
 // Socket.IO connection handling
 io.on('connection', (socket) => {
 
-  // Join user to their own room (for personal notifications)
-  socket.on('join', (userId) => {
-    socket.join(userId);
+  // Join user and workspace rooms for scoped real-time events.
+  socket.on('join', ({ userId, workspaceId }) => {
+    if (userId) {
+      socket.join(userId.toString());
+    }
+    if (workspaceId) {
+      socket.join(`workspace:${workspaceId.toString()}`);
+    }
   });
 
   socket.on('disconnect', () => {
@@ -265,14 +309,43 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
-httpServer.listen(PORT, () => {
-  console.log('===========================================');
-  console.log('   🚀 CTMS Backend Server Running');
-  console.log(`   📡 Port: ${PORT}`);
-  console.log(`   🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log('   🔌 Socket.IO: Enabled');
-  console.log('===========================================');
-});
+const BASE_PORT = Number(process.env.PORT) || 5000;
+const MAX_PORT_FALLBACKS = 10;
+let listenErrorHandler = null;
+let listeningHandler = null;
+
+const startServer = (port, fallbackCount = 0) => {
+  if (listenErrorHandler) {
+    httpServer.off('error', listenErrorHandler);
+  }
+  if (listeningHandler) {
+    httpServer.off('listening', listeningHandler);
+  }
+
+  listenErrorHandler = (error) => {
+    const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+    const canFallback = fallbackCount < MAX_PORT_FALLBACKS;
+
+    if (error.code === 'EADDRINUSE' && isDev && canFallback) {
+      const nextPort = port + 1;
+      process.stderr.write(`Port ${port} is in use. Retrying on ${nextPort}...\n`);
+      startServer(nextPort, fallbackCount + 1);
+      return;
+    }
+
+    throw error;
+  };
+
+  listeningHandler = () => {
+    const activePort = httpServer.address()?.port || port;
+    // Server started successfully on port ${activePort}
+  };
+
+  httpServer.once('error', listenErrorHandler);
+  httpServer.once('listening', listeningHandler);
+  httpServer.listen(port);
+};
+
+startServer(BASE_PORT);
 
 export default app;

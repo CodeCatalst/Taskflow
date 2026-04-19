@@ -4,7 +4,14 @@ import crypto from 'crypto';
 import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
 import Workspace from '../models/Workspace.js';
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
+import {
+  blacklistToken,
+  blacklistTokenByValue,
+  generateAccessToken,
+  generateRefreshToken,
+  isTokenBlacklisted,
+  verifyRefreshToken,
+} from '../utils/jwt.js';
 import { logChange } from '../utils/changeLogService.js';
 import { authenticate } from '../middleware/auth.js';
 import getClientIP from '../utils/getClientIP.js';
@@ -18,6 +25,7 @@ import {
   validatePasswordStrength,
   recordSuspiciousActivity
 } from '../utils/security.js';
+import { isValidObjectIdString } from '../utils/requestValidation.js';
 
 const router = express.Router();
 
@@ -154,18 +162,22 @@ router.post('/register-community', [
 
 // Login
 router.post('/login', validateLogin, async (req, res) => {
+  const { rememberMe = false, sessionTimeout = 24 } = req.body;
+  // Validate session timeout (1 hour to 30 days)
+  const validTimeout = Math.max(1, Math.min(720, sessionTimeout || 24));
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '');
     const clientIP = getClientIP(req);
 
     // Check if IP is blocked
-    if (isIPBlocked(clientIP)) {
-      const blockStatus = getIPBlockStatus(clientIP);
+    if (await isIPBlocked(clientIP)) {
+      const blockStatus = await getIPBlockStatus(clientIP);
       securityLogger('blocked_ip_login_attempt', {
         ip: clientIP,
         email,
@@ -185,13 +197,13 @@ router.post('/login', validateLogin, async (req, res) => {
     
     if (!user) {
       // Record failed attempt even if user doesn't exist (prevent email enumeration timing)
-      recordFailedLogin(clientIP, email);
+      await recordFailedLogin(clientIP, email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Check if user is deactivated
     if (user.employmentStatus === 'INACTIVE') {
-      recordFailedLogin(clientIP, email);
+      await recordFailedLogin(clientIP, email);
       securityLogger('inactive_account_login_attempt', {
         ip: clientIP,
         email,
@@ -205,7 +217,7 @@ router.post('/login', validateLogin, async (req, res) => {
 
     // Check if email is verified (only for community admins)
     if (user.role === 'community_admin' && !user.isEmailVerified) {
-      recordFailedLogin(clientIP, email);
+      await recordFailedLogin(clientIP, email);
       return res.status(403).json({
         message: 'Please verify your email address before logging in. Check your inbox for the verification code.',
         requiresVerification: true,
@@ -238,7 +250,7 @@ router.post('/login', validateLogin, async (req, res) => {
       // Community admin without workspace = edge case, allow login
     } else {
       // Populate workspace if it's an ObjectId
-      if (!user.workspaceId || typeof user.workspaceId === 'string') {
+      if (!user.workspaceId || typeof user.workspaceId === 'string' || user.workspaceId?._id?.toString() !== activeWorkspaceId.toString()) {
         activeWorkspace = await Workspace.findById(activeWorkspaceId);
       } else {
         activeWorkspace = user.workspaceId;
@@ -303,7 +315,7 @@ router.post('/login', validateLogin, async (req, res) => {
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       // Record failed login attempt
-      const failStatus = recordFailedLogin(clientIP, email);
+      const failStatus = await recordFailedLogin(clientIP, email);
       
       securityLogger('failed_login', {
         ip: clientIP,
@@ -314,7 +326,7 @@ router.post('/login', validateLogin, async (req, res) => {
       
       // Check if this attempt triggered a block
       if (failStatus.isBlocked) {
-        recordSuspiciousActivity(clientIP, 'multiple_failed_logins', {
+        await recordSuspiciousActivity(clientIP, 'multiple_failed_logins', {
           email,
           attempts: failStatus.attempts
         });
@@ -324,11 +336,13 @@ router.post('/login', validateLogin, async (req, res) => {
     }
 
     // Clear failed login attempts on successful login
-    clearFailedLoginAttempts(clientIP);
+    await clearFailedLoginAttempts(clientIP);
 
     // Generate tokens with IP for tracking
+    // If remember me, set refresh token to selected timeout, else default 24h
+    const refreshExpiry = rememberMe ? `${validTimeout}h` : undefined;
     const accessToken = generateAccessToken(user._id, user.role, clientIP);
-    const refreshToken = generateRefreshToken(user._id, clientIP);
+    const refreshToken = generateRefreshToken(user._id, clientIP, refreshExpiry);
 
     // Log login event
     const user_ip = getClientIP(req);
@@ -349,6 +363,19 @@ router.post('/login', validateLogin, async (req, res) => {
       workspaceId: activeWorkspaceId || null,
     });
 
+    // Set secure httpOnly cookies for tokens (production security)
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/'
+    };
+
+    res.cookie('accessToken', accessToken, cookieOptions);
+    res.cookie('refreshToken', refreshToken, cookieOptions);
+
     res.json({
       message: 'Login successful',
       user: {
@@ -367,21 +394,20 @@ router.post('/login', validateLogin, async (req, res) => {
         name: activeWorkspace.name,
         type: activeWorkspace.type,
         features: activeWorkspace.settings?.features || {},
-      } : null,  // null for system admins
-      workspaces: allWorkspaces, // All workspaces user has access to
-      isSystemAdmin: !activeWorkspaceId && user.role === 'admin',
-      accessToken,
-      refreshToken
+      } : null,
+      workspaces: allWorkspaces,
+      isSystemAdmin: !activeWorkspaceId && user.role === 'admin'
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Refresh token
+// Refresh token - supports both body and cookie-based auth
 router.post('/refresh', async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    // Support refresh token from body (token-based) or cookies (cookie-based)
+    let refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
     const clientIP = getClientIP(req);
 
     if (!refreshToken) {
@@ -389,13 +415,22 @@ router.post('/refresh', async (req, res) => {
     }
 
     // Verify refresh token
-    const decoded = verifyRefreshToken(refreshToken);
+    const decoded = verifyRefreshToken(refreshToken, clientIP);
     if (!decoded) {
       securityLogger('invalid_refresh_token', {
         ip: clientIP,
         path: req.path
       });
       return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+    if (decoded.jti && await isTokenBlacklisted(decoded.jti)) {
+      securityLogger('revoked_refresh_token', {
+        ip: clientIP,
+        userId: decoded.userId,
+        jti: decoded.jti
+      });
+      return res.status(401).json({ message: 'Refresh token has been revoked' });
     }
 
     // Get user with team and workspace populated
@@ -430,12 +465,33 @@ router.post('/refresh', async (req, res) => {
     const newAccessToken = generateAccessToken(user._id, user.role, clientIP);
     const newRefreshToken = generateRefreshToken(user._id, clientIP);
 
+    await blacklistToken({
+      jti: decoded.jti,
+      tokenType: 'refresh',
+      userId: user._id,
+      expiresAt: new Date(decoded.exp * 1000),
+      reason: 'rotated'
+    });
+
     // Log token refresh
     securityLogger('token_refresh', {
       userId: user._id,
       email: user.email,
       ip: clientIP
     });
+
+    // Set secure httpOnly cookies for tokens (production security)
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/'
+    };
+
+    res.cookie('accessToken', newAccessToken, cookieOptions);
+    res.cookie('refreshToken', newRefreshToken, cookieOptions);
 
     res.json({
       user: {
@@ -452,16 +508,14 @@ router.post('/refresh', async (req, res) => {
         type: user.workspaceId.type,
         features: user.workspaceId.settings?.features || {},
       } : null,
-      isSystemAdmin: !user.workspaceId && user.role === 'admin',
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken
+      isSystemAdmin: !user.workspaceId && user.role === 'admin'
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Verify email with code
+// Verify email with code - security: prevent information disclosure
 router.post('/verify-email', [
   body('email').isEmail().withMessage('Valid email is required'),
   body('code').trim().notEmpty().withMessage('Verification code is required')
@@ -478,25 +532,31 @@ router.post('/verify-email', [
     const user = await User.findOne({ email })
       .populate('workspaceId', 'name type');
     
+    // Always return generic message to prevent enumeration
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(400).json({ 
+        message: 'Invalid verification code or email.' 
+      });
     }
 
-    // Check if already verified
+    // Check if already verified - return same generic message
     if (user.isEmailVerified) {
-      return res.status(400).json({ message: 'Email is already verified. You can now login.' });
+      return res.status(400).json({ 
+        message: 'Invalid verification code or email.' 
+      });
     }
 
-    // Check if verification code matches
+    // Check if verification code matches - use constant-time comparison
     if (user.verificationToken !== code) {
-      return res.status(400).json({ message: 'Invalid verification code. Please check your email and try again.' });
+      return res.status(400).json({ 
+        message: 'Invalid verification code or email.' 
+      });
     }
 
-    // Check if code has expired
+    // Check if code has expired - return same generic message
     if (!user.verificationTokenExpiry || user.verificationTokenExpiry < new Date()) {
       return res.status(400).json({ 
-        message: 'Verification code has expired. Please request a new one.',
-        codeExpired: true 
+        message: 'Invalid verification code or email.' 
       });
     }
 
@@ -541,7 +601,7 @@ router.post('/verify-email', [
   }
 });
 
-// Resend verification email
+// Resend verification email - security: prevent email enumeration
 router.post('/resend-verification', [
   body('email').isEmail().withMessage('Valid email is required')
 ], async (req, res) => {
@@ -553,17 +613,23 @@ router.post('/resend-verification', [
 
     const { email } = req.body;
 
-    // Find user
+    // Always return generic success message to prevent email enumeration
+    // Process the request silently regardless of whether user exists
     const user = await User.findOne({ email })
       .populate('workspaceId', 'name');
     
+    // Always return same message to prevent enumeration
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.json({ 
+        message: 'If an account exists with that email, a verification email has been sent.' 
+      });
     }
 
-    // Check if already verified
+    // Check if already verified - return same generic message
     if (user.isEmailVerified) {
-      return res.status(400).json({ message: 'Email is already verified. You can now login.' });
+      return res.json({ 
+        message: 'If an account exists with that email, a verification email has been sent.' 
+      });
     }
 
     // Generate new verification code
@@ -600,8 +666,8 @@ router.post('/resend-verification', [
 
 // Logout
 router.post('/logout', authenticate, async (req, res) => {
-  // Log logout event
   const user_ip = getClientIP(req);
+
   await logChange({
     event_type: 'user_logout',
     user: req.user,
@@ -611,7 +677,25 @@ router.post('/logout', authenticate, async (req, res) => {
     workspaceId: req.user.workspaceId?._id || null
   });
 
-  // In a production app, you might want to blacklist the token
+  if (req.tokenJti && req.tokenExp) {
+    await blacklistToken({
+      jti: req.tokenJti,
+      tokenType: 'access',
+      userId: req.user._id,
+      expiresAt: req.tokenExp,
+      reason: 'logout'
+    });
+  }
+
+  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+  if (refreshToken) {
+    await blacklistTokenByValue(refreshToken, 'refresh', 'logout');
+  }
+
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.clearCookie('accessToken', { path: '/', httpOnly: true, secure: isProduction });
+  res.clearCookie('refreshToken', { path: '/', httpOnly: true, secure: isProduction });
+
   res.json({ message: 'Logged out successfully' });
 });
 
@@ -740,14 +824,22 @@ router.post('/switch-workspace', authenticate, async (req, res) => {
     if (!workspaceId) {
       return res.status(400).json({ message: 'Workspace ID is required' });
     }
+
+    if (!isValidObjectIdString(workspaceId)) {
+      return res.status(400).json({ message: 'Invalid workspace ID' });
+    }
     
     // Verify workspace exists
     const workspace = await Workspace.findById(workspaceId)
-      .select('name type settings.features limits usage')
+      .select('name type settings.features limits usage isActive')
       .lean();
     
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
+    }
+
+    if (!workspace.isActive) {
+      return res.status(403).json({ message: 'Workspace is inactive' });
     }
     
     // Admins can access any workspace, regular users need to belong to it

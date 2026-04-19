@@ -240,7 +240,7 @@ const Teams = () => {
 
     const confirmed = await confirmModal.show({
       title: 'Delete All Teams',
-      message: `âš ï¸ DANGER: You are about to delete ALL ${teams.length} team(s). All members will be unassigned. This action CANNOT be undone. Are you absolutely sure?`,
+      message: `WARNING: You are about to delete ALL ${teams.length} team(s). All members will be unassigned. This action CANNOT be undone. Are you absolutely sure?`,
       confirmText: `Delete ${teams.length} Team(s)`,
       cancelText: 'Cancel',
       variant: 'danger',
@@ -752,7 +752,7 @@ const Teams = () => {
                 <div>
                   <h2 className="text-2xl font-bold text-white">Add Members to {selectedTeam.name}</h2>
                   <p className="text-sm text-[#9da8b9] mt-1">
-                    {availableUsers.length} user(s) available â€¢ {selectedTeam.members?.length || 0} current member(s)
+                    {availableUsers.length} user(s) available | {selectedTeam.members?.length || 0} current member(s)
                   </p>
                 </div>
                 <button
@@ -811,8 +811,8 @@ const Teams = () => {
                 {/* Multi-Select Toggle */}
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-[#136dec]/10 to-transparent rounded-[0.125rem] border border-[#136dec]/20">
                   <div>
-                    <span className="text-sm font-semibold text-white block">
-                      {isMultiSelect ? 'âœ“ Multi-Select Mode Active' : 'Single Select Mode'}
+<span className="text-sm font-semibold text-white block">
+                      {isMultiSelect ? '(X) Multi-Select Mode Active' : 'Single Select Mode'}
                     </span>
                     <span className="text-xs text-[#9da8b9]">
                       {isMultiSelect ? `${selectedUserIds.length} user(s) selected` : 'Select one user at a time'}
@@ -841,7 +841,7 @@ const Teams = () => {
                   <div>
                     <div className="flex justify-between items-center mb-3 px-1">
                       <label className="text-sm font-medium text-white">
-                        {filteredUsers.length} user(s) â€¢ {selectedUserIds.length} selected
+                        {filteredUsers.length} user(s) • {selectedUserIds.length} selected
                       </label>
                       <button
                         type="button"

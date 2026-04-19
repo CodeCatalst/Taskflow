@@ -7,23 +7,10 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Required for cookie-based authentication
 });
 
-// Add token to requests
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Handle token refresh
+// Handle token refresh using secure cookies
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -34,47 +21,17 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        
-        // If no refresh token, redirect to login
-        if (!refreshToken) {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('user');
-          localStorage.removeItem('lastActivityTime');
-          
-          // Dispatch custom event for logout
-          window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'no-refresh-token' } }));
-          
-          // Only redirect if not already on login page
-          if (!window.location.pathname.includes('/login')) {
-            window.location.href = '/login';
-          }
-          return Promise.reject(error);
-        }
-
-        const response = await axios.post(`${API_URL}/auth/refresh`, {
-          refreshToken,
-        });
-
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
-        // Update last activity time when token is refreshed
+        await api.post('/auth/refresh', {});
         localStorage.setItem('lastActivityTime', Date.now().toString());
 
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        // On refresh failure, clear all auth data and redirect to login
         localStorage.removeItem('user');
         localStorage.removeItem('lastActivityTime');
-        
-        // Dispatch custom event for logout
+
         window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'refresh-failed' } }));
-        
-        // Only redirect if not already on login page
+
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login';
         }
@@ -82,8 +39,7 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle 403 Forbidden errors silently
-    // User permissions are managed by the application
+    // Handle 403 Forbidden errors
 
     return Promise.reject(error);
   }

@@ -86,7 +86,7 @@ const ChangeLog = () => {
         setError('Access denied. Admin privileges required.');
         setTimeout(() => navigate('/dashboard'), 2000);
       } else if (error.response?.status === 404) {
-        setError('âš ï¸ Changelog routes not found. Please restart the backend server! See RESTART_BACKEND.md for instructions.');
+        setError('⚠️ Changelog routes not found. Please restart the backend server! See RESTART_BACKEND.md for instructions.');
       } else if (error.response?.data?.message) {
         setError(`Error: ${error.response.data.message}`);
       } else {
@@ -184,17 +184,17 @@ const ChangeLog = () => {
     });
   };
 
-  const getEventIcon = (eventType) => {
-    if (eventType.includes('login') || eventType.includes('logout')) return 'ðŸ”';
-    if (eventType.includes('task')) return 'âœ…';
-    if (eventType.includes('user')) return 'ðŸ‘¤';
-    if (eventType.includes('team')) return 'ðŸ‘¥';
-    if (eventType.includes('report')) return 'ðŸ“Š';
-    if (eventType.includes('automation')) return 'ðŸ¤–';
-    if (eventType.includes('notification')) return 'ðŸ””';
-    if (eventType.includes('comment')) return 'ðŸ’¬';
-    if (eventType.includes('bulk')) return 'ðŸ“¦';
-    return 'âš™ï¸';
+const getEventIcon = (eventType) => {
+    if (eventType.includes('login') || eventType.includes('logout')) return '🔐';
+    if (eventType.includes('task')) return '✅';
+    if (eventType.includes('user')) return '👤';
+    if (eventType.includes('team')) return '👥';
+    if (eventType.includes('report')) return '📊';
+    if (eventType.includes('automation')) return '🤖';
+    if (eventType.includes('notification')) return '🔔';
+    if (eventType.includes('comment')) return '💬';
+    if (eventType.includes('bulk')) return '📦';
+    return '⚙️';
   };
 
   const getEventColor = (eventType) => {
@@ -233,16 +233,16 @@ const ChangeLog = () => {
     }
   };
 
-  const getTargetTypeIcon = (targetType) => {
+const getTargetTypeIcon = (targetType) => {
     switch (targetType?.toLowerCase()) {
-      case 'task': return 'âœ…';
-      case 'user': return 'ðŸ‘¤';
-      case 'team': return 'ðŸ‘¥';
-      case 'report': return 'ðŸ“Š';
-      case 'comment': return 'ðŸ’¬';
-      case 'notification': return 'ðŸ””';
-      case 'automation': return 'âš™ï¸';
-      default: return 'ðŸ“Œ';
+      case 'task': return '✅';
+      case 'user': return '👤';
+      case 'team': return '👥';
+      case 'report': return '📊';
+      case 'comment': return '💬';
+      case 'notification': return '🔔';
+      case 'automation': return '⚙️';
+      default: return '📌';
     }
   };
 
@@ -399,7 +399,7 @@ const ChangeLog = () => {
                   >
                     <option value="">ðŸŒ All Events</option>
                     {eventTypes.map(type => {
-                      const emoji = type.includes('created') ? 'âœ¨' :
+                      const emoji = type.includes('created') ? '✨' :
                         type.includes('updated') ? 'ðŸ“' :
                           type.includes('deleted') ? 'ðŸ—‘ï¸' :
                             type.includes('login') ? 'ðŸ”“' :
@@ -427,14 +427,14 @@ const ChangeLog = () => {
                       : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
                       } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                   >
-                    <option value="">ðŸŽ¯ All Types</option>
-                    <option value="task">âœ… Task</option>
+                    <option value="">🎯 All Types</option>
+                    <option value="task">✅ Task</option>
                     <option value="user">ðŸ‘¤ User</option>
                     <option value="team">ðŸ‘¥ Team</option>
                     <option value="report">ðŸ“Š Report</option>
                     <option value="comment">ðŸ’¬ Comment</option>
                     <option value="notification">ðŸ”” Notification</option>
-                    <option value="automation">âš™ï¸ Automation</option>
+                    <option value="automation">⚙️ Automation</option>
                   </select>
                 </div>
 
@@ -635,7 +635,7 @@ const ChangeLog = () => {
                                   ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                                   : 'bg-green-500/10 text-green-400 border border-green-500/30'
                                 }`}>
-                                {log.user_role === 'admin' ? 'ðŸ‘‘' : log.user_role === 'manager' ? 'â­' : 'ðŸ‘¤'} {log.user_role.toUpperCase()}
+                                {log.user_role === 'admin' ? 'ðŸ‘‘' : log.user_role === 'manager' ? '⭐' : 'ðŸ‘¤'} {log.user_role.toUpperCase()}
                               </span>
                             )}
                           </div>

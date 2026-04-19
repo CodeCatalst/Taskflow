@@ -1,3 +1,5 @@
+import { hasEffectiveRole } from '../utils/authz.js';
+
 /**
  * Workspace Guard Middleware
  * 
@@ -16,7 +18,7 @@
  */
 export const requireCoreWorkspace = (req, res, next) => {
   // System admins, admins, and HR can access CORE features
-  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
+  if (req.context?.isSystemAdmin || hasEffectiveRole(req, ['admin', 'hr'])) {
     return next();
   }
 
@@ -46,7 +48,7 @@ export const requireCoreWorkspace = (req, res, next) => {
 export const requireFeature = (featureName) => {
   return (req, res, next) => {
     // System admins, admins, and HR have all features enabled
-    if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
+    if (req.context?.isSystemAdmin || hasEffectiveRole(req, ['admin', 'hr'])) {
       return next();
     }
 
@@ -77,7 +79,7 @@ export const requireFeature = (featureName) => {
  */
 export const checkUserLimit = (req, res, next) => {
   // System admins, admins, and HR can bypass limits
-  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
+  if (req.context?.isSystemAdmin || hasEffectiveRole(req, ['admin', 'hr'])) {
     return next();
   }
 
@@ -108,7 +110,7 @@ export const checkUserLimit = (req, res, next) => {
  */
 export const checkTaskLimit = (req, res, next) => {
   // System admins, admins, and HR can bypass limits
-  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
+  if (req.context?.isSystemAdmin || hasEffectiveRole(req, ['admin', 'hr'])) {
     return next();
   }
 
@@ -139,7 +141,7 @@ export const checkTaskLimit = (req, res, next) => {
  */
 export const checkTeamLimit = (req, res, next) => {
   // System admins, admins, and HR can bypass limits
-  if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
+  if (req.context?.isSystemAdmin || hasEffectiveRole(req, ['admin', 'hr'])) {
     return next();
   }
 
@@ -172,7 +174,7 @@ export const checkTeamLimit = (req, res, next) => {
 export const requireBulkImport = [
   (req, res, next) => {
     // Allow admins, HR, and system admins to bypass
-    if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
+    if (req.context?.isSystemAdmin || hasEffectiveRole(req, ['admin', 'hr'])) {
       return next();
     }
     next();
@@ -188,7 +190,7 @@ export const requireBulkImport = [
 export const requireAuditLogs = [
   (req, res, next) => {
     // Allow admins, HR, and system admins to bypass
-    if (req.context?.isSystemAdmin || req.user?.role === 'admin' || req.user?.role === 'hr') {
+    if (req.context?.isSystemAdmin || hasEffectiveRole(req, ['admin', 'hr'])) {
       return next();
     }
     next();

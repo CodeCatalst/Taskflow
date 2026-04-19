@@ -1,7 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from '../api/axios';
-import { useAuth } from '../context/AuthContext';
 
 /**
  * Community Workspace Registration Page
@@ -13,8 +12,6 @@ import { useAuth } from '../context/AuthContext';
  */
 const CommunityRegister = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
-
   const [formData, setFormData] = useState({
     workspace_name: '',
     full_name: '',
@@ -101,11 +98,7 @@ const CommunityRegister = () => {
         });
       } else {
         // Old flow - shouldn't happen anymore but keep as fallback
-        const { user, workspace, accessToken, refreshToken } = response.data;
-
-        // Store tokens
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
+        const { user, workspace } = response.data;
         
         // Store user and workspace data
         localStorage.setItem('user', JSON.stringify(user));
@@ -162,7 +155,7 @@ const CommunityRegister = () => {
               Get Started
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-              Includes: Up to 10 users â€¢ 100 tasks â€¢ 3 teams
+              Includes: Up to 10 users • 100 tasks • 3 teams
             </p>
           </div>
 

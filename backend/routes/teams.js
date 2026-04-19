@@ -7,6 +7,8 @@ import User from '../models/User.js';
 import Workspace from '../models/Workspace.js';
 import { logChange } from '../utils/changeLogService.js';
 import getClientIP from '../utils/getClientIP.js';
+import { normalizeObjectIdArray, requireObjectId } from '../utils/requestValidation.js';
+import { emitWorkspaceEvent } from '../utils/socketEvents.js';
 
 const router = express.Router();
 
@@ -114,10 +116,7 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
       .populate('lead_id', 'full_name email')
       .populate('members', 'full_name email role');
 
-    // Emit socket event for team creation
-    if (req.app.get('io')) {
-      req.app.get('io').emit('team:created', populatedTeam);
-    }
+    emitWorkspaceEvent(req, 'team:created', populatedTeam);
 
     res.status(201).json({ message: 'Team created', team: populatedTeam });
   } catch (error) {
@@ -209,10 +208,7 @@ router.patch('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin'])
       return res.status(404).json({ message: 'Team not found' });
     }
 
-    // Emit socket event for team update
-    if (req.app.get('io')) {
-      req.app.get('io').emit('team:updated', team);
-    }
+    emitWorkspaceEvent(req, 'team:updated', team);
 
     res.json({ message: 'Team updated', team });
   } catch (error) {
@@ -288,23 +284,27 @@ router.post('/reorder', authenticate, checkRole(['admin', 'hr', 'community_admin
   try {
     const { teamOrder } = req.body; // Array of { id, priority }
 
-    if (!Array.isArray(teamOrder)) {
+    if (!Array.isArray(teamOrder) || teamOrder.length === 0 || teamOrder.length > 200) {
       return res.status(400).json({ message: 'teamOrder must be an array' });
     }
 
     // WORKSPACE SUPPORT: Update priorities in bulk scoped by workspace
-    const bulkOps = teamOrder.map((item, index) => ({
-      updateOne: {
-        filter: { _id: item.id, workspaceId: req.context.workspaceId },
-        update: { priority: teamOrder.length - index }
-      }
-    }));
+    const bulkOps = teamOrder.map((item, index) => {
+      const teamId = requireObjectId(item?.id, 'team ID');
+      return {
+        updateOne: {
+          filter: { _id: teamId, workspaceId: req.context.workspaceId },
+          update: { priority: teamOrder.length - index }
+        }
+      };
+    });
 
     await Team.bulkWrite(bulkOps);
 
     res.json({ message: 'Teams reordered successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const statusCode = error.message.includes('team ID') ? 400 : 500;
+    res.status(statusCode).json({ message: statusCode === 400 ? error.message : 'Server error', error: error.message });
   }
 });
 
@@ -359,12 +359,9 @@ router.post('/:id/members', authenticate, checkRole(['admin', 'hr', 'community_a
 // Add multiple members to team (Admin, HR & Community Admin)
 router.post('/:id/members/bulk', authenticate, checkRole(['admin', 'hr', 'community_admin']), async (req, res) => {
   try {
-    const { userIds } = req.body;
+    const userIds = normalizeObjectIdArray(req.body.userIds, 'userIds', { maxItems: 500 });
     const teamId = req.params.id;
-
-    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-      return res.status(400).json({ message: 'User IDs array is required' });
-    }
+    requireObjectId(teamId, 'team ID');
 
     // WORKSPACE SUPPORT: Verify team exists in workspace
     const team = await Team.findOne({ _id: teamId, workspaceId: req.context.workspaceId });
@@ -429,7 +426,10 @@ router.post('/:id/members/bulk', authenticate, checkRole(['admin', 'hr', 'commun
       team: updatedTeam 
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const statusCode = error.message.includes('userIds') || error.message.includes('team ID') || error.message.includes('Invalid')
+      ? 400
+      : 500;
+    res.status(statusCode).json({ message: statusCode === 400 ? error.message : 'Server error', error: error.message });
   }
 });
 
@@ -526,10 +526,7 @@ router.delete('/:id/members/:userId', authenticate, checkRole(['admin', 'hr', 'c
       .populate('lead_id', 'full_name email')
       .populate('members', 'full_name email role');
 
-    // Emit socket event
-    if (req.app.get('io')) {
-      req.app.get('io').emit('team:updated', updatedTeam);
-    }
+    emitWorkspaceEvent(req, 'team:updated', updatedTeam);
 
     // Log team member removal
     const user_ip = getClientIP(req);
@@ -620,10 +617,7 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']
       $inc: { 'usage.teams': -1 }
     });
 
-    // Emit socket event for team deletion
-    if (req.app.get('io')) {
-      req.app.get('io').emit('team:deleted', { _id: id, name: teamName });
-    }
+    emitWorkspaceEvent(req, 'team:deleted', { _id: id, name: teamName });
 
     // Log team deletion
     const user_ip = getClientIP(req);
@@ -697,13 +691,10 @@ router.delete('/bulk/all', authenticate, checkRole(['admin', 'hr', 'community_ad
       $set: { 'usage.teams': 0 }
     });
 
-    // Emit socket event for bulk deletion
-    if (req.app.get('io')) {
-      req.app.get('io').to(`workspace:${req.context.workspaceId}`).emit('team:bulk-deleted', {
-        count: teamCount,
-        workspaceId: req.context.workspaceId
-      });
-    }
+    emitWorkspaceEvent(req, 'team:bulk-deleted', {
+      count: teamCount,
+      workspaceId: req.context.workspaceId
+    });
 
     // Log bulk team deletion
     const user_ip = getClientIP(req);

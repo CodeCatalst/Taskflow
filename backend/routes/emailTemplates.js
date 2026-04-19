@@ -8,6 +8,7 @@ import { logChange } from '../utils/changeLogService.js';
 import getClientIP from '../utils/getClientIP.js';
 import { sendEmail } from '../utils/emailService.js';
 import brevoService from '../services/brevoEmailService.js';
+import { escapeRegex, normalizePlainText } from '../utils/requestValidation.js';
 
 const router = express.Router();
 
@@ -316,7 +317,7 @@ router.get('/users', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
 
     // Add advanced search functionality
     if (search) {
-      const searchRegex = new RegExp(search, 'i');
+      const searchRegex = new RegExp(escapeRegex(normalizePlainText(search, 'search', { maxLength: 80 })), 'i');
       query.$or = [
         { full_name: { $regex: searchRegex } },
         { email: { $regex: searchRegex } },

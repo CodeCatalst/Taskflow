@@ -5,6 +5,7 @@ import { requireAuditLogs } from '../middleware/workspaceGuard.js';
 import { getChangeLogs, getChangeLogStats, exportChangeLogs, logChange } from '../utils/changeLogService.js';
 import ChangeLog from '../models/ChangeLog.js';
 import getClientIP from '../utils/getClientIP.js';
+import { escapeRegex, normalizePlainText } from '../utils/requestValidation.js';
 
 const router = express.Router();
 
@@ -108,9 +109,10 @@ router.get('/export', authenticate, checkRole(['admin']), async (req, res) => {
     if (user_id) query.user_id = user_id;
     if (target_type) query.target_type = target_type;
     if (search) {
+      const safeSearch = escapeRegex(normalizePlainText(search, 'search', { maxLength: 80 }));
       query.$or = [
-        { description: { $regex: search, $options: 'i' } },
-        { action: { $regex: search, $options: 'i' } }
+        { description: { $regex: safeSearch, $options: 'i' } },
+        { action: { $regex: safeSearch, $options: 'i' } }
       ];
     }
     if (start_date || end_date) {

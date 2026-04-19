@@ -405,7 +405,7 @@ export default function UserManagement() {
               </button>
               <div>
                 <h2 className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-base sm:text-lg md:text-xl font-bold leading-tight`}>User & Team Management</h2>
-                <p className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} text-[10px] sm:text-xs mt-0.5 sm:mt-1`}>{users.length} users â€¢ {teams.length} teams</p>
+                <p className={`${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} text-[10px] sm:text-xs mt-0.5 sm:mt-1`}>{users.length} users • {teams.length} teams</p>
               </div>
             </div>
             <div className="flex gap-1.5 sm:gap-2">
@@ -975,7 +975,7 @@ export default function UserManagement() {
             <div className="space-y-5 sm:space-y-6">
               {/* Instructions */}
               <div className={`p-4 rounded-lg ${currentTheme.surfaceSecondary} border ${currentTheme.border}`}>
-                <h3 className={`text-xs sm:text-sm font-bold ${currentTheme.text} uppercase tracking-wider mb-2`}>ðŸ“‹ Import Instructions</h3>
+                <h3 className={`text-xs sm:text-sm font-bold ${currentTheme.text} uppercase tracking-wider mb-2`}>“‹ Import Instructions</h3>
                 <ul className={`text-xs sm:text-sm ${currentTheme.textSecondary} space-y-1.5 list-disc list-inside`}>
                   <li><strong>Required fields:</strong> full_name, email, password, role</li>
                   <li><strong>Optional fields:</strong> team (single), teams (multiple, comma-separated), employment_status</li>
@@ -1034,7 +1034,7 @@ export default function UserManagement() {
               {/* Results Section */}
               {bulkImportResults && (
                 <div className={`p-4 rounded-lg ${currentTheme.surfaceSecondary} border ${currentTheme.border} space-y-3`}>
-                  <h3 className={`text-xs sm:text-sm font-bold ${currentTheme.text} uppercase tracking-wider`}>ðŸ“Š Import Results</h3>
+                  <h3 className={`text-xs sm:text-sm font-bold ${currentTheme.text} uppercase tracking-wider`}>“Š Import Results</h3>
                   
                   {/* Summary Stats */}
                   <div className="grid grid-cols-3 gap-2">

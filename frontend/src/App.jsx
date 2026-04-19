@@ -32,7 +32,7 @@ import HRDashboard from './pages/HRDashboard';
 import EmailCenter from './pages/EmailCenter';
 
 function AppContent() {
-  // Initialize notifications
+  // Initialize notifications after auth context is ready
   useNotifications();
 
   return (

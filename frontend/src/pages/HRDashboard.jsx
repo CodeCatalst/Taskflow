@@ -1640,7 +1640,7 @@ export default function HRDashboard() {
                             <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Who's receiving this?</h3>
                             <p className={`text-sm ${currentTheme.textSecondary}`}>
                               {recipientMode === 'INTERNAL' ? 'Internal Team Members' : 'External Candidates/Contacts'}
-                              {' â€¢ '} 
+                              {' • '} 
                               Selected {emailRecipients.length} recipients
                             </p>
                           </div>

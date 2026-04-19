@@ -146,7 +146,7 @@ export default function WorkspaceManagement() {
       const response = await axios.delete(`/workspaces/${selectedWorkspace._id}`);
       
       const deleted = response.data.deleted || {};
-      showSuccess(`Workspace deleted successfully!\n\nDeleted:\nâ€¢ ${deleted.users || 0} users\nâ€¢ ${deleted.tasks || 0} tasks\nâ€¢ ${deleted.teams || 0} teams`);
+      showSuccess(`Workspace deleted successfully!\n\nDeleted:\n• ${deleted.users || 0} users\n• ${deleted.tasks || 0} tasks\n• ${deleted.teams || 0} teams`);
       fetchWorkspaces();
     } catch (error) {
       showError('Failed to delete workspace: ' + (error.response?.data?.message || error.message));
@@ -609,7 +609,7 @@ export default function WorkspaceManagement() {
 
             <div className={`mb-6 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               <p className="mb-4">
-                âš ï¸ You are about to delete workspace <strong>"{selectedWorkspace.name}"</strong>
+                ⚠️ You are about to delete workspace <strong>"{selectedWorkspace.name}"</strong>
               </p>
               <p className="mb-4">
                 This will permanently delete ALL data:

@@ -113,7 +113,6 @@ const userSchema = new mongoose.Schema({
 userSchema.index({ workspaceId: 1, email: 1 });
 userSchema.index({ 'workspaces.workspaceId': 1 });
 userSchema.index({ currentWorkspaceId: 1 });
-userSchema.index({ email: 1 }, { unique: true });
 
 // Pre-save hook: Sync legacy workspaceId with workspaces array
 userSchema.pre('save', function(next) {

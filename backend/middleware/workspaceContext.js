@@ -66,6 +66,7 @@ const workspaceContext = async (req, res, next) => {
     }
 
     // If user has no workspace set
+
     if (!activeWorkspaceId) {
       // ADMIN PRIVILEGE: Admins can exist without workspace (system-wide access)
       if (user.role === 'admin') {
@@ -83,7 +84,7 @@ const workspaceContext = async (req, res, next) => {
             full_name: user.full_name,
           },
         };
-        
+
         // System admins have all privileges
         req.isCoreWorkspace = () => true;
         req.isCommunityWorkspace = () => false;
@@ -91,7 +92,7 @@ const workspaceContext = async (req, res, next) => {
         req.canAddUser = () => true;
         req.canAddTask = () => true;
         req.canAddTeam = () => true;
-        
+
         return next();
       }
       
@@ -103,15 +104,15 @@ const workspaceContext = async (req, res, next) => {
           // Note: We no longer auto-save user in middleware to avoid side effects
           // The currentWorkspaceId is set in memory for this request only
         } else {
-          return res.status(403).json({ 
+          return res.status(403).json({
             message: 'User has no active workspaces. Please contact support.',
-            error: 'NO_ACTIVE_WORKSPACE' 
+            error: 'NO_ACTIVE_WORKSPACE'
           });
         }
       } else {
-        return res.status(403).json({ 
+        return res.status(403).json({
           message: 'User is not associated with any workspace. Please contact support.',
-          error: 'NO_WORKSPACE' 
+          error: 'NO_WORKSPACE'
         });
       }
     }
@@ -149,17 +150,26 @@ const workspaceContext = async (req, res, next) => {
     // Get all workspace IDs user belongs to (for cross-workspace queries like HR leave management)
     // Support both new multi-workspace array and legacy single workspace field
     let allWorkspaceIds;
+    let manageableWorkspaceIds;
     if (user.workspaces && user.workspaces.length > 0) {
       allWorkspaceIds = user.workspaces
         .filter(ws => ws.isActive)
         .map(ws => ws.workspaceId);
+      manageableWorkspaceIds = user.workspaces
+        .filter(ws => ws.isActive && ['admin', 'hr', 'community_admin'].includes(ws.role))
+        .map(ws => ws.workspaceId);
     } else {
       // Fallback to legacy workspace field(s)
       allWorkspaceIds = [activeWorkspaceId];
+      manageableWorkspaceIds = ['admin', 'hr', 'community_admin'].includes(user.role)
+        ? [activeWorkspaceId]
+        : [];
     }
     
     // Get role in current workspace
     const roleInWorkspace = user.getRoleInWorkspace(activeWorkspaceId) || user.role;
+
+
 
     // Attach workspace context to request
     req.context = {
@@ -169,6 +179,7 @@ const workspaceContext = async (req, res, next) => {
       workspace: workspace, // Full workspace object for feature checks
       isSystemAdmin: false,
       allWorkspaceIds: allWorkspaceIds, // All workspaces user belongs to
+      manageableWorkspaceIds,
       currentRole: roleInWorkspace, // Role in current workspace
       user: {
         id: user._id,
@@ -177,6 +188,8 @@ const workspaceContext = async (req, res, next) => {
         full_name: user.full_name,
       },
     };
+    req.currentRole = roleInWorkspace;
+    req.hasWorkspaceRole = (...roles) => roles.includes(roleInWorkspace);
 
     // Helper methods for easy access
     req.isCoreWorkspace = () => workspace.type === 'CORE';

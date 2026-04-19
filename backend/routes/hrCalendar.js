@@ -4,8 +4,10 @@ import { requireCoreWorkspace } from '../middleware/workspaceGuard.js';
 import Attendance from '../models/Attendance.js';
 import LeaveRequest from '../models/LeaveRequest.js';
 import Holiday from '../models/Holiday.js';
+import { isValidObjectIdString } from '../utils/requestValidation.js';
 
 const router = express.Router();
+const getEffectiveRole = (req) => req.context?.isSystemAdmin ? 'admin' : (req.context?.currentRole || req.user.role);
 
 // Get aggregated calendar data
 router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
@@ -20,7 +22,11 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
-    const targetUserId = userId || (req.user.role === 'member' ? req.user._id : null);
+    if (userId && !isValidObjectIdString(userId)) {
+      return res.status(400).json({ message: 'Invalid userId filter' });
+    }
+
+    const targetUserId = userId || (getEffectiveRole(req) === 'member' ? req.user._id : null);
 
     // Fetch attendance
     const attendanceQuery = { 

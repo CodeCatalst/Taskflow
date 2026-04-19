@@ -8,8 +8,11 @@ import User from '../models/User.js';
 import Workspace from '../models/Workspace.js';
 import { logChange } from '../utils/changeLogService.js';
 import getClientIP from '../utils/getClientIP.js';
+import { isValidObjectIdString } from '../utils/requestValidation.js';
+import { emitUserEvent, emitWorkspaceEvent } from '../utils/socketEvents.js';
 
 const router = express.Router();
+const getEffectiveRole = (req) => req.context?.isSystemAdmin ? 'admin' : (req.context?.currentRole || req.user.role);
 
 const sanitizeAssignedTo = (assignedTo) => {
   if (!assignedTo) return [];
@@ -37,7 +40,7 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
 
     // Members can only create tasks for themselves
     // Admins, HR, and Team Leads can assign to anyone
-    if (req.user.role === 'member') {
+    if (getEffectiveRole(req) === 'member') {
       // If assigned_to is provided and is an array, check if member is trying to assign to others
       if (cleanedAssignedTo.length > 0) {
         // Check if trying to assign to someone other than themselves
@@ -90,19 +93,15 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
       if (notifications.length > 0) {
         await Notification.insertMany(notifications);
 
-        // Emit socket events for both notification and task assignment
-        if (req.app.get('io')) {
-          cleanedAssignedTo
-            .filter(userId => userId.toString() !== req.user._id.toString())
-            .forEach(userId => {
-              // Emit notification event to specific user
-              req.app.get('io').to(userId.toString()).emit('notification:new', {
-                type: 'task_assigned',
-                message: `New task assigned: ${task.title}`,
-                task: task
-              });
+        cleanedAssignedTo
+          .filter(userId => userId.toString() !== req.user._id.toString())
+          .forEach(userId => {
+            emitUserEvent(req, userId, 'notification:new', {
+              type: 'task_assigned',
+              message: `New task assigned: ${task.title}`,
+              task: task
             });
-        }
+          });
       }
     }
 
@@ -131,21 +130,17 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
       workspaceId: req.context?.workspaceId || req.user.workspaceId
     });
 
-    // Emit socket events for task creation (to all users) and task assignment (to specific users)
-    if (req.app.get('io')) {
-      req.app.get('io').emit('task:created', sanitizeTask(populatedTask));
+    emitWorkspaceEvent(req, 'task:created', sanitizeTask(populatedTask));
 
-      // Also emit task:assigned event to assigned users specifically
-      if (cleanedAssignedTo.length > 0) {
-        cleanedAssignedTo
-          .filter(userId => userId.toString() !== req.user._id.toString())
-          .forEach(userId => {
-            req.app.get('io').to(userId.toString()).emit('task:assigned', {
-              task: sanitizeTask(populatedTask),
-              assigned_by: req.user.full_name
-            });
+    if (cleanedAssignedTo.length > 0) {
+      cleanedAssignedTo
+        .filter(userId => userId.toString() !== req.user._id.toString())
+        .forEach(userId => {
+          emitUserEvent(req, userId, 'task:assigned', {
+            task: sanitizeTask(populatedTask),
+            assigned_by: req.user.full_name
           });
-      }
+        });
     }
 
     res.status(201).json({ message: 'Task created', task: sanitizeTask(populatedTask) });
@@ -163,7 +158,7 @@ router.get('/', authenticate, async (req, res) => {
     let query = req.context.isSystemAdmin ? {} : { workspaceId: req.context.workspaceId };
 
     // Role-based filtering
-    if (req.user.role === 'member') {
+    if (getEffectiveRole(req) === 'member') {
       // MULTIPLE TEAMS SUPPORT: Members see tasks from all their teams OR tasks assigned to them
       const userTeams = req.user.teams && req.user.teams.length > 0 
         ? req.user.teams.map(t => t._id || t)
@@ -178,7 +173,7 @@ router.get('/', authenticate, async (req, res) => {
       if (userTeams.length > 0) {
         query.$or.push({ team_id: { $in: userTeams } });
       }
-    } else if (req.user.role === 'team_lead') {
+    } else if (getEffectiveRole(req) === 'team_lead') {
       // MULTIPLE TEAMS SUPPORT: Team leads see tasks from all teams they lead
       const userTeams = req.user.teams && req.user.teams.length > 0 
         ? req.user.teams.map(t => t._id || t)
@@ -231,7 +226,7 @@ router.get('/:id', authenticate, async (req, res) => {
     }
 
     // Check permissions
-    if (req.user.role === 'member') {
+    if (getEffectiveRole(req) === 'member') {
       const isCreator = task.created_by._id.toString() === req.user._id.toString();
       const isAssigned = sanitizeAssignedTo(task.assigned_to).some(userId => userId.toString() === req.user._id.toString());
       
@@ -247,7 +242,7 @@ router.get('/:id', authenticate, async (req, res) => {
       if (!isCreator && !isAssigned && !isFromUserTeam) {
         return res.status(403).json({ message: 'Access denied' });
       }
-    } else if (req.user.role === 'team_lead') {
+    } else if (getEffectiveRole(req) === 'team_lead') {
       // MULTIPLE TEAMS SUPPORT: Team leads can view tasks from any of their teams
       if (task.team_id) {
         const userTeams = req.user.teams && req.user.teams.length > 0 
@@ -286,14 +281,14 @@ router.patch('/:id', authenticate, async (req, res) => {
     
     // MULTIPLE TEAMS SUPPORT: Team leads can edit tasks from any of their teams
     let isTeamLead = false;
-    if (req.user.role === 'team_lead' && task.team_id) {
+    if (getEffectiveRole(req) === 'team_lead' && task.team_id) {
       const userTeams = req.user.teams && req.user.teams.length > 0 
         ? req.user.teams.map(t => (t._id || t).toString())
         : (req.user.team_id ? [req.user.team_id.toString()] : []);
       isTeamLead = userTeams.includes(task.team_id.toString());
     }
     
-    const canEdit = ['admin', 'hr', 'community_admin'].includes(req.user.role) || isCreator || isAssigned || isTeamLead;
+    const canEdit = ['admin', 'hr', 'community_admin'].includes(getEffectiveRole(req)) || isCreator || isAssigned || isTeamLead;
 
     if (!canEdit) {
       return res.status(403).json({ message: 'Access denied' });
@@ -318,7 +313,11 @@ router.patch('/:id', authenticate, async (req, res) => {
     if (progress !== undefined) task.progress = progress;
 
     // Only certain roles can reassign
-    if (cleanedAssignedTo !== undefined && ['admin', 'hr', 'team_lead', 'community_admin'].includes(req.user.role)) {
+    if (cleanedAssignedTo !== undefined && ['admin', 'hr', 'team_lead', 'community_admin'].includes(getEffectiveRole(req))) {
+      const invalidAssignee = cleanedAssignedTo.find((userId) => !isValidObjectIdString(userId));
+      if (invalidAssignee) {
+        return res.status(400).json({ message: 'One or more assigned users are invalid' });
+      }
       task.assigned_to = cleanedAssignedTo;
     }
 
@@ -349,23 +348,20 @@ router.patch('/:id', authenticate, async (req, res) => {
       if (notifications.length > 0) {
         await Notification.insertMany(notifications);
 
-        // Emit socket notification for status change
-        if (req.app.get('io')) {
-          task.assigned_to
-            .filter(userId => userId.toString() !== req.user._id.toString())
-            .forEach(userId => {
-              req.app.get('io').to(userId.toString()).emit('notification:new', {
-                type: 'status_changed',
-                message: `Task "${task.title}" status changed to ${status}`,
-                task: { _id: task._id, title: task.title, status, old_status: oldStatus }
-              });
+        task.assigned_to
+          .filter(userId => userId.toString() !== req.user._id.toString())
+          .forEach(userId => {
+            emitUserEvent(req, userId, 'notification:new', {
+              type: 'status_changed',
+              message: `Task "${task.title}" status changed to ${status}`,
+              task: { _id: task._id, title: task.title, status, old_status: oldStatus }
             });
-        }
+          });
       }
     }
 
     // Create notification for reassignment
-    if (cleanedAssignedTo !== undefined && ['admin', 'hr', 'team_lead', 'community_admin'].includes(req.user.role)) {
+    if (cleanedAssignedTo !== undefined && ['admin', 'hr', 'team_lead', 'community_admin'].includes(getEffectiveRole(req))) {
       // Find newly assigned users (not previously assigned)
       const newAssignedIds = cleanedAssignedTo.map(id => id.toString());
       const newlyAssigned = newAssignedIds.filter(id => !oldAssignedTo.includes(id) && id !== req.user._id.toString());
@@ -391,20 +387,17 @@ router.patch('/:id', authenticate, async (req, res) => {
 
         await Notification.insertMany(notifications);
 
-        // Emit socket notification for new assignments
-        if (req.app.get('io')) {
-          newlyAssigned.forEach(userId => {
-            req.app.get('io').to(userId).emit('notification:new', {
-              type: 'task_assigned',
-              message: `New task assigned: ${task.title}`,
-              task: { _id: task._id, title: task.title }
-            });
-            req.app.get('io').to(userId).emit('task:assigned', {
-              task: task,
-              assigned_by: req.user.full_name
-            });
+        newlyAssigned.forEach(userId => {
+          emitUserEvent(req, userId, 'notification:new', {
+            type: 'task_assigned',
+            message: `New task assigned: ${task.title}`,
+            task: { _id: task._id, title: task.title }
           });
-        }
+          emitUserEvent(req, userId, 'task:assigned', {
+            task: task,
+            assigned_by: req.user.full_name
+          });
+        });
       }
     }
 
@@ -467,10 +460,7 @@ router.patch('/:id', authenticate, async (req, res) => {
       workspaceId: req.context.workspaceId
     });
 
-    // Emit socket event
-    if (req.app.get('io')) {
-      req.app.get('io').emit('task:updated', sanitizeTask(updatedTask));
-    }
+    emitWorkspaceEvent(req, 'task:updated', sanitizeTask(updatedTask));
 
     res.json({ message: 'Task updated', task: sanitizeTask(updatedTask) });
   } catch (error) {
@@ -497,14 +487,14 @@ router.delete('/:id', authenticate, async (req, res) => {
     
     // MULTIPLE TEAMS SUPPORT: Team leads can delete tasks from any of their teams
     let isTeamLead = false;
-    if (req.user.role === 'team_lead' && task.team_id) {
+    if (getEffectiveRole(req) === 'team_lead' && task.team_id) {
       const userTeams = req.user.teams && req.user.teams.length > 0 
         ? req.user.teams.map(t => (t._id || t).toString())
         : (req.user.team_id ? [req.user.team_id.toString()] : []);
       isTeamLead = userTeams.includes(task.team_id.toString());
     }
     
-    const canDelete = req.context?.isSystemAdmin || ['admin', 'hr', 'community_admin'].includes(req.user.role) || isCreator || isTeamLead;
+    const canDelete = req.context?.isSystemAdmin || ['admin', 'hr', 'community_admin'].includes(getEffectiveRole(req)) || isCreator || isTeamLead;
 
     if (!canDelete) {
       return res.status(403).json({ message: 'Access denied' });
@@ -537,10 +527,7 @@ router.delete('/:id', authenticate, async (req, res) => {
       workspaceId: req.context.workspaceId
     });
 
-    // Emit socket event for task deletion
-    if (req.app.get('io')) {
-      req.app.get('io').emit('task:deleted', { _id: taskId, title: taskTitle });
-    }
+    emitWorkspaceEvent(req, 'task:deleted', { _id: taskId, title: taskTitle });
 
     res.json({ message: 'Task deleted' });
   } catch (error) {

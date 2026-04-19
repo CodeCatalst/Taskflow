@@ -81,6 +81,10 @@ const Dashboard = () => {
   // ==== ALL EXISTING BUSINESS LOGIC PRESERVED BELOW ====
   
   const fetchTeams = useCallback(async () => {
+    if (!user?.workspaceId) {
+      return;
+    }
+    
     if (!['admin', 'hr', 'team_lead', 'community_admin'].includes(user?.role)) {
       return;
     }
@@ -90,12 +94,14 @@ const Dashboard = () => {
       setTeams(response.data.teams || []);
     } catch (error) {
       if (error.response?.status === 403) {
-        // No permission
+        // No permission - expected for members
       } else if (error.response?.status === 401) {
+        // Not authenticated
       } else {
+        // Ignore other team fetch errors
       }
     }
-  }, [user?.role]);
+  }, [user?.role, user?.workspaceId]);
 
   // PWA Install Handler (PRESERVED)
   useEffect(() => {
@@ -137,7 +143,7 @@ const Dashboard = () => {
 
   const handleInstallClick = async () => {
     if (isInstalled || localStorage.getItem('pwa-installed') === 'true') {
-      alert('âœ… TaskFlow is Already Installed!');
+      alert('✅ TaskFlow is Already Installed!');
       return;
     }
     
@@ -154,7 +160,7 @@ const Dashboard = () => {
         setIsInstalled(true);
         localStorage.setItem('pwa-installed', 'true');
         setTimeout(() => {
-          alert('ðŸŽ‰ TaskFlow has been installed!');
+          alert('‰ TaskFlow has been installed!');
         }, 1000);
       }
 
@@ -220,118 +226,121 @@ const Dashboard = () => {
   });
 
   const fetchDashboardData = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+
     try {
       setLoading(true);
-      const [tasksResponse, teamsData] = await Promise.all([
-        api.get('/tasks'),
-        fetchTeams(),
-      ]);
 
+      // Fetch tasks first
+      const tasksResponse = await api.get('/tasks');
       const tasks = tasksResponse.data.tasks || [];
       setAllTasks(tasks);
 
-      // Calculate stats
+      // Process tasks to calculate stats and populate dashboard
       const now = new Date();
-      const myTasks = tasks.filter(t => 
-        t.assigned_to && t.assigned_to.some(u => u._id === user._id)
-      );
-      const inProgress = tasks.filter(t => t.status === 'in_progress');
-      const completed = tasks.filter(t => t.status === 'done');
-      const overdue = tasks.filter(t => 
-        t.due_date && new Date(t.due_date) < now && t.status !== 'done'
+      const myTasks = tasks.filter(task =>
+        task.assigned_to?.some(assignee => assignee._id === user._id)
       );
 
-      setStats({
-        totalTasks: tasks.length,
-        myTasks: myTasks.length,
-        inProgress: inProgress.length,
-        completed: completed.length,
-        overdueTasks: overdue.length,
+      const overdueTasks = tasks.filter(task => {
+        if (!task.due_date) return false;
+        const dueDate = new Date(task.due_date);
+        return dueDate < now && task.status !== 'completed';
       });
 
-      setOverdueTasks(overdue.slice(0, 5));
-      setRecentTasks(tasks.slice(0, 10));
+      const recentTasks = [...tasks]
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+        .slice(0, 10);
 
-      // Calculate analytics data
-      const statusCounts = {
-        todo: tasks.filter(t => t.status === 'todo').length,
-        in_progress: tasks.filter(t => t.status === 'in_progress').length,
-        review: tasks.filter(t => t.status === 'review').length,
-        done: tasks.filter(t => t.status === 'done').length,
-      };
+      // Calculate stats
+      const totalTasks = tasks.length;
+      const inProgress = tasks.filter(task => task.status === 'in_progress').length;
+      const completed = tasks.filter(task => task.status === 'completed').length;
 
-      const priorityCounts = {
-        low: tasks.filter(t => t.priority === 'low').length,
-        medium: tasks.filter(t => t.priority === 'medium').length,
-        high: tasks.filter(t => t.priority === 'high').length,
-        critical: tasks.filter(t => t.priority === 'critical').length,
-      };
+      setStats({
+        totalTasks,
+        myTasks: myTasks.length,
+        inProgress,
+        completed,
+        overdueTasks: overdueTasks.length,
+      });
 
-      const statusDistribution = Object.entries(statusCounts).map(([key, value]) => ({
-        name: key.replace('_', ' ').charAt(0).toUpperCase() + key.slice(1).replace('_', ' '),
-        value,
-      }));
+      setRecentTasks(recentTasks);
+      setOverdueTasks(overdueTasks);
 
-      const priorityDistribution = Object.entries(priorityCounts).map(([key, value]) => ({
-        name: key.charAt(0).toUpperCase() + key.slice(1),
-        value,
-      }));
+      // Calculate analytics data for charts
+      const statusDistribution = [
+        { name: 'To Do', value: tasks.filter(t => t.status === 'todo').length, color: '#6b7280' },
+        { name: 'In Progress', value: inProgress, color: '#3b82f6' },
+        { name: 'Review', value: tasks.filter(t => t.status === 'review').length, color: '#f59e0b' },
+        { name: 'Completed', value: completed, color: '#10b981' },
+      ].filter(item => item.value > 0);
+
+      const priorityDistribution = [
+        { name: 'Low', value: tasks.filter(t => t.priority === 'low').length, color: '#10b981' },
+        { name: 'Medium', value: tasks.filter(t => t.priority === 'medium').length, color: '#f59e0b' },
+        { name: 'High', value: tasks.filter(t => t.priority === 'high').length, color: '#ef4444' },
+        { name: 'Urgent', value: tasks.filter(t => t.priority === 'urgent').length, color: '#dc2626' },
+      ].filter(item => item.value > 0);
 
       // Team distribution
-      const teamCounts = tasks.reduce((acc, task) => {
-        const teamName = task.team_id?.name || 'Unassigned';
-        acc[teamName] = (acc[teamName] || 0) + 1;
-        return acc;
-      }, {});
-
-      const teamDistribution = Object.entries(teamCounts)
-        .map(([team, count]) => ({ name: team, value: count }))
-        .sort((a, b) => b.value - a.value);
+      const teamMap = {};
+      tasks.forEach(task => {
+        if (task.team_id) {
+          const teamName = task.team_id.name || 'Unknown Team';
+          teamMap[teamName] = (teamMap[teamName] || 0) + 1;
+        }
+      });
+      const teamDistribution = Object.entries(teamMap).map(([name, value]) => ({
+        name,
+        value,
+        color: '#' + Math.floor(Math.random()*16777215).toString(16)
+      }));
 
       // Assignee performance
-      const userStats = tasks.reduce((acc, task) => {
-        if (task.assigned_to && task.assigned_to.length > 0) {
+      const assigneeMap = {};
+      tasks.forEach(task => {
+        if (task.assigned_to && Array.isArray(task.assigned_to)) {
           task.assigned_to.forEach(assignee => {
-            const userId = assignee._id;
-            const userName = assignee.full_name;
-
-            if (!acc[userId]) {
-              acc[userId] = {
-                name: userName,
-                total: 0,
-                completed: 0,
-                overdue: 0,
-              };
+            const name = assignee.full_name || assignee.email || 'Unknown';
+            if (!assigneeMap[name]) {
+              assigneeMap[name] = { total: 0, completed: 0 };
             }
-
-            acc[userId].total++;
-            if (task.status === 'done') acc[userId].completed++;
-            if (task.due_date && new Date(task.due_date) < now && task.status !== 'done') {
-              acc[userId].overdue++;
+            assigneeMap[name].total++;
+            if (task.status === 'completed') {
+              assigneeMap[name].completed++;
             }
           });
         }
-        return acc;
-      }, {});
-
-      const assigneePerformance = Object.values(userStats).map(stat => ({
-        name: stat.name,
-        total: stat.total,
-        completed: stat.completed,
-        overdue: stat.overdue,
-        completionRate: stat.total > 0 ? Math.round((stat.completed / stat.total) * 100) : 0,
-      }));
+      });
+      const assigneePerformance = Object.entries(assigneeMap).map(([name, stats]) => ({
+        name,
+        total: stats.total,
+        completed: stats.completed,
+        completionRate: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
+      })).sort((a, b) => b.completionRate - a.completionRate);
 
       setAnalyticsData({
-        totalTasks: tasks.length,
-        overdueTasks: overdue.length,
-        completedTasks: completed.length,
-        inProgressTasks: inProgress.length,
+        totalTasks,
+        overdueTasks: overdueTasks.length,
+        completedTasks: completed,
+        inProgressTasks: inProgress,
         statusDistribution,
         priorityDistribution,
         teamDistribution,
+        overdueByPriority: [],
+        completionTrend: [],
         assigneePerformance,
       });
+
+      // Then fetch teams (doesn't block on error)
+      try {
+        await fetchTeams();
+      } catch (teamErr) {
+        // Ignore team fetch errors
+      }
 
       setLoading(false);
     } catch (error) {
@@ -637,8 +646,13 @@ const Dashboard = () => {
                 {/* Status Distribution Pie Chart */}
                 <div className={`${theme === 'dark' ? 'bg-[#1c2027]' : 'bg-white'} rounded border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} p-4 sm:p-6`}>
                   <h4 className={`text-sm sm:text-base font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-4`}>Status Distribution</h4>
-                  <div className="h-[280px] sm:h-[300px] w-full" style={{ minHeight: '280px', minWidth: '200px' }}>
-                    <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={280}>
+                  {analyticsData.statusDistribution.length === 0 ? (
+                    <div className="h-[280px] flex items-center justify-center text-gray-500">
+                      <p>No data available</p>
+                    </div>
+                  ) : (
+                    <div className="h-[280px] sm:h-[300px] w-full" style={{ minHeight: '280px', minWidth: '200px' }}>
+                      <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={280}>
                       <PieChart>
                         <Pie
                           data={analyticsData.statusDistribution}
@@ -674,13 +688,19 @@ const Dashboard = () => {
                     </PieChart>
                   </ResponsiveContainer>
                   </div>
+                  )}
                 </div>
 
                 {/* Priority Distribution Bar Chart */}
                 <div className={`${theme === 'dark' ? 'bg-[#1c2027]' : 'bg-white'} rounded border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} p-4 sm:p-6`}>
                   <h4 className={`text-sm sm:text-base font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-4`}>Priority Breakdown</h4>
-                  <div className="h-[280px] sm:h-[300px] w-full" style={{ minHeight: '280px', minWidth: '200px' }}>
-                    <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={280}>
+                  {analyticsData.priorityDistribution.length === 0 ? (
+                    <div className="h-[280px] flex items-center justify-center text-gray-500">
+                      <p>No data available</p>
+                    </div>
+                  ) : (
+                    <div className="h-[280px] sm:h-[300px] w-full" style={{ minHeight: '280px', minWidth: '200px' }}>
+                      <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={280}>
                       <BarChart data={analyticsData.priorityDistribution} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#282f39' : '#e5e7eb'} />
                         <XAxis 
@@ -706,13 +726,19 @@ const Dashboard = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+                  )}
                 </div>
 
                 {/* Team Performance */}
                 <div className={`${theme === 'dark' ? 'bg-[#1c2027]' : 'bg-white'} rounded border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} p-4 sm:p-6`}>
                   <h4 className={`text-sm sm:text-base font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-4`}>Team Distribution</h4>
-                  <div className="h-[280px] sm:h-[300px] w-full" style={{ minHeight: '280px', minWidth: '200px' }}>
-                    <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={280}>
+                  {analyticsData.teamDistribution.length === 0 ? (
+                    <div className="h-[280px] flex items-center justify-center text-gray-500">
+                      <p>No team data available</p>
+                    </div>
+                  ) : (
+                    <div className="h-[280px] sm:h-[300px] w-full" style={{ minHeight: '280px', minWidth: '200px' }}>
+                      <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={280}>
                       <BarChart data={analyticsData.teamDistribution.slice(0, 5)} margin={{ top: 10, right: 10, left: 0, bottom: 60 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#282f39' : '#e5e7eb'} />
                         <XAxis 
@@ -746,6 +772,7 @@ const Dashboard = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -990,7 +1017,7 @@ const Dashboard = () => {
                           </span>
                         </div>
                         <p className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} mb-2`}>
-                          {task.team_id?.name || 'No Team'} â€¢ {task.priority?.charAt(0).toUpperCase() + task.priority?.slice(1)}
+                          {task.team_id?.name || 'No Team'} • {task.priority?.charAt(0).toUpperCase() + task.priority?.slice(1)}
                         </p>
                         {task.assigned_to && task.assigned_to.length > 0 && (
                           <div className="flex items-center gap-2">
@@ -1005,7 +1032,7 @@ const Dashboard = () => {
 
                     {overdueTasks.length === 0 && (
                       <div className={`p-4 text-center text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
-                        No overdue tasks! ðŸŽ‰
+                        No overdue tasks! ‰
                       </div>
                     )}
                   </div>

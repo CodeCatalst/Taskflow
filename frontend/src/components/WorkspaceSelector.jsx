@@ -87,7 +87,7 @@ const WorkspaceSelector = ({ workspaces, onSelect, userEmail, isAdmin }) => {
             {isAdmin && (
               <div className={`mt-2 px-3 py-2 rounded-lg ${theme === 'dark' ? 'bg-purple-900/20 border border-purple-800/50' : 'bg-purple-50 border border-purple-200'}`}>
                 <p className={`text-xs ${theme === 'dark' ? 'text-purple-400' : 'text-purple-700'} flex items-center gap-2`}>
-                  <span className="text-sm">ðŸ”‘</span>
+                  <span className="text-sm">”‘</span>
                   <span className="font-medium">Admin Access: You can access all workspaces in the system</span>
                 </p>
               </div>
@@ -157,7 +157,7 @@ const WorkspaceSelector = ({ workspaces, onSelect, userEmail, isAdmin }) => {
           {/* Footer */}
           <div className={`px-8 py-4 border-t ${theme === 'dark' ? 'border-[#282f39] bg-[#111418]' : 'border-gray-200 bg-gray-50'}`}>
             <p className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-500'} text-center`}>
-              ðŸ’¡ You can switch workspaces anytime from the sidebar
+              ’¡ You can switch workspaces anytime from the sidebar
             </p>
           </div>
         </div>

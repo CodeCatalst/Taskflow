@@ -42,11 +42,11 @@ const NotificationSettings = () => {
     try {
       // First verify permission
       if (Notification.permission !== 'granted') {
-        alert('âš ï¸ Please enable notifications first by clicking "Enable Notifications" button.');
+        alert('âš  Please enable notifications first by clicking "Enable Notifications" button.');
         return;
       }
 
-      await notificationService.showNotification('ðŸŽ‰ Test Notification', {
+      await notificationService.showNotification('Ž‰ Test Notification', {
         body: 'If you can see this, notifications are working perfectly!',
         icon: '/icons/pwa-192x192.png',
         badge: '/icons/pwa-64x64.png',
@@ -58,8 +58,8 @@ const NotificationSettings = () => {
       // Show success message with mobile-specific tips
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const message = isMobile 
-        ? 'âœ… Test notification sent!\n\nðŸ“± On mobile:\n- Check your notification tray\n- Ensure Do Not Disturb is off\n- For iOS: Add to Home Screen first'
-        : 'âœ… Test notification sent! Check your desktop for the notification.';
+        ? '✅ Test notification sent!\n\n“± On mobile:\n- Check your notification tray\n- Ensure Do Not Disturb is off\n- For iOS: Add to Home Screen first'
+        : '✅ Test notification sent! Check your desktop for the notification.';
       
       alert(message);
     } catch (error) {
@@ -98,9 +98,9 @@ const NotificationSettings = () => {
           <div>
             <p className={`font-medium ${currentTheme.text} text-sm sm:text-base`}>Permission Status</p>
             <p className={`text-xs sm:text-sm ${currentTheme.textSecondary} mt-1`}>
-              {permission === 'granted' && 'âœ… Notifications are enabled'}
+              {permission === 'granted' && '✅ Notifications are enabled'}
               {permission === 'denied' && 'âŒ Notifications are blocked'}
-              {permission === 'default' && 'âš ï¸ Notification permission not requested'}
+              {permission === 'default' && 'âš  Notification permission not requested'}
             </p>
           </div>
           {permission !== 'granted' && (
@@ -198,7 +198,7 @@ const NotificationSettings = () => {
       {/* Mobile-specific information */}
       <div className={`mt-4 p-3 sm:p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800`}>
         <p className={`text-xs sm:text-sm font-medium ${currentTheme.text} mb-2`}>
-          ðŸ“± Mobile Device Tips
+          “± Mobile Device Tips
         </p>
         <ul className={`list-disc list-inside text-xs sm:text-sm ${currentTheme.textSecondary} space-y-1`}>
           <li><strong>iOS:</strong> Add TaskFlow to Home Screen for notifications to work</li>
@@ -212,15 +212,15 @@ const NotificationSettings = () => {
       <div className={`mt-4 p-3 rounded-lg ${currentTheme.surfaceSecondary}`}>
         <details>
           <summary className={`text-xs sm:text-sm font-medium ${currentTheme.text} cursor-pointer`}>
-            ðŸ”§ Technical Details (for debugging)
+            ”§ Technical Details (for debugging)
           </summary>
           <div className={`mt-3 text-xs ${currentTheme.textSecondary} space-y-1 font-mono`}>
             <div>Browser: {navigator.userAgent.match(/Chrome|Safari|Firefox|Edge/)?.[0] || 'Unknown'}</div>
             <div>Mobile: {/Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'Yes' : 'No'}</div>
-            <div>HTTPS: {window.location.protocol === 'https:' ? 'âœ… Yes' : 'âŒ No (required!)'}</div>
-            <div>Service Worker: {'serviceWorker' in navigator ? 'âœ… Supported' : 'âŒ Not supported'}</div>
-            <div>SW Active: {navigator.serviceWorker?.controller ? 'âœ… Yes' : 'âš ï¸ No'}</div>
-            <div>Permission API: {'permissions' in navigator ? 'âœ… Available' : 'âŒ Not available'}</div>
+            <div>HTTPS: {window.location.protocol === 'https:' ? '✅ Yes' : 'âŒ No (required!)'}</div>
+            <div>Service Worker: {'serviceWorker' in navigator ? '✅ Supported' : 'âŒ Not supported'}</div>
+            <div>SW Active: {navigator.serviceWorker?.controller ? '✅ Yes' : 'âš  No'}</div>
+            <div>Permission API: {'permissions' in navigator ? '✅ Available' : 'âŒ Not available'}</div>
           </div>
         </details>
       </div>

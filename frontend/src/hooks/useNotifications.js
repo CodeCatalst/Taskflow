@@ -1,5 +1,5 @@
-﻿import { useEffect, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
+﻿import { useEffect, useRef, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import notificationService from '../utils/notificationService';
 
 /**
@@ -7,7 +7,8 @@ import notificationService from '../utils/notificationService';
  * Call this hook in your main App component
  */
 export const useNotifications = () => {
-  const { user, socket } = useAuth();
+  const authContext = useContext(AuthContext);
+  const { user, socket } = authContext || {};
   const lastNotificationTime = useRef(Date.now());
   const notificationQueue = useRef([]);
   const processingQueue = useRef(false);

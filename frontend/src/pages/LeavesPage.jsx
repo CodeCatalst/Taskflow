@@ -310,7 +310,7 @@ export default function LeavesPage() {
     <div>
       <ResponsivePageLayout
         title="Leave Management"
-        subtitle={`${leaveRequests.length} request${leaveRequests.length !== 1 ? 's' : ''} â€¢ ${leaveTypes.length} leave type${leaveTypes.length !== 1 ? 's' : ''}`}
+        subtitle={`${leaveRequests.length} request${leaveRequests.length !== 1 ? 's' : ''} • ${leaveTypes.length} leave type${leaveTypes.length !== 1 ? 's' : ''}`}
         actions={
           <div className="flex gap-2">
             {isAdmin && (

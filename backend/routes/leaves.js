@@ -11,8 +11,10 @@ import { logChange } from '../utils/changeLogService.js';
 import getClientIP from '../utils/getClientIP.js';
 import HrActionService from '../services/hrActionService.js';
 import HrEventService from '../services/hrEventService.js';
+import { isValidObjectIdString, normalizePlainText, requireObjectId } from '../utils/requestValidation.js';
 
 const router = express.Router();
+const getEffectiveRole = (req) => req.context?.isSystemAdmin ? 'admin' : (req.context?.currentRole || req.user.role);
 
 // Get all leave requests (filtered by status/user)
 // HR/Admin can see leave requests from ALL their workspaces
@@ -24,18 +26,24 @@ router.get('/', authenticate, requireCoreWorkspace, async (req, res) => {
     const query = {};
 
     // HR and Admin see requests from ALL their workspaces
-    if (['admin', 'hr'].includes(req.user.role) || ['admin', 'hr'].includes(req.context?.currentRole)) {
+    if (['admin', 'hr'].includes(getEffectiveRole(req))) {
       // Get all workspace IDs user has HR/admin access to
-      const hrWorkspaceIds = req.context?.allWorkspaceIds || [workspaceId];
+      const hrWorkspaceIds = req.context?.manageableWorkspaceIds || [workspaceId];
       query.workspaceId = { $in: hrWorkspaceIds };
       
       // Optional: Filter by specific workspace
       if (filterWorkspaceId) {
+        if (!isValidObjectIdString(filterWorkspaceId) || !hrWorkspaceIds.some(id => id.toString() === filterWorkspaceId)) {
+          return res.status(403).json({ message: 'Invalid workspace filter' });
+        }
         query.workspaceId = filterWorkspaceId;
       }
       
       // Optional: Filter by specific user
       if (userId) {
+        if (!isValidObjectIdString(userId)) {
+          return res.status(400).json({ message: 'Invalid userId filter' });
+        }
         query.userId = userId;
       }
     } else {
@@ -117,13 +125,13 @@ router.post('/', authenticate, requireCoreWorkspace, async (req, res) => {
 
     // Send notification email to HR/Admin across ALL workspaces that have HR
     // Find all users with HR/admin role in any workspace
-    const allWorkspaceIds = req.context?.allWorkspaceIds || [workspaceId];
+    const targetWorkspaceIds = [workspaceId];
     const hrUsers = await User.find({ 
       $or: [
         { role: { $in: ['admin', 'hr'] } },
         { 'workspaces.role': { $in: ['admin', 'hr'] } }
       ],
-      'workspaces.workspaceId': { $in: allWorkspaceIds },
+      'workspaces.workspaceId': { $in: targetWorkspaceIds },
       'workspaces.isActive': true
     }).select('email full_name');
 
@@ -142,6 +150,9 @@ router.post('/bulk', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
   try {
     const { userId, leaveTypeId, startDate, endDate, reason, days, status = 'approved', timePeriod = 'full_day' } = req.body;
     const workspaceId = req.context?.workspaceId || req.user.currentWorkspaceId || req.user.workspaceId;
+    requireObjectId(userId, 'userId');
+    requireObjectId(leaveTypeId, 'leaveTypeId');
+    const sanitizedReason = normalizePlainText(String(reason || ''), 'reason', { maxLength: 2000, allowEmpty: true });
 
     // Validate user exists and belongs to the workspace
     const user = await User.findOne({
@@ -195,7 +206,7 @@ router.post('/bulk', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       days,
-      reason,
+      reason: sanitizedReason,
       status,
       approvedBy: status === 'approved' ? req.user._id : null,
       approvedAt: status === 'approved' ? new Date() : null
@@ -239,7 +250,7 @@ router.post('/bulk', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
             workspaceId,
             date: new Date(date),
             status: timePeriod === 'half_day' ? 'half_day' : 'leave',
-            notes: `Leave: ${leaveType.name} - ${reason}`,
+            notes: `Leave: ${leaveType.name} - ${sanitizedReason}`,
             markedBy: req.user._id
           });
           
@@ -248,7 +259,7 @@ router.post('/bulk', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
         } else {
           // Update existing attendance to leave status
           existingAttendance.status = timePeriod === 'half_day' ? 'half_day' : 'leave';
-          existingAttendance.notes = `Leave: ${leaveType.name} - ${reason}`;
+          existingAttendance.notes = `Leave: ${leaveType.name} - ${sanitizedReason}`;
           existingAttendance.markedBy = req.user._id;
           await existingAttendance.save();
           attendanceRecords.push(existingAttendance);
@@ -361,7 +372,7 @@ router.get('/balance/:userId?', authenticate, requireCoreWorkspace, async (req, 
 
     // Members and team_leads can only view their own balance
     // HR and Admin can view anyone's balance
-    if (!['admin', 'hr'].includes(req.user.role)) {
+    if (!['admin', 'hr'].includes(getEffectiveRole(req))) {
       // Convert both to strings for comparison
       if (targetUserId.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Unauthorized' });

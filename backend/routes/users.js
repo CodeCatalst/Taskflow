@@ -13,6 +13,14 @@ import multer from 'multer';
 import xlsx from 'xlsx';
 import getClientIP from '../utils/getClientIP.js';
 import { validatePasswordStrength } from '../utils/security.js';
+import { validateImageDataUrl } from '../utils/imageValidation.js';
+import { emitWorkspaceEvent } from '../utils/socketEvents.js';
+import {
+  normalizeObjectIdArray,
+  normalizePlainText,
+  requireObjectId,
+  isValidObjectIdString,
+} from '../utils/requestValidation.js';
 
 const router = express.Router();
 
@@ -91,30 +99,13 @@ router.patch('/me', authenticate, async (req, res) => {
 router.post('/me/profile-picture', authenticate, async (req, res) => {
   try {
     const { profile_picture } = req.body;
-
-    // Validate that it's a valid base64 image
-    if (!profile_picture) {
-      return res.status(400).json({ message: 'Profile picture is required' });
-    }
-
-    // Check if it's a valid data URL format
-    const dataUrlRegex = /^data:image\/(png|jpeg|jpg|gif|webp);base64,/;
-    if (!dataUrlRegex.test(profile_picture)) {
-      return res.status(400).json({ message: 'Invalid image format. Please upload a valid image.' });
-    }
-
-    // Check file size (limit to ~2MB base64 which is about 1.5MB actual file)
-    const base64Data = profile_picture.split(',')[1];
-    const sizeInBytes = (base64Data.length * 3) / 4;
-    const maxSize = 2 * 1024 * 1024; // 2MB
-
-    if (sizeInBytes > maxSize) {
-      return res.status(400).json({ message: 'Image too large. Maximum size is 2MB.' });
-    }
+    const validatedImage = validateImageDataUrl(profile_picture, {
+      maxSizeBytes: 2 * 1024 * 1024,
+    });
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { profile_picture, updated_at: Date.now() },
+      { profile_picture: validatedImage.normalizedDataUrl, updated_at: Date.now() },
       { new: true }
     ).select('-password_hash');
 
@@ -131,7 +122,10 @@ router.post('/me/profile-picture', authenticate, async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const statusCode = error.message.includes('image') || error.message.includes('Image') || error.message.includes('base64')
+      ? 400
+      : 500;
+    res.status(statusCode).json({ message: statusCode === 400 ? error.message : 'Server error', error: error.message });
   }
 });
 
@@ -363,10 +357,7 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
       workspaceId: req.context.workspaceId
     });
 
-    // Emit socket event for user creation
-    if (req.app.get('io')) {
-      req.app.get('io').emit('user:created', userResponse);
-    }
+    emitWorkspaceEvent(req, 'user:created', userResponse);
 
     // Respond immediately without waiting for email
     res.status(201).json({
@@ -391,15 +382,10 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
 // Bulk delete users (Admin & HR) - MUST be before /:id routes
 router.post('/bulk-delete', authenticate, checkRole(['admin', 'hr']), ...requireBulkImport, async (req, res) => {
   try {
-    const { userIds } = req.body;
-
-    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-      return res.status(400).json({ message: 'User IDs array is required' });
-    }
+    const idsToDelete = normalizeObjectIdArray(req.body.userIds, 'userIds', { maxItems: 200 })
+      .filter(id => id !== req.user._id.toString());
 
     // Filter out the current user's ID to prevent self-deletion
-    const idsToDelete = userIds.filter(id => id !== req.user._id.toString());
-
     if (idsToDelete.length === 0) {
       return res.status(400).json({ message: 'Cannot delete your own account' });
     }
@@ -458,10 +444,7 @@ router.post('/bulk-delete', authenticate, checkRole(['admin', 'hr']), ...require
       workspaceId: req.context.workspaceId
     });
 
-    // Emit socket event for bulk user deletion
-    if (req.app.get('io')) {
-      req.app.get('io').emit('users:bulk-deleted', { userIds: idsToDelete, count: result.deletedCount });
-    }
+    emitWorkspaceEvent(req, 'users:bulk-deleted', { userIds: idsToDelete, count: result.deletedCount });
 
     res.json({ 
       message: `Successfully deleted ${result.deletedCount} user(s)`,
@@ -469,7 +452,10 @@ router.post('/bulk-delete', authenticate, checkRole(['admin', 'hr']), ...require
       attempted: idsToDelete.length
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const statusCode = error.message.includes('userIds') || error.message.includes('Invalid')
+      ? 400
+      : 500;
+    res.status(statusCode).json({ message: statusCode === 400 ? error.message : 'Server error', error: error.message });
   }
 });
 
@@ -661,10 +647,7 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res)
       { $inc: { 'usage.userCount': -1 } }
     );
 
-    // Emit socket event for user deletion
-    if (req.app.get('io')) {
-      req.app.get('io').emit('user:deleted', { _id: user._id, email: user.email });
-    }
+    emitWorkspaceEvent(req, 'user:deleted', { _id: user._id, email: user.email });
 
     res.json({ message: 'User deleted successfully', user: { id: user._id, email: user.email } });
   } catch (error) {
@@ -678,6 +661,10 @@ router.patch('/:id/password', authenticate, checkRole(['admin', 'hr', 'community
     const { password } = req.body;
     const { id } = req.params;
 
+    if (!isValidObjectIdString(id)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
     // Validate password strength
     const validation = validatePasswordStrength(password);
     if (!validation.isValid) {
@@ -686,7 +673,7 @@ router.patch('/:id/password', authenticate, checkRole(['admin', 'hr', 'community
       });
     }
 
-    const user = await User.findById(id);
+    const user = await User.findOne({ _id: id, workspaceId: req.context.workspaceId });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -718,12 +705,16 @@ router.patch('/:id/role', authenticate, checkRole(['admin', 'hr']), async (req, 
     const { role } = req.body;
     const { id } = req.params;
 
+    if (!isValidObjectIdString(id)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
     if (!['admin', 'hr', 'team_lead', 'member'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role' });
     }
 
-    const user = await User.findByIdAndUpdate(
-      id,
+    const user = await User.findOneAndUpdate(
+      { _id: id, workspaceId: req.context.workspaceId },
       { role, updated_at: Date.now() },
       { new: true }
     ).select('-password_hash');
@@ -761,7 +752,7 @@ router.post('/bulk-import/json', authenticate, checkRole(['admin', 'hr']), ...re
       return res.status(400).json({ message: 'JSON file must contain an array of users' });
     }
 
-    const results = await processBulkUsers(usersData, req.user);
+    const results = await processBulkUsers(usersData, req.user, req.context.workspaceId);
     
     res.json({
       message: 'Bulk import completed',
@@ -794,7 +785,7 @@ router.post('/bulk-import/excel', authenticate, checkRole(['admin', 'hr']), ...r
       return res.status(400).json({ message: 'Excel file is empty' });
     }
 
-    const results = await processBulkUsers(usersData, req.user);
+    const results = await processBulkUsers(usersData, req.user, req.context.workspaceId);
     
     res.json({
       message: 'Bulk import completed',
@@ -806,7 +797,7 @@ router.post('/bulk-import/excel', authenticate, checkRole(['admin', 'hr']), ...r
 });
 
 // Helper function to process bulk users
-async function processBulkUsers(usersData, currentUser) {
+async function processBulkUsers(usersData, currentUser, workspaceId) {
   const results = {
     total: usersData.length,
     successful: [],
@@ -819,6 +810,15 @@ async function processBulkUsers(usersData, currentUser) {
     const rowNumber = i + 1;
 
     try {
+      if (typeof userData !== 'object' || userData === null || Array.isArray(userData)) {
+        results.failed.push({
+          row: rowNumber,
+          email: 'N/A',
+          reason: 'Each imported row must be an object'
+        });
+        continue;
+      }
+
       // Validate required fields
       if (!userData.full_name || !userData.email || !userData.password) {
         results.failed.push({
@@ -841,19 +841,34 @@ async function processBulkUsers(usersData, currentUser) {
       }
 
       // Check if user already exists
-      const existingUser = await User.findOne({ email: userData.email });
+      const normalizedEmail = normalizePlainText(String(userData.email).toLowerCase(), 'email', { maxLength: 254 });
+      const normalizedFullName = normalizePlainText(String(userData.full_name), 'full_name', { maxLength: 120 });
+      const normalizedPassword = normalizePlainText(String(userData.password), 'password', { maxLength: 256 });
+
+      const existingUser = await User.findOne({ email: normalizedEmail, workspaceId });
       if (existingUser) {
         results.failed.push({
           row: rowNumber,
-          email: userData.email,
+          email: normalizedEmail,
           reason: 'User with this email already exists'
+        });
+        continue;
+      }
+
+      // SECURITY: Validate password strength for bulk imports
+      const passwordValidation = validatePasswordStrength(normalizedPassword);
+      if (!passwordValidation.isValid) {
+        results.failed.push({
+          row: rowNumber,
+          email: normalizedEmail,
+          reason: `Weak password: ${passwordValidation.errors.join(', ')}`
         });
         continue;
       }
 
       // Validate and set role
       const validRoles = ['admin', 'hr', 'team_lead', 'member'];
-      const role = userData.role ? userData.role.toLowerCase() : 'member';
+      const role = userData.role ? String(userData.role).toLowerCase() : 'member';
       if (!validRoles.includes(role)) {
         results.failed.push({
           row: rowNumber,
@@ -884,27 +899,28 @@ async function processBulkUsers(usersData, currentUser) {
       // Process each team
       for (const teamName of teamNames) {
         // Try to find existing team in current user's workspace
+        const normalizedTeamName = normalizePlainText(String(teamName), 'team name', { maxLength: 80 });
         let team = await Team.findOne({ 
-          name: teamName,
-          workspaceId: currentUser.workspaceId 
+          name: normalizedTeamName,
+          workspaceId 
         });
         
         // If team doesn't exist, create it
         if (!team) {
           team = new Team({
-            name: teamName,
+            name: normalizedTeamName,
             description: `Auto-created during bulk user import`,
             hr_id: currentUser._id,
             lead_id: currentUser._id,
             members: [],
-            workspaceId: currentUser.workspaceId
+            workspaceId
           });
           await team.save();
           
           // Track created teams
-          if (!results.teamsCreated.find(t => t.name === teamName)) {
+          if (!results.teamsCreated.find(t => t.name === normalizedTeamName)) {
             results.teamsCreated.push({
-              name: teamName,
+              name: normalizedTeamName,
               id: team._id
             });
           }
@@ -927,7 +943,7 @@ async function processBulkUsers(usersData, currentUser) {
       if (!validStatuses.includes(employmentStatus)) {
         results.failed.push({
           row: rowNumber,
-          email: userData.email,
+          email: normalizedEmail,
           reason: `Invalid employment_status. Must be one of: ${validStatuses.join(', ')}`
         });
         continue;
@@ -935,14 +951,14 @@ async function processBulkUsers(usersData, currentUser) {
 
       // Create user with teams array
       const newUser = new User({
-        full_name: userData.full_name,
-        email: userData.email.toLowerCase(),
-        password_hash: userData.password,
+        full_name: normalizedFullName,
+        email: normalizedEmail,
+        password_hash: normalizedPassword,
         role: role,
         team_id: teamId,
         teams: teamIds,
-        employment_status: employmentStatus,
-        workspaceId: currentUser.workspaceId
+        employmentStatus,
+        workspaceId
       });
 
       await newUser.save();
@@ -958,14 +974,14 @@ async function processBulkUsers(usersData, currentUser) {
 
       // Try to send credential email (don't fail import if email fails)
       try {
-        await sendCredentialEmail(userData.email, userData.password);
+        await sendCredentialEmail(normalizedFullName, normalizedEmail, normalizedPassword);
       } catch (emailError) {
       }
 
       results.successful.push({
         row: rowNumber,
-        email: userData.email,
-        full_name: userData.full_name,
+        email: normalizedEmail,
+        full_name: normalizedFullName,
         role: role,
         teams: teamNames.length > 0 ? teamNames.join(', ') : 'None',
         employment_status: employmentStatus
