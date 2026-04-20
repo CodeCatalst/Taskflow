@@ -387,7 +387,8 @@ router.post('/login', validateLogin, async (req, res) => {
         team_id: user.team_id,
         workspaceId: activeWorkspaceId || null,
         currentWorkspaceId: activeWorkspaceId || null,
-        isSystemAdmin: !activeWorkspaceId && user.role === 'admin'
+        isSystemAdmin: !activeWorkspaceId && user.role === 'admin',
+        joinedAt: user.joinedAt
       },
       workspace: activeWorkspace ? {
         id: activeWorkspace._id,

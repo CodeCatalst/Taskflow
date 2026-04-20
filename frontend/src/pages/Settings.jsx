@@ -7,10 +7,11 @@ import { useConfirmModal } from '../hooks/useConfirmModal';
 import Sidebar from '../components/Sidebar';
 import ThemeToggle from '../components/ThemeToggle';
 import NotificationSettings from '../components/NotificationSettings';
+import SessionSettings from '../components/SessionSettings';
 
 import ConfirmModal from '../components/modals/ConfirmModal';
 import api from '../api/axios';
-import { User, Settings as SettingsIcon, Palette, Monitor, Lock, Eye, EyeOff, Bell, AlertCircle, Camera, Trash2, Upload, AlertTriangle, Menu } from 'lucide-react';
+import { User, Settings as SettingsIcon, Palette, Monitor, Lock, Eye, EyeOff, Bell, AlertCircle, Camera, Trash2, Upload, AlertTriangle, Menu, Download } from 'lucide-react';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -31,6 +32,72 @@ const Settings = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isUploadingPicture, setIsUploadingPicture] = useState(false);
   const [pictureMessage, setPictureMessage] = useState({ type: '', text: '' });
+
+  // Export functions
+  const exportToExcel = async (type) => {
+    try {
+      const endpoint = type === 'changelog' ? '/changelog/export/excel' : `/${type}/export/excel`;
+      const response = await api.get(endpoint, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${type}-backup-${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export. Please try again.');
+    }
+  };
+
+  const exportToJson = async (type) => {
+    try {
+      const endpoint = type === 'changelog' ? '/changelog/export/json' : `/${type}/export/json`;
+      const response = await api.get(endpoint);
+      const dataStr = JSON.stringify(response.data, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${type}-backup-${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export. Please try again.');
+    }
+  };
+
+  const ImportJsonButton = ({ type, theme }) => {
+    const handleImport = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const arr = Array.isArray(data) ? data : data[type];
+        if (!Array.isArray(arr)) {
+          alert('Invalid format. Expected an array.');
+          return;
+        }
+        if (confirm(`Import ${arr.length} ${type}?`)) {
+          const response = await api.post(`/${type}/import/json`, { [type]: arr });
+          alert(`Done: ${response.data.results?.success || response.data.message}`);
+        }
+      } catch (error) {
+        alert('Import failed.');
+      }
+      e.target.value = '';
+    };
+    return (
+      <label className={`px-3 py-2 rounded text-sm text-center cursor-pointer ${theme === 'dark' ? 'bg-[#282f39] hover:bg-[#363d4a] text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'}`}>
+        Import JSON
+        <input type="file" accept=".json" className="hidden" onChange={handleImport} />
+      </label>
+    );
+  };
 
   const handleProfilePictureChange = async (e) => {
     const file = e.target.files?.[0];
@@ -351,10 +418,10 @@ const Settings = () => {
                   />
                 </div>
                 <div>
-                  <label className={`block text-xs font-bold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider mb-2`}>Member Since</label>
+                  <label className={`block text-xs font-bold ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} uppercase tracking-wider mb-2`}>Date of Joining</label>
                   <input
                     type="text"
-                    value={user?.created_at ? new Date(user.created_at).toLocaleDateString() : ''}
+                    value={user?.joinedAt ? new Date(user.joinedAt).toLocaleDateString() : (user?.created_at ? new Date(user.created_at).toLocaleDateString() : '')}
                     readOnly
                     className={`w-full px-3 py-2 ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-gray-50 border-gray-300 text-gray-900'} border rounded`}
                   />
@@ -526,6 +593,11 @@ const Settings = () => {
               <NotificationSettings />
             </div>
 
+            {/* Session Timeout - Available to all users */}
+            <div className={`${theme === 'dark' ? 'bg-[#1c2027] border-[#282f39]' : 'bg-white border-gray-200'} rounded border p-6`}>
+              <SessionSettings />
+            </div>
+
             {/* Debug Info - Admin Only */}
             {user?.role === 'admin' && (
               <div className={`${theme === 'dark' ? 'bg-[#1c2027] border-[#282f39]' : 'bg-white border-gray-200'} rounded border p-6`}>
@@ -564,6 +636,56 @@ const Settings = () => {
                       <br />3. Clear browser cache and reload
                       <br />4. Check browser notification settings
                     </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Data Backup - Admin Only */}
+            {user?.role === 'admin' && (
+              <div className={`${theme === 'dark' ? 'bg-[#1c2027] border-[#282f39]' : 'bg-white border-gray-200'} rounded border p-6`}>
+                <div className="flex items-center gap-3 mb-4">
+                  <Upload className="text-[#136dec]" size={24} />
+                  <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} uppercase tracking-wider`}>Data Backup</h3>
+                </div>
+                <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} mb-6`}>
+                  Export and backup your data. All exports are workspace-specific.
+                </p>
+                
+                {/* Tasks Backup */}
+                <div className={`mb-6 p-4 ${theme === 'dark' ? 'bg-[#111418]' : 'bg-gray-50'} rounded-lg`}>
+                  <h4 className={`font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Tasks</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button onClick={() => exportToExcel('tasks')} className={`px-3 py-2 rounded text-sm ${theme === 'dark' ? 'bg-[#136dec] hover:bg-[#0d5ad4]' : 'bg-[#136dec] hover:bg-[#0d5ad4]'} text-white`}>Excel</button>
+                    <button onClick={() => exportToJson('tasks')} className={`px-3 py-2 rounded text-sm ${theme === 'dark' ? 'bg-[#282f39]' : 'bg-gray-200'} ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>JSON</button>
+                    <ImportJsonButton type="tasks" theme={theme} />
+                  </div>
+                </div>
+
+                {/* Users Backup */}
+                <div className={`mb-6 p-4 ${theme === 'dark' ? 'bg-[#111418]' : 'bg-gray-50'} rounded-lg`}>
+                  <h4 className={`font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Users</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button onClick={() => exportToExcel('users')} className={`px-3 py-2 rounded text-sm ${theme === 'dark' ? 'bg-[#136dec] hover:bg-[#0d5ad4]' : 'bg-[#136dec] hover:bg-[#0d5ad4]'} text-white`}>Excel</button>
+                    <button onClick={() => exportToJson('users')} className={`px-3 py-2 rounded text-sm ${theme === 'dark' ? 'bg-[#282f39]' : 'bg-gray-200'} ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>JSON</button>
+                  </div>
+                </div>
+
+                {/* Teams Backup */}
+                <div className={`mb-6 p-4 ${theme === 'dark' ? 'bg-[#111418]' : 'bg-gray-50'} rounded-lg`}>
+                  <h4 className={`font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Teams</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button onClick={() => exportToExcel('teams')} className={`px-3 py-2 rounded text-sm ${theme === 'dark' ? 'bg-[#136dec] hover:bg-[#0d5ad4]' : 'bg-[#136dec] hover:bg-[#0d5ad4]'} text-white`}>Excel</button>
+                    <button onClick={() => exportToJson('teams')} className={`px-3 py-2 rounded text-sm ${theme === 'dark' ? 'bg-[#282f39]' : 'bg-gray-200'} ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>JSON</button>
+                  </div>
+                </div>
+
+                {/* Audit Logs Backup */}
+                <div className={`p-4 ${theme === 'dark' ? 'bg-[#111418]' : 'bg-gray-50'} rounded-lg`}>
+                  <h4 className={`font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Audit Logs (Changelog)</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button onClick={() => exportToExcel('changelog')} className={`px-3 py-2 rounded text-sm ${theme === 'dark' ? 'bg-[#136dec] hover:bg-[#0d5ad4]' : 'bg-[#136dec] hover:bg-[#0d5ad4]'} text-white`}>Excel</button>
+                    <button onClick={() => exportToJson('changelog')} className={`px-3 py-2 rounded text-sm ${theme === 'dark' ? 'bg-[#282f39]' : 'bg-gray-200'} ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>JSON</button>
                   </div>
                 </div>
               </div>

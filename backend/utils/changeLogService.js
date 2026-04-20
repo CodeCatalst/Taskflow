@@ -40,6 +40,7 @@ export const logChange = async (params) => {
         email_template: 'email_action',
         user: 'user_action',
         task: 'task_action',
+        team: 'team_action',
         workspace: 'workspace_action'
       };
 

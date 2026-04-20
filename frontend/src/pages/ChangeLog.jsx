@@ -22,7 +22,21 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
-  Menu
+  Menu,
+  Users,
+  BookOpen,
+  Bell,
+  MessageSquare,
+  Package,
+  Settings,
+  CheckCircle,
+  LogIn,
+  LogOut,
+  Plus,
+  Edit,
+  XCircle,
+  Shield,
+  Star
 } from 'lucide-react';
 
 const ChangeLog = () => {
@@ -86,7 +100,7 @@ const ChangeLog = () => {
         setError('Access denied. Admin privileges required.');
         setTimeout(() => navigate('/dashboard'), 2000);
       } else if (error.response?.status === 404) {
-        setError('⚠️ Changelog routes not found. Please restart the backend server! See RESTART_BACKEND.md for instructions.');
+        setError(<span className="flex items-center gap-2"><AlertCircle size={18} /> Changelog routes not found. Please restart the backend server!</span>);
       } else if (error.response?.data?.message) {
         setError(`Error: ${error.response.data.message}`);
       } else {
@@ -185,16 +199,17 @@ const ChangeLog = () => {
   };
 
 const getEventIcon = (eventType) => {
-    if (eventType.includes('login') || eventType.includes('logout')) return '🔐';
-    if (eventType.includes('task')) return '✅';
-    if (eventType.includes('user')) return '👤';
-    if (eventType.includes('team')) return '👥';
-    if (eventType.includes('report')) return '📊';
-    if (eventType.includes('automation')) return '🤖';
-    if (eventType.includes('notification')) return '🔔';
-    if (eventType.includes('comment')) return '💬';
-    if (eventType.includes('bulk')) return '📦';
-    return '⚙️';
+    if (eventType.includes('login')) return <LogIn size={16} className="text-blue-400" />;
+    if (eventType.includes('logout')) return <LogOut size={16} className="text-gray-400" />;
+    if (eventType.includes('task')) return <CheckCircle size={16} className="text-teal-400" />;
+    if (eventType.includes('user')) return <User size={16} className="text-blue-400" />;
+    if (eventType.includes('team')) return <Users size={16} className="text-orange-400" />;
+    if (eventType.includes('report')) return <BookOpen size={16} className="text-indigo-400" />;
+    if (eventType.includes('automation')) return <Settings size={16} className="text-purple-400" />;
+    if (eventType.includes('notification')) return <Bell size={16} className="text-pink-400" />;
+    if (eventType.includes('comment')) return <MessageSquare size={16} className="text-cyan-400" />;
+    if (eventType.includes('bulk')) return <Package size={16} className="text-yellow-400" />;
+    return <Settings size={16} className="text-gray-400" />;
   };
 
   const getEventColor = (eventType) => {
@@ -235,14 +250,16 @@ const getEventIcon = (eventType) => {
 
 const getTargetTypeIcon = (targetType) => {
     switch (targetType?.toLowerCase()) {
-      case 'task': return '✅';
-      case 'user': return '👤';
-      case 'team': return '👥';
-      case 'report': return '📊';
-      case 'comment': return '💬';
-      case 'notification': return '🔔';
-      case 'automation': return '⚙️';
-      default: return '📌';
+      case 'task': return <CheckCircle size={14} className="text-teal-400" />;
+      case 'user': return <User size={14} className="text-blue-400" />;
+      case 'team': return <Users size={14} className="text-orange-400" />;
+      case 'report': return <BookOpen size={14} className="text-indigo-400" />;
+      case 'comment': return <MessageSquare size={14} className="text-cyan-400" />;
+      case 'notification': return <Bell size={14} className="text-pink-400" />;
+      case 'automation': return <Settings size={14} className="text-purple-400" />;
+      case 'leave': return <Calendar size={14} className="text-green-400" />;
+      case 'workspace': return <Target size={14} className="text-red-400" />;
+      default: return <Activity size={14} className="text-gray-400" />;
     }
   };
 
@@ -427,14 +444,14 @@ const getTargetTypeIcon = (targetType) => {
                       : theme === 'dark' ? 'border-[#282f39] bg-[#1c2027]' : 'border-gray-200 bg-white'
                       } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
                   >
-                    <option value="">🎯 All Types</option>
-                    <option value="task">✅ Task</option>
-                    <option value="user">ðŸ‘¤ User</option>
-                    <option value="team">ðŸ‘¥ Team</option>
-                    <option value="report">ðŸ“Š Report</option>
-                    <option value="comment">ðŸ’¬ Comment</option>
-                    <option value="notification">ðŸ”” Notification</option>
-                    <option value="automation">⚙️ Automation</option>
+                    <option value="">All Types</option>
+                    <option value="task">Task</option>
+                    <option value="user">User</option>
+<option value="team">Team</option>
+                    <option value="report">Report</option>
+                    <option value="comment">Comment</option>
+                    <option value="notification">Notification</option>
+                    <option value="automation">Automation</option>
                   </select>
                 </div>
 
@@ -533,7 +550,7 @@ const getTargetTypeIcon = (targetType) => {
                   )}
                   {(filters.start_date || filters.end_date) && (
                     <span className="px-3 py-1 bg-green-500/10 text-green-400 rounded-full text-xs font-medium">
-                      ðŸ“… Date Range
+                      <Calendar className="w-4 h-4" /> Date Range
                     </span>
                   )}
                 </div>
@@ -628,14 +645,14 @@ const getTargetTypeIcon = (targetType) => {
                           <div>
                             <div className="font-medium">{log.user_name || 'System'}</div>
                             <div className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>{log.user_email || 'N/A'}</div>
-                            {log.user_role && (
+{log.user_role && (
                               <span className={`inline-block mt-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-full ${log.user_role === 'admin'
                                 ? 'bg-red-500/10 text-red-400 border border-red-500/30'
                                 : log.user_role === 'manager'
                                   ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                                   : 'bg-green-500/10 text-green-400 border border-green-500/30'
                                 }`}>
-                                {log.user_role === 'admin' ? 'ðŸ‘‘' : log.user_role === 'manager' ? '⭐' : 'ðŸ‘¤'} {log.user_role.toUpperCase()}
+                                {log.user_role === 'admin' ? <Shield className="w-3 h-3 mr-1" /> : log.user_role === 'manager' ? <Star className="w-3 h-3 mr-1" /> : <User className="w-3 h-3 mr-1" />} {log.user_role.toUpperCase()}
                               </span>
                             )}
                           </div>

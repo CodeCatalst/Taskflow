@@ -232,4 +232,97 @@ router.delete('/clear', authenticate, checkRole(['admin']), async (req, res) => 
   }
 });
 
+// Export audit logs to Excel (Admin only)
+router.get('/export/excel', authenticate, checkRole(['admin']), async (req, res) => {
+  try {
+    // Extra security check
+    if (!req.context.isSystemAdmin && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    const xlsx = await import('xlsx');
+    
+    const query = {};
+    if (!req.user.role === 'admin' || !req.query.all) {
+      query.workspaceId = req.context.workspaceId;
+    }
+    
+    const logs = await ChangeLog.find(query)
+      .populate('user_id', 'full_name email')
+      .sort({ created_at: -1 })
+      .limit(10000)
+      .lean();
+
+    const logData = logs.map(log => ({
+      'Timestamp': log.created_at ? new Date(log.created_at).toLocaleString() : '',
+      'Event Type': log.event_type,
+      'Action': log.action,
+      'User': log.user_id?.full_name || '',
+      'User Email': log.user_id?.email || '',
+      'Target Type': log.target_type || '',
+      'Target Name': log.target_name || '',
+      'Description': log.description || '',
+      'IP Address': log.user_ip || ''
+    }));
+
+    const worksheet = xlsx.default.utils.json_to_sheet(logData);
+    const workbook = xlsx.default.utils.book_new();
+    xlsx.default.utils.book_append_sheet(workbook, worksheet, 'Audit Logs');
+
+    const buffer = xlsx.default.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=audit-logs-export-${Date.now()}.xlsx`);
+    res.send(buffer);
+  } catch (error) {
+    console.error('Export audit logs to Excel error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Export audit logs to JSON (Admin only)
+router.get('/export/json', authenticate, checkRole(['admin']), async (req, res) => {
+  try {
+    // Extra security check
+    if (!req.context.isSystemAdmin && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    const query = {};
+    if (req.user.role !== 'admin' || !req.query.all) {
+      query.workspaceId = req.context.workspaceId;
+    }
+    
+    const logs = await ChangeLog.find(query)
+      .populate('user_id', 'full_name email')
+      .sort({ created_at: -1 })
+      .limit(10000)
+      .lean();
+
+    const exportData = logs.map(log => ({
+      event_type: log.event_type,
+      action: log.action,
+      user_id: log.user_id?._id?.toString(),
+      user_name: log.user_id?.full_name,
+      user_email: log.user_id?.email,
+      target_type: log.target_type,
+      target_id: log.target_id,
+      target_name: log.target_name,
+      description: log.description,
+      user_ip: log.user_ip,
+      metadata: log.metadata,
+      changes: log.changes,
+      workspaceId: log.workspaceId?.toString(),
+      created_at: log.created_at
+    }));
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename=audit-logs-export-${Date.now()}.json`);
+    res.json(exportData);
+  } catch (error) {
+    console.error('Export audit logs to JSON error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 export default router;
