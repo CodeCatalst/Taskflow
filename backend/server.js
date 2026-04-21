@@ -27,6 +27,9 @@ import leaveTypesRoutes from './routes/leaveTypes.js';
 import holidaysRoutes from './routes/holidays.js';
 import hrCalendarRoutes from './routes/hrCalendar.js';
 import emailTemplatesRoutes from './routes/emailTemplates.js';
+import emailNotificationPreferencesRoutes from './routes/emailNotificationPreferences.js';
+import scheduledEmailCampaignsRoutes from './routes/scheduledEmailCampaigns.js';
+import automationTriggersRoutes from './routes/automationTriggers.js';
 
 // Import middleware
 import { authenticate } from './middleware/auth.js';
@@ -220,6 +223,9 @@ app.use('/api/hr/leave-types', authenticate, workspaceContext, leaveTypesRoutes)
 app.use('/api/hr/holidays', authenticate, workspaceContext, holidaysRoutes);
 app.use('/api/hr/calendar', authenticate, workspaceContext, hrCalendarRoutes);
 app.use('/api/hr/email-templates', authenticate, workspaceContext, emailTemplatesRoutes);
+app.use('/api/user/email-preferences', authenticate, workspaceContext, emailNotificationPreferencesRoutes);
+app.use('/api/hr/scheduled-campaigns', authenticate, workspaceContext, scheduledEmailCampaignsRoutes);
+app.use('/api/automation', automationTriggersRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

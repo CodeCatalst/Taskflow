@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -28,33 +28,44 @@ import {
   Clock,
   CalendarDays,
   Briefcase,
-  RefreshCw
+  RefreshCw,
+  Mail,
+  Zap,
+  Send
 } from 'lucide-react';
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const { theme, currentTheme } = useTheme();
-  const { isMobileOpen, isMobile, closeMobileSidebar, isCollapsed, toggleCollapse } = useSidebar();
+  // Dropdown state management from context
+  const {
+    isMobileOpen,
+    isMobile,
+    closeMobileSidebar,
+    isCollapsed,
+    toggleCollapse,
+    openDropdowns,
+    toggleDropdown
+  } = useSidebar();
   const { workspace, allWorkspaces, switchWorkspace, fetchAllWorkspaces } = useWorkspace();
   const navigate = useNavigate();
   const location = useLocation();
   const confirmModal = useConfirmModal();
+  const scrollContainerRef = useRef(null);
 
-  // Dropdown state management
-  const [openDropdowns, setOpenDropdowns] = useState({
-    main: true, // Main section starts open
-    hr: false,
-    management: false,
-    workspaces: false
-  });
-
-  const toggleDropdown = (section) => {
-    setOpenDropdowns(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
+  // Default values for dropdowns if not set in context/localStorage
+  const getDropdownState = (section, defaultValue) => {
+    return openDropdowns[section] !== undefined ? openDropdowns[section] : defaultValue;
   };
-  
+
+  // Persist scroll position
+  useEffect(() => {
+    const savedScroll = localStorage.getItem('sidebarScrollPosition');
+    if (savedScroll && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = parseInt(savedScroll, 10);
+    }
+  }, []);
+
   // Load workspaces on mount
   useEffect(() => {
     if (user && allWorkspaces.length === 0) {
@@ -97,6 +108,8 @@ const Sidebar = () => {
     { path: '/hr/leaves', icon: CalendarDays, label: 'Leave Management', roles: ['admin', 'hr', 'team_lead', 'member'], coreWorkspaceOnly: true },
     { path: '/hr/calendar', icon: Calendar, label: 'HR Calendar', roles: ['admin', 'hr'], coreWorkspaceOnly: true },
     { path: '/hr/email-center', icon: FileText, label: 'Email Center', roles: ['admin', 'hr'], coreWorkspaceOnly: true },
+    { path: '/email-automation', icon: Zap, label: 'Email Automation', roles: ['admin', 'hr'], coreWorkspaceOnly: true },
+    { path: '/scheduled-campaigns', icon: Send, label: 'Scheduled Campaigns', roles: ['admin', 'hr'], coreWorkspaceOnly: true },
     { path: '/teams', icon: Users, label: 'Teams', roles: ['admin', 'hr', 'team_lead', 'community_admin'] },
     { path: '/users', icon: UserCog, label: 'User Management', roles: ['admin', 'hr', 'community_admin'] },
   ];
@@ -109,6 +122,7 @@ const Sidebar = () => {
 
   const bottomMenuItems = [
     { path: '/settings', icon: Settings, label: 'Settings' },
+    { path: '/email-preferences', icon: Mail, label: 'Email Preferences' },
   ];
 
   const canAccess = (item) => {
@@ -189,7 +203,11 @@ const Sidebar = () => {
       </div>
 
       {/* Main Navigation */}
-      <div className="flex flex-col flex-1 overflow-y-auto max-h-full">
+      <div
+        ref={scrollContainerRef}
+        onScroll={(e) => localStorage.setItem('sidebarScrollPosition', e.target.scrollTop.toString())}
+        className="flex flex-col flex-1 overflow-y-auto max-h-full"
+      >
         {/* Main Section Dropdown */}
         {!isCollapsed && (
           <div className={`border-b ${
@@ -202,14 +220,14 @@ const Sidebar = () => {
               }`}
             >
               <p className="text-xs font-semibold uppercase tracking-wider">Main</p>
-              {openDropdowns.main ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              {getDropdownState('main', true) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             </button>
           </div>
         )}
 
         {/* Main Menu Items */}
         <div className={`transition-all duration-200 ${
-          isCollapsed || openDropdowns.main ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
+          isCollapsed || getDropdownState('main', true) ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
         }`}>
           {mainMenuItems.map((item) => {
             const Icon = item.icon;
@@ -250,14 +268,14 @@ const Sidebar = () => {
                   }`}
                 >
                   <p className="text-xs font-semibold uppercase tracking-wider">HR Management</p>
-                  {openDropdowns.hr ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  {getDropdownState('hr', false) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 </button>
               </div>
             )}
 
             {/* HR Menu Items */}
             <div className={`transition-all duration-200 ${
-              isCollapsed || openDropdowns.hr || isMobile ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
+              isCollapsed || getDropdownState('hr', false) || isMobile ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
             }`}>
               {hrMenuItems.filter(canAccess).map((item) => {
                 const Icon = item.icon;
@@ -300,14 +318,14 @@ const Sidebar = () => {
                   }`}
                 >
                   <p className="text-xs font-semibold uppercase tracking-wider">Management</p>
-                  {openDropdowns.management ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  {getDropdownState('management', false) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 </button>
               </div>
             )}
 
             {/* Management Menu Items */}
             <div className={`transition-all duration-200 ${
-              isCollapsed || openDropdowns.management || isMobile ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
+              isCollapsed || getDropdownState('management', false) || isMobile ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
             }`}>
               {adminMenuItems.filter(canAccess).map((item) => {
                 const Icon = item.icon;
@@ -353,7 +371,7 @@ const Sidebar = () => {
                   className={`text-xs ${isDark ? 'text-[#9da8b9] hover:text-white' : 'text-gray-500 hover:text-gray-700'}`}
                   title="Switch workspace"
                 >
-                  {openDropdowns.workspaces ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {getDropdownState('workspaces', false) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </button>
               )}
             </div>
@@ -380,7 +398,7 @@ const Sidebar = () => {
             )}
             
             {/* Workspace Switcher Dropdown */}
-            {allWorkspaces.length > 1 && openDropdowns.workspaces && (
+            {allWorkspaces.length > 1 && getDropdownState('workspaces', false) && (
               <div className={`mb-2 rounded overflow-hidden ${
                 isDark ? 'bg-[#111418]' : 'bg-white border border-gray-200'
               }`}>

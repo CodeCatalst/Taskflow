@@ -14,6 +14,7 @@ export const SidebarProvider = ({ children }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [openDropdowns, setOpenDropdowns] = useState({});
 
   useEffect(() => {
     // Check if mobile/tablet on mount and load collapsed state
@@ -29,6 +30,12 @@ export const SidebarProvider = ({ children }) => {
     const savedCollapseState = localStorage.getItem('sidebarCollapsed');
     if (savedCollapseState !== null) {
       setIsCollapsed(JSON.parse(savedCollapseState));
+    }
+
+    // Load dropdown states from localStorage
+    const savedDropdowns = localStorage.getItem('sidebarDropdowns');
+    if (savedDropdowns !== null) {
+      setOpenDropdowns(JSON.parse(savedDropdowns));
     }
 
     checkMobile();
@@ -51,15 +58,28 @@ export const SidebarProvider = ({ children }) => {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
   };
 
+  const toggleDropdown = (section) => {
+    setOpenDropdowns(prev => {
+      const newState = {
+        ...prev,
+        [section]: !prev[section]
+      };
+      localStorage.setItem('sidebarDropdowns', JSON.stringify(newState));
+      return newState;
+    });
+  };
+
   return (
     <SidebarContext.Provider
       value={{
         isMobileOpen,
         isMobile,
         isCollapsed,
+        openDropdowns,
         toggleMobileSidebar,
         closeMobileSidebar,
         toggleCollapse,
+        toggleDropdown,
       }}
     >
       {children}

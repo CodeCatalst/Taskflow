@@ -1060,75 +1060,445 @@ export const sendOverdueTaskReminder = async (userName, userEmail, taskTitle, da
 };
 
 // Send weekly report
-export const sendWeeklyReport = async (userName, userEmail, reportData) => {
+export const sendWeeklyReport = async (userName, userEmail, reportData, attachments = []) => {
   try {
-    const appUrl = process.env.NODE_ENV === 'production' 
+    const appUrl = process.env.NODE_ENV === 'production'
       ? 'https://taskflow-nine-phi.vercel.app'
       : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
+
+    // Helper function to get trend indicator
+    const getTrendIndicator = (trend) => {
+      const trendValue = parseFloat(trend);
+      if (trendValue > 10) return { symbol: '📈', color: '#10b981', text: `+${trend}% vs last week` };
+      if (trendValue > 0) return { symbol: '📊', color: '#f59e0b', text: `+${trend}% vs last week` };
+      if (trendValue < -10) return { symbol: '📉', color: '#ef4444', text: `${trend}% vs last week` };
+      if (trendValue < 0) return { symbol: '📊', color: '#f59e0b', text: `${trend}% vs last week` };
+      return { symbol: '➡️', color: '#6b7280', text: 'No change vs last week' };
+    };
+
+    const trend = getTrendIndicator(reportData.completionTrend || '0.0');
+
+    // Generate top performers HTML
+    const topPerformersHtml = reportData.topPerformers?.length > 0
+      ? reportData.topPerformers.map((performer, index) => `
+          <div class="performer-item">
+            <div class="performer-rank">${index + 1}</div>
+            <div class="performer-info">
+              <span class="performer-name">${performer.name}</span>
+              <span class="performer-stats">${performer.completedTasks}/${performer.totalTasks} tasks</span>
+            </div>
+            <div class="performer-rate">${performer.completionRate}%</div>
+          </div>
+        `).join('')
+      : '<p class="no-data">No performance data available</p>';
+
+    // Generate team performance HTML
+    const teamPerformanceHtml = reportData.teamPerformance?.length > 0
+      ? reportData.teamPerformance.map(team => `
+          <div class="team-item">
+            <div class="team-info">
+              <span class="team-name">${team.name}</span>
+              <span class="team-stats">${team.completedTasks}/${team.totalTasks} tasks</span>
+            </div>
+            <div class="team-metrics">
+              <span class="completion-rate">${team.completionRate}%</span>
+              <span class="overdue-count">${team.overdueTasks} overdue</span>
+            </div>
+          </div>
+        `).join('')
+      : '<p class="no-data">No team data available</p>';
 
     const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #136dec 0%, #0b4fb5 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-    .stat-box { background: white; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e0e7ff; }
-    .stat-number { font-size: 36px; font-weight: bold; color: #136dec; }
-    .stat-label { color: #666; font-size: 14px; margin-top: 5px; }
-    .btn { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #136dec 0%, #0b4fb5 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 20px; }
-    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1a1a1a; background: #f8fafc; margin: 0; padding: 0; }
+    .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+    .header { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 40px 30px; text-align: center; }
+    .content { padding: 40px 30px; }
+    .greeting { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+    .week-summary { background: #f9fafb; border-radius: 8px; padding: 25px; margin: 25px 0; border-left: 4px solid #6366f1; }
+    .summary-title { font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 15px; }
+    .stats-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin: 25px 0; }
+    .stat-card { background: white; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e5e7eb; }
+    .stat-number { font-size: 28px; font-weight: 700; color: #4f46e5; margin-bottom: 5px; }
+    .stat-label { color: #6b7280; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .trend-indicator { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 10px; font-size: 12px; }
+    .section { margin: 35px 0; }
+    .section-title { font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; display: flex; align-items: center; gap: 10px; }
+    .status-distribution { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+    .status-item { background: #f9fafb; padding: 15px; border-radius: 6px; text-align: center; }
+    .status-value { font-size: 24px; font-weight: 700; margin-bottom: 5px; }
+    .status-label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+    .performers-list { background: #f9fafb; border-radius: 8px; padding: 20px; }
+    .performer-item { display: flex; align-items: center; gap: 15px; padding: 12px 0; border-bottom: 1px solid #e5e7eb; }
+    .performer-item:last-child { border-bottom: none; }
+    .performer-rank { width: 30px; height: 30px; background: #4f46e5; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+    .performer-info { flex: 1; }
+    .performer-name { display: block; font-weight: 500; color: #1f2937; }
+    .performer-stats { display: block; font-size: 12px; color: #6b7280; }
+    .performer-rate { font-weight: 700; color: #059669; font-size: 16px; }
+    .team-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #e5e7eb; }
+    .team-item:last-child { border-bottom: none; }
+    .team-info { flex: 1; }
+    .team-name { display: block; font-weight: 500; color: #1f2937; }
+    .team-stats { display: block; font-size: 12px; color: #6b7280; }
+    .team-metrics { display: flex; gap: 15px; }
+    .completion-rate { font-weight: 700; color: #059669; }
+    .overdue-count { color: #dc2626; font-size: 12px; }
+    .no-data { color: #6b7280; font-style: italic; text-align: center; padding: 20px; }
+    .action-section { text-align: center; margin-top: 40px; }
+    .btn { display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: white !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3); }
+    .footer { background: #f9fafb; padding: 30px; text-align: center; color: #6b7280; font-size: 14px; border-top: 1px solid #e5e7eb; }
+    .footer p { margin: 5px 0; }
+    @media only screen and (max-width: 600px) {
+      .stats-overview { grid-template-columns: repeat(2, 1fr); }
+      .status-distribution { grid-template-columns: 1fr; }
+      .content { padding: 20px; }
+      .header { padding: 30px 20px; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>ðŸ“Š Your Weekly Report</h1>
+      <h1 style="margin: 0; font-size: 28px; font-weight: 700;">📊 Weekly Performance Report</h1>
+      <p style="margin: 8px 0 0 0; opacity: 0.9;">${reportData.weekRange}</p>
     </div>
+
     <div class="content">
-      <p>Hello <strong>${userName}</strong>,</p>
-      <p>Here's your task summary for this week:</p>
-      <div class="stats-grid">
-        <div class="stat-box">
-          <div class="stat-number">${reportData.completed || 0}</div>
-          <div class="stat-label">Tasks Completed</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-number">${reportData.pending || 0}</div>
-          <div class="stat-label">Tasks Pending</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-number">${reportData.inProgress || 0}</div>
-          <div class="stat-label">In Progress</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-number">${reportData.overdue || 0}</div>
-          <div class="stat-label">Overdue</div>
+      <div class="greeting">
+        Good morning ${userName},
+      </div>
+
+      <div class="week-summary">
+        <div class="summary-title">📈 Week Overview</div>
+        <p>This week, your team created <strong>${reportData.weeklyCreatedTasks || 0}</strong> new tasks with an overall completion rate of <strong>${reportData.completionRate}%</strong>.</p>
+        <div class="trend-indicator" style="color: ${trend.color};">
+          <span>${trend.symbol}</span>
+          <span>${trend.text}</span>
         </div>
       </div>
-      <p>Keep up the great work! Click below to see your full dashboard:</p>
-      <a href="${appUrl}" class="btn">View Dashboard</a>
-      <p style="margin-top: 30px;">Best regards,<br>TaskFlow Team</p>
+
+      <div class="stats-overview">
+        <div class="stat-card">
+          <div class="stat-number">${reportData.totalTasks || 0}</div>
+          <div class="stat-label">Total Tasks</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${reportData.completedTasks || 0}</div>
+          <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${reportData.inProgressTasks || 0}</div>
+          <div class="stat-label">In Progress</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${reportData.overdueTasks || 0}</div>
+          <div class="stat-label">Overdue</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${reportData.activeTeams || 0}</div>
+          <div class="stat-label">Active Teams</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${reportData.activeUsers || 0}</div>
+          <div class="stat-label">Active Users</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3 class="section-title">📊 Task Status Distribution</h3>
+        <div class="status-distribution">
+          ${(reportData.statusDistribution || []).map(status => `
+            <div class="status-item">
+              <div class="status-value">${status.value}</div>
+              <div class="status-label">${status.name}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="section">
+        <h3 class="section-title">🏆 Top Performers</h3>
+        <div class="performers-list">
+          ${topPerformersHtml}
+        </div>
+      </div>
+
+      <div class="section">
+        <h3 class="section-title">👥 Team Performance</h3>
+        <div class="performers-list">
+          ${teamPerformanceHtml}
+        </div>
+      </div>
+
+      <div class="action-section">
+        <a href="${appUrl}/admin/dashboard" class="btn">View Full Dashboard</a>
+      </div>
     </div>
+
     <div class="footer">
-      <p>This is an automated email. Please do not reply.</p>
+      <p><strong>TaskFlow Admin</strong> - Weekly Automated Report</p>
+      <p>This report is generated every Monday at 8:00 AM</p>
     </div>
   </div>
 </body>
 </html>
     `;
 
-    const subject = 'ðŸ“Š Your Weekly TaskFlow Report';
+    const subject = `📊 Weekly Report: ${reportData.completionRate}% Completion Rate - ${reportData.weekRange}`;
 
     const result = await sendEmail(userEmail, subject, htmlContent);
-    
+
     if (result.success) {
     } else {
     }
-    
+
+    return result;
+  } catch (error) {
+    return { success: false, status: 'error', error: error.message };
+  }
+};
+
+// HTML Template for Due Date Notification (1 day before or on due date)
+const getDueDateNotificationTemplate = (userName, tasks, notificationType) => {
+  const appUrl = process.env.NODE_ENV === 'production'
+    ? 'https://taskflow-nine-phi.vercel.app'
+    : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
+
+  const isTomorrow = notificationType === 'tomorrow';
+  const headerColor = isTomorrow ? '#f59e0b' : '#ef4444'; // Orange for tomorrow, red for today
+  const headerText = isTomorrow ? '⏰ Task Due Tomorrow' : '🚨 Task Due Today';
+
+  const tasksList = tasks.map(task => `
+    <div class="task-item">
+      <h3 style="margin: 0 0 8px 0; color: #1f2937;">${task.title}</h3>
+      <div class="task-meta">
+        <span class="priority-badge priority-${task.priority?.toLowerCase() || 'medium'}">${task.priority || 'Medium'} Priority</span>
+        <span class="due-date">Due: ${new Date(task.due_date).toLocaleDateString()}</span>
+      </div>
+      ${task.description ? `<p class="task-description">${task.description}</p>` : ''}
+      <a href="${appUrl}/tasks/${task._id}" class="task-link">View Task →</a>
+    </div>
+  `).join('');
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1a1a1a; background: #f8fafc; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+    .header { background: linear-gradient(135deg, ${headerColor} 0%, ${headerColor}dd 100%); color: white; padding: 40px 30px; text-align: center; }
+    .content { padding: 40px 30px; }
+    .greeting { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+    .message { color: #4b5563; margin-bottom: 30px; font-size: 16px; }
+    .tasks-container { background: #f9fafb; border-radius: 8px; padding: 25px; margin: 25px 0; }
+    .task-item { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 15px; }
+    .task-item:last-child { margin-bottom: 0; }
+    .task-meta { display: flex; gap: 12px; margin-bottom: 12px; align-items: center; }
+    .priority-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    .priority-high { background: #fef2f2; color: #dc2626; }
+    .priority-medium { background: #fef3c7; color: #d97706; }
+    .priority-low { background: #f0fdf4; color: #16a34a; }
+    .priority-urgent { background: #fef2f2; color: #dc2626; }
+    .due-date { color: #6b7280; font-size: 14px; }
+    .task-description { color: #4b5563; margin: 12px 0; line-height: 1.5; }
+    .task-link { color: #3b82f6; text-decoration: none; font-weight: 500; font-size: 14px; }
+    .task-link:hover { text-decoration: underline; }
+    .action-section { text-align: center; margin-top: 30px; }
+    .btn { display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3); }
+    .footer { background: #f9fafb; padding: 30px; text-align: center; color: #6b7280; font-size: 14px; border-top: 1px solid #e5e7eb; }
+    .footer p { margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0; font-size: 28px; font-weight: 700;">${headerText}</h1>
+      <p style="margin: 8px 0 0 0; opacity: 0.9;">Don't let these tasks slip through the cracks</p>
+    </div>
+
+    <div class="content">
+      <div class="greeting">
+        Hi ${userName},
+      </div>
+
+      <div class="message">
+        <p>You have <strong>${tasks.length}</strong> task${tasks.length === 1 ? '' : 's'} due ${isTomorrow ? 'tomorrow' : 'today'}.
+        ${isTomorrow ? 'Make sure to prioritize these for timely completion.' : 'These need your immediate attention!'}</p>
+      </div>
+
+      <div class="tasks-container">
+        ${tasksList}
+      </div>
+
+      <div class="action-section">
+        <a href="${appUrl}/dashboard" class="btn">View All Tasks</a>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p><strong>TaskFlow</strong> - Collaborative Task Management</p>
+      <p>This is an automated reminder. Stay on top of your tasks!</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
+// Send due date notification (1 day before or on due date)
+export const sendDueDateNotification = async (userName, userEmail, tasks, notificationType = 'tomorrow') => {
+  try {
+    const htmlContent = getDueDateNotificationTemplate(userName, tasks, notificationType);
+    const subject = notificationType === 'tomorrow'
+      ? `⏰ ${tasks.length} Task${tasks.length === 1 ? '' : 's'} Due Tomorrow`
+      : `🚨 ${tasks.length} Task${tasks.length === 1 ? '' : 's'} Due Today`;
+
+    const result = await sendEmail(userEmail, subject, htmlContent);
+
+    if (result.success) {
+    } else {
+    }
+
+    return result;
+  } catch (error) {
+    return { success: false, status: 'error', error: error.message };
+  }
+};
+
+// HTML Template for Daily Admin Report
+const getDailyAdminReportTemplate = (adminName, reportData, workspaceName) => {
+  const appUrl = process.env.NODE_ENV === 'production'
+    ? 'https://taskflow-nine-phi.vercel.app'
+    : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
+
+  const dueTodayList = reportData.dueToday?.map(task => `
+    <div class="task-row">
+      <div class="task-info">
+        <span class="task-title">${task.title}</span>
+        <span class="task-assignee">${task.assigned_to?.full_name || 'Unassigned'}</span>
+      </div>
+      <span class="task-priority priority-${task.priority?.toLowerCase() || 'medium'}">${task.priority || 'Medium'}</span>
+    </div>
+  `).join('') || '<p class="no-tasks">No tasks due today</p>';
+
+  const overdueList = reportData.overdue?.map(task => `
+    <div class="task-row overdue">
+      <div class="task-info">
+        <span class="task-title">${task.title}</span>
+        <span class="task-assignee">${task.assigned_to?.full_name || 'Unassigned'}</span>
+      </div>
+      <span class="task-priority priority-high">OVERDUE</span>
+    </div>
+  `).join('') || '<p class="no-tasks">No overdue tasks</p>';
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1a1a1a; background: #f8fafc; margin: 0; padding: 0; }
+    .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+    .header { background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; padding: 40px 30px; text-align: center; }
+    .content { padding: 40px 30px; }
+    .greeting { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin: 30px 0; }
+    .summary-card { background: #f9fafb; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; text-align: center; }
+    .summary-number { font-size: 32px; font-weight: 700; color: #059669; margin-bottom: 8px; }
+    .summary-label { color: #6b7280; font-size: 14px; font-weight: 500; }
+    .section { margin: 35px 0; }
+    .section-title { font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; }
+    .task-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; }
+    .task-row.overdue { background: #fef2f2; border-left: 4px solid #dc2626; }
+    .task-info { flex: 1; }
+    .task-title { display: block; font-weight: 500; color: #1f2937; }
+    .task-assignee { display: block; font-size: 14px; color: #6b7280; }
+    .task-priority { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    .priority-high { background: #fef2f2; color: #dc2626; }
+    .priority-medium { background: #fef3c7; color: #d97706; }
+    .priority-low { background: #f0fdf4; color: #16a34a; }
+    .priority-urgent { background: #fef2f2; color: #dc2626; }
+    .no-tasks { color: #6b7280; font-style: italic; text-align: center; padding: 20px; }
+    .action-section { text-align: center; margin-top: 40px; }
+    .btn { display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3); }
+    .footer { background: #f9fafb; padding: 30px; text-align: center; color: #6b7280; font-size: 14px; border-top: 1px solid #e5e7eb; }
+    .footer p { margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0; font-size: 28px; font-weight: 700;">📊 Daily Admin Report</h1>
+      <p style="margin: 8px 0 0 0; opacity: 0.9;">${workspaceName} - ${new Date().toLocaleDateString()}</p>
+    </div>
+
+    <div class="content">
+      <div class="greeting">
+        Good morning ${adminName},
+      </div>
+
+      <p>Here's your daily task summary for ${workspaceName}:</p>
+
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-number">${reportData.totalTasks || 0}</div>
+          <div class="summary-label">Total Tasks</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-number">${reportData.dueToday?.length || 0}</div>
+          <div class="summary-label">Due Today</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-number">${reportData.overdue?.length || 0}</div>
+          <div class="summary-label">Overdue</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-number">${reportData.completedToday || 0}</div>
+          <div class="summary-label">Completed Today</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3 class="section-title">🎯 Tasks Due Today</h3>
+        ${dueTodayList}
+      </div>
+
+      <div class="section">
+        <h3 class="section-title">🚨 Overdue Tasks</h3>
+        ${overdueList}
+      </div>
+
+      <div class="action-section">
+        <a href="${appUrl}/admin/dashboard" class="btn">View Full Dashboard</a>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p><strong>TaskFlow Admin</strong> - Daily Automated Report</p>
+      <p>This report is generated every morning at 8:00 AM</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
+// Send daily admin report
+export const sendDailyAdminReport = async (adminName, adminEmail, reportData, workspaceName = 'TaskFlow') => {
+  try {
+    const htmlContent = getDailyAdminReportTemplate(adminName, reportData, workspaceName);
+    const subject = `📊 Daily Admin Report - ${workspaceName} (${new Date().toLocaleDateString()})`;
+
+    const result = await sendEmail(adminEmail, subject, htmlContent);
+
+    if (result.success) {
+    } else {
+    }
+
     return result;
   } catch (error) {
     return { success: false, status: 'error', error: error.message };
@@ -1146,5 +1516,7 @@ export default {
   sendCommentNotification,
   renderTemplate,
   sendOverdueTaskReminder,
-  sendWeeklyReport
+  sendWeeklyReport,
+  sendDueDateNotification,
+  sendDailyAdminReport
 };

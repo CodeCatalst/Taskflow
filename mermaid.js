@@ -1,0 +1,117 @@
+flowchart TD
+
+subgraph group_backend["Backend"]
+  node_backend_server["Server<br/>Express entrypoint<br/>[server.js]"]
+  node_backend_routes_auth["Auth API<br/>route<br/>[auth.js]"]
+  node_backend_routes_tasks["Tasks API<br/>route<br/>[tasks.js]"]
+  node_backend_routes_teams["Teams API<br/>route<br/>[teams.js]"]
+  node_backend_routes_comments["Comments API<br/>route<br/>[comments.js]"]
+  node_backend_routes_notifications["Notifications API<br/>route<br/>[notifications.js]"]
+  node_backend_routes_changelog["Changelog API<br/>route<br/>[changelog.js]"]
+  node_backend_middleware_role{{"RBAC<br/>middleware<br/>[roleCheck.js]"}}
+  node_backend_middleware_audit{{"Audit Log<br/>middleware<br/>[auditLogger.js]"}}
+  node_backend_models_tasks[("Task Model<br/>mongoose model<br/>[Task.js]")]
+  node_backend_models_teams[("Team Model<br/>mongoose model<br/>[Team.js]")]
+  node_backend_models_comments[("Comment Model<br/>mongoose model<br/>[Comment.js]")]
+  node_backend_models_notifications[("Notification Model<br/>mongoose model<br/>[Notification.js]")]
+  node_backend_models_changelog[("ChangeLog Model<br/>mongoose model<br/>[ChangeLog.js]")]
+  node_backend_utils_jwt{{"JWT Utils<br/>token helper<br/>[jwt.js]"}}
+  node_backend_utils_email["Email Service<br/>automation service<br/>[emailService.js]"]
+  node_backend_utils_scheduler["Scheduler<br/>background jobs<br/>[scheduler.js]"]
+  node_backend_utils_report["Report Generator<br/>reporting<br/>[reportGenerator.js]"]
+end
+
+subgraph group_frontend["Frontend"]
+  node_frontend_app["App Shell<br/>React entrypoint<br/>[App.jsx]"]
+  node_frontend_api["API Client<br/>HTTP client<br/>[axios.js]"]
+  node_frontend_auth{{"Auth State<br/>context<br/>[AuthContext.jsx]"}}
+  node_frontend_theme{{"Theme State<br/>context<br/>[ThemeContext.jsx]"}}
+  node_frontend_protected{{"Protected Route<br/>route guard<br/>[ProtectedRoute.jsx]"}}
+  node_frontend_notifications{{"Notif Hook<br/>realtime hook"}}
+  node_frontend_realtime{{"Realtime Sync<br/>socket hook<br/>[useRealtimeSync.js]"}}
+  node_frontend_pages["Work Screens<br/>pages<br/>[Tasks.jsx]"]
+  node_frontend_components["Shared UI<br/>components<br/>[Navbar.jsx]"]
+  node_frontend_pwa["PWA Assets<br/>service worker assets<br/>[sw-custom.js]"]
+end
+
+subgraph group_ops["Ops"]
+  node_deploy_render["Render Config<br/>deployment<br/>[render.yaml]"]
+  node_deploy_vercel["Vercel Config<br/>deployment<br/>[vercel.json]"]
+end
+
+node_backend_server -->|"mounts"| node_backend_routes_auth
+node_backend_server -->|"mounts"| node_backend_routes_tasks
+node_backend_server -->|"mounts"| node_backend_routes_teams
+node_backend_server -->|"mounts"| node_backend_routes_comments
+node_backend_server -->|"mounts"| node_backend_routes_notifications
+node_backend_server -->|"mounts"| node_backend_routes_changelog
+node_backend_routes_auth -->|"uses"| node_backend_utils_jwt
+node_backend_routes_tasks -->|"reads/writes"| node_backend_models_tasks
+node_backend_routes_tasks -->|"guards"| node_backend_middleware_role
+node_backend_routes_tasks -->|"logs"| node_backend_middleware_audit
+node_backend_routes_teams -->|"reads/writes"| node_backend_models_teams
+node_backend_routes_teams -->|"guards"| node_backend_middleware_role
+node_backend_routes_comments -->|"reads/writes"| node_backend_models_comments
+node_backend_routes_comments -->|"relates to"| node_backend_models_tasks
+node_backend_routes_notifications -->|"reads/writes"| node_backend_models_notifications
+node_backend_routes_changelog -->|"reads/writes"| node_backend_models_changelog
+node_backend_middleware_audit -->|"writes"| node_backend_models_changelog
+node_backend_utils_scheduler -->|"triggers"| node_backend_utils_email
+node_backend_utils_scheduler -->|"generates"| node_backend_utils_report
+node_backend_utils_email -.->|"supports"| node_backend_routes_auth
+node_frontend_app -->|"calls"| node_frontend_api
+node_frontend_app -->|"reads"| node_frontend_auth
+node_frontend_app -->|"wraps"| node_frontend_protected
+node_frontend_app -->|"renders"| node_frontend_pages
+node_frontend_app -->|"uses"| node_frontend_components
+node_frontend_auth -->|"feeds"| node_frontend_protected
+node_frontend_pages -->|"subscribes"| node_frontend_notifications
+node_frontend_pages -->|"syncs"| node_frontend_realtime
+node_frontend_components -->|"uses"| node_frontend_theme
+node_frontend_pwa -.->|"enables"| node_frontend_notifications
+node_frontend_api -->|"connects"| node_backend_server
+node_frontend_realtime -->|"connects"| node_backend_server
+node_deploy_render -.->|"deploys"| node_backend_server
+node_deploy_vercel -.->|"deploys"| node_backend_server
+
+click node_backend_server "https://github.com/codecatalst/taskflow/blob/main/backend/server.js"
+click node_backend_routes_auth "https://github.com/codecatalst/taskflow/blob/main/backend/routes/auth.js"
+click node_backend_routes_tasks "https://github.com/codecatalst/taskflow/blob/main/backend/routes/tasks.js"
+click node_backend_routes_teams "https://github.com/codecatalst/taskflow/blob/main/backend/routes/teams.js"
+click node_backend_routes_comments "https://github.com/codecatalst/taskflow/blob/main/backend/routes/comments.js"
+click node_backend_routes_notifications "https://github.com/codecatalst/taskflow/blob/main/backend/routes/notifications.js"
+click node_backend_routes_changelog "https://github.com/codecatalst/taskflow/blob/main/backend/routes/changelog.js"
+click node_backend_middleware_role "https://github.com/codecatalst/taskflow/blob/main/backend/middleware/roleCheck.js"
+click node_backend_middleware_audit "https://github.com/codecatalst/taskflow/blob/main/backend/middleware/auditLogger.js"
+click node_backend_models_tasks "https://github.com/codecatalst/taskflow/blob/main/backend/models/Task.js"
+click node_backend_models_teams "https://github.com/codecatalst/taskflow/blob/main/backend/models/Team.js"
+click node_backend_models_comments "https://github.com/codecatalst/taskflow/blob/main/backend/models/Comment.js"
+click node_backend_models_notifications "https://github.com/codecatalst/taskflow/blob/main/backend/models/Notification.js"
+click node_backend_models_changelog "https://github.com/codecatalst/taskflow/blob/main/backend/models/ChangeLog.js"
+click node_backend_utils_jwt "https://github.com/codecatalst/taskflow/blob/main/backend/utils/jwt.js"
+click node_backend_utils_email "https://github.com/codecatalst/taskflow/blob/main/backend/utils/emailService.js"
+click node_backend_utils_scheduler "https://github.com/codecatalst/taskflow/blob/main/backend/utils/scheduler.js"
+click node_backend_utils_report "https://github.com/codecatalst/taskflow/blob/main/backend/utils/reportGenerator.js"
+click node_frontend_app "https://github.com/codecatalst/taskflow/blob/main/frontend/src/App.jsx"
+click node_frontend_api "https://github.com/codecatalst/taskflow/blob/main/frontend/src/api/axios.js"
+click node_frontend_auth "https://github.com/codecatalst/taskflow/blob/main/frontend/src/context/AuthContext.jsx"
+click node_frontend_theme "https://github.com/codecatalst/taskflow/blob/main/frontend/src/context/ThemeContext.jsx"
+click node_frontend_protected "https://github.com/codecatalst/taskflow/blob/main/frontend/src/routes/ProtectedRoute.jsx"
+click node_frontend_notifications "https://github.com/codecatalst/taskflow/blob/main/frontend/src/hooks/useNotifications.js"
+click node_frontend_realtime "https://github.com/codecatalst/taskflow/blob/main/frontend/src/hooks/useRealtimeSync.js"
+click node_frontend_pages "https://github.com/codecatalst/taskflow/blob/main/frontend/src/pages/Tasks.jsx"
+click node_frontend_components "https://github.com/codecatalst/taskflow/blob/main/frontend/src/components/Navbar.jsx"
+click node_frontend_pwa "https://github.com/codecatalst/taskflow/blob/main/frontend/public/sw-custom.js"
+click node_deploy_render "https://github.com/codecatalst/taskflow/blob/main/render.yaml"
+click node_deploy_vercel "https://github.com/codecatalst/taskflow/blob/main/backend/vercel.json"
+
+classDef toneNeutral fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a
+classDef toneBlue fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#172554
+classDef toneAmber fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
+classDef toneMint fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
+classDef toneRose fill:#ffe4e6,stroke:#e11d48,stroke-width:1.5px,color:#881337
+classDef toneIndigo fill:#e0e7ff,stroke:#4f46e5,stroke-width:1.5px,color:#312e81
+classDef toneTeal fill:#ccfbf1,stroke:#0f766e,stroke-width:1.5px,color:#134e4a
+class node_backend_server,node_backend_routes_auth,node_backend_routes_tasks,node_backend_routes_teams,node_backend_routes_comments,node_backend_routes_notifications,node_backend_routes_changelog,node_backend_middleware_role,node_backend_middleware_audit,node_backend_models_tasks,node_backend_models_teams,node_backend_models_comments,node_backend_models_notifications,node_backend_models_changelog,node_backend_utils_jwt,node_backend_utils_email,node_backend_utils_scheduler,node_backend_utils_report toneBlue
+class node_frontend_app,node_frontend_api,node_frontend_auth,node_frontend_theme,node_frontend_protected,node_frontend_notifications,node_frontend_realtime,node_frontend_pages,node_frontend_components,node_frontend_pwa toneAmber
+class node_deploy_render,node_deploy_vercel toneMint

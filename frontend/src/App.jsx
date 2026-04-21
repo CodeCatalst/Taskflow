@@ -30,6 +30,9 @@ import HRCalendar from './pages/HRCalendar';
 import LeavesPage from './pages/LeavesPage';
 import HRDashboard from './pages/HRDashboard';
 import EmailCenter from './pages/EmailCenter';
+import EmailAutomationDashboard from './pages/EmailAutomationDashboard';
+import ScheduledCampaigns from './pages/ScheduledCampaigns';
+import EmailPreferences from './pages/EmailPreferences';
 
 function AppContent() {
   // Initialize notifications after auth context is ready
@@ -123,6 +126,33 @@ function AppContent() {
         element={
           <ProtectedRoute allowedRoles={['admin', 'hr']}>
             <EmailCenter />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/email-automation"
+        element={
+          <ProtectedRoute>
+            <EmailAutomationDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/scheduled-campaigns"
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'hr']}>
+            <ScheduledCampaigns />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/email-preferences"
+        element={
+          <ProtectedRoute>
+            <EmailPreferences />
           </ProtectedRoute>
         }
       />
