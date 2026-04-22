@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
@@ -155,7 +155,19 @@ app.use(cors({
       'http://127.0.0.1:5173',
       'https://taskflow-nine-phi.vercel.app'
     ];
-    
+
+    // Add frontend URL from environment variable if set
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (frontendUrl && !allowedOrigins.includes(frontendUrl)) {
+      allowedOrigins.push(frontendUrl);
+    }
+
+    // Add Vercel deployment URL if available
+    const vercelUrl = process.env.VERCEL_URL;
+    if (vercelUrl && !allowedOrigins.includes(`https://${vercelUrl}`)) {
+      allowedOrigins.push(`https://${vercelUrl}`);
+    }
+
     // Allow requests with no origin (like mobile apps or curl requests) only in development
     if (!origin) {
       if (isProduction) {
@@ -163,12 +175,14 @@ app.use(cors({
       }
       return callback(null, true);
     }
-    
+
     // Strict origin check - only allow explicitly configured origins
     if (allowedOrigins.indexOf(origin) === -1) {
+      console.log('CORS blocked origin:', origin);
+      console.log('Allowed origins:', allowedOrigins);
       return callback(new Error('Not allowed by CORS policy'));
     }
-    
+
     callback(null, true);
   },
   credentials: true,
