@@ -355,7 +355,7 @@ const startServer = (port, fallbackCount = 0) => {
 
   listeningHandler = () => {
     const activePort = httpServer.address()?.port || port;
-    // Server started successfully on port ${activePort}
+    console.log(`Server is listening on port ${activePort}`);
   };
 
   httpServer.once('error', listenErrorHandler);
