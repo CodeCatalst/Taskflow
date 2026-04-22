@@ -364,11 +364,11 @@ router.post('/login', validateLogin, async (req, res) => {
     });
 
     // Set secure httpOnly cookies for tokens (production security)
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
     const cookieOptions = {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      secure: true, // Always true for cross-site cookies to work
+      sameSite: 'none',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       path: '/'
     };
@@ -482,11 +482,11 @@ router.post('/refresh', async (req, res) => {
     });
 
     // Set secure httpOnly cookies for tokens (production security)
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
     const cookieOptions = {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      secure: true, // Always true for cross-site cookies to work
+      sameSite: 'none',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       path: '/'
     };

@@ -360,7 +360,7 @@ const startServer = (port, fallbackCount = 0) => {
 
   httpServer.once('error', listenErrorHandler);
   httpServer.once('listening', listeningHandler);
-  httpServer.listen(port);
+  httpServer.listen(port, '0.0.0.0');
 };
 
 startServer(BASE_PORT);
