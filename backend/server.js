@@ -170,9 +170,6 @@ app.use(cors({
 
     // Allow requests with no origin (like mobile apps or curl requests) only in development
     if (!origin) {
-      if (isProduction) {
-        return callback(new Error('CORS: Origin header required in production'));
-      }
       return callback(null, true);
     }
 
