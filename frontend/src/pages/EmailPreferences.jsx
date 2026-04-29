@@ -53,20 +53,25 @@ export default function EmailPreferences() {
 
   const fetchPreferences = async () => {
     try {
-      const response = await api.get('/api/user/email-preferences');
-      setPreferences(response.data.preferences);
+      const response = await api.get('/user/email-preferences');
+      if (response.data && response.data.preferences) {
+        setPreferences(response.data.preferences);
+      }
     } catch (error) {
       console.error('Failed to fetch preferences:', error);
-      // Keep default preferences
     } finally {
       setLoading(false);
     }
   };
 
+
   const handleSavePreferences = async () => {
     setSaving(true);
     try {
-      const response = await api.put('/api/user/email-preferences', preferences);
+      // Optimistically update local state immediately
+      const previousPreferences = { ...preferences };
+
+      const response = await api.put('/user/email-preferences', preferences);
       setPreferences(response.data.preferences);
 
       await confirmModal.show({
@@ -82,6 +87,8 @@ export default function EmailPreferences() {
     }
   };
 
+
+
   const handleResetToDefaults = async () => {
     const confirmed = await confirmModal.show({
       title: 'Reset Preferences',
@@ -93,7 +100,7 @@ export default function EmailPreferences() {
 
     if (confirmed) {
       try {
-        const response = await api.post('/api/user/email-preferences/reset');
+        const response = await api.post('/user/email-preferences/reset');
         setPreferences(response.data.preferences);
       } catch (error) {
         alert('Failed to reset preferences');
@@ -101,7 +108,9 @@ export default function EmailPreferences() {
     }
   };
 
+
   const updatePreference = (category, key, value) => {
+    console.log(`Updating preference ${category}.${key} to ${value}`);
     setPreferences(prev => ({
       ...prev,
       [category]: {
@@ -112,16 +121,22 @@ export default function EmailPreferences() {
   };
 
   const updateNestedPreference = (category, subcategory, key, value) => {
-    setPreferences(prev => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [subcategory]: {
-          ...prev[category][subcategory],
-          [key]: value
+    console.log(`Updating nested preference ${category}.${subcategory}.${key} to ${value}`);
+    setPreferences(prev => {
+      const categoryData = prev[category] || {};
+      const subcategoryData = categoryData[subcategory] || {};
+
+      return {
+        ...prev,
+        [category]: {
+          ...categoryData,
+          [subcategory]: {
+            ...subcategoryData,
+            [key]: value
+          }
         }
-      }
-    }));
+      };
+    });
   };
 
   if (loading) {

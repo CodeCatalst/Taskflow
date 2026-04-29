@@ -12,6 +12,7 @@ import getClientIP from '../utils/getClientIP.js';
 import HrActionService from '../services/hrActionService.js';
 import HrEventService from '../services/hrEventService.js';
 import { isValidObjectIdString, normalizePlainText, requireObjectId } from '../utils/requestValidation.js';
+import { emitWorkspaceEvent, emitUserEvent } from '../utils/socketEvents.js';
 
 const router = express.Router();
 const getEffectiveRole = (req) => req.context?.isSystemAdmin ? 'admin' : (req.context?.currentRole || req.user.role);
@@ -108,6 +109,13 @@ router.post('/', authenticate, requireCoreWorkspace, async (req, res) => {
     });
 
     await leaveRequest.save();
+
+    // Real-time update: notify workspace about new leave request
+    try {
+      emitWorkspaceEvent(req, 'leave:created', leaveRequest);
+    } catch (err) {
+      console.error('Socket event error:', err);
+    }
 
     // Update pending balance
     balance.pending += days;
@@ -359,6 +367,19 @@ router.patch('/:id/status', authenticate, requireCoreWorkspace, checkRole(['admi
       .populate('approvedBy', 'full_name email');
 
     res.json({ success: true, leaveRequest: updatedLeave });
+
+    // Real-time update: notify workspace and user
+    try {
+      emitWorkspaceEvent(req, 'leave:status_updated', {
+        leaveRequestId: updatedLeave._id,
+        status: updatedLeave.status
+      });
+      emitUserEvent(req, updatedLeave.userId, 'leave:updated', {
+        leaveRequest: updatedLeave
+      });
+    } catch (err) {
+      console.error('Socket event error:', err);
+    }
   } catch (error) {
     res.status(500).json({ message: error.message || 'Failed to process leave action' });
   }
@@ -447,6 +468,19 @@ router.patch('/:id/notes', authenticate, requireCoreWorkspace, checkRole(['admin
       .populate('approvedBy', 'full_name email');
 
     res.json({ success: true, leaveRequest: updatedLeave });
+
+    // Real-time update: notify workspace and user
+    try {
+      emitWorkspaceEvent(req, 'leave:status_updated', {
+        leaveRequestId: updatedLeave._id,
+        status: updatedLeave.status
+      });
+      emitUserEvent(req, updatedLeave.userId, 'leave:updated', {
+        leaveRequest: updatedLeave
+      });
+    } catch (err) {
+      console.error('Socket event error:', err);
+    }
   } catch (error) {
     res.status(500).json({ message: 'Failed to update leave notes' });
   }
@@ -515,6 +549,15 @@ router.delete('/:id', authenticate, requireCoreWorkspace, async (req, res) => {
     });
 
     res.json({ success: true, message: 'Leave request cancelled' });
+
+    // Real-time update: notify workspace
+    try {
+      emitWorkspaceEvent(req, 'leave:cancelled', {
+        leaveRequestId: req.params.id
+      });
+    } catch (err) {
+      console.error('Socket event error:', err);
+    }
   } catch (error) {
     res.status(500).json({ message: 'Failed to cancel leave request' });
   }

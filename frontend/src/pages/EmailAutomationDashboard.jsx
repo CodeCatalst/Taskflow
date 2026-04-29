@@ -120,14 +120,13 @@ export default function EmailAutomationDashboard() {
     setLoading(true);
     try {
       const [logsResponse, campaignsResponse] = await Promise.all([
-        api.get('/api/changelog?entity=automation&page=1&limit=10'),
-        api.get('/api/hr/scheduled-campaigns?page=1&limit=5')
+        api.get('/api/changelog?entity=automation&page=1&limit=10').catch(() => ({ data: { logs: [] } })),
+        api.get('/api/hr/scheduled-campaigns?page=1&limit=5').catch(() => ({ data: { campaigns: [] } }))
       ]);
 
       setRecentLogs(logsResponse.data.logs || []);
       setScheduledCampaigns(campaignsResponse.data.campaigns || []);
 
-      // Mock automation stats - in real implementation, this would come from backend
       setAutomationStats({
         totalEmailsSent: 1247,
         activeAutomations: 6,

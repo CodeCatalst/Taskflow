@@ -234,7 +234,7 @@ app.use('/api/hr/leave-types', authenticate, workspaceContext, leaveTypesRoutes)
 app.use('/api/hr/holidays', authenticate, workspaceContext, holidaysRoutes);
 app.use('/api/hr/calendar', authenticate, workspaceContext, hrCalendarRoutes);
 app.use('/api/hr/email-templates', authenticate, workspaceContext, emailTemplatesRoutes);
-app.use('/api/user/email-preferences', authenticate, workspaceContext, emailNotificationPreferencesRoutes);
+app.use('/api/user/email-preferences', authenticate, emailNotificationPreferencesRoutes);
 app.use('/api/hr/scheduled-campaigns', authenticate, workspaceContext, scheduledEmailCampaignsRoutes);
 app.use('/api/automation', automationTriggersRoutes);
 

@@ -20,6 +20,8 @@ import {
   normalizePlainText,
   requireObjectId,
   isValidObjectIdString,
+  sanitizeUser,
+  sanitizeTeam
 } from '../utils/requestValidation.js';
 
 const router = express.Router();
@@ -68,7 +70,7 @@ router.get('/me', authenticate, async (req, res) => {
       .populate('team_id')
       .populate('teams', 'name');
     
-    res.json({ user });
+    res.json({ user: sanitizeUser(user) });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -83,13 +85,13 @@ router.patch('/me', authenticate, async (req, res) => {
     if (full_name) updates.full_name = full_name;
     updates.updated_at = Date.now();
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
+    const user = await User.findOneAndUpdate(
+      { _id: req.user._id, workspaceId: req.context.workspaceId },
       updates,
       { new: true }
     ).select('-password_hash');
 
-    res.json({ message: 'Profile updated', user });
+    res.json({ message: 'Profile updated', user: sanitizeUser(user) });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -103,23 +105,15 @@ router.post('/me/profile-picture', authenticate, async (req, res) => {
       maxSizeBytes: 2 * 1024 * 1024,
     });
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
+    const user = await User.findOneAndUpdate(
+      { _id: req.user._id, workspaceId: req.context.workspaceId },
       { profile_picture: validatedImage.normalizedDataUrl, updated_at: Date.now() },
       { new: true }
     ).select('-password_hash');
 
-    res.json({ 
-      message: 'Profile picture updated successfully', 
-      user: {
-        id: user._id,
-        full_name: user.full_name,
-        email: user.email,
-        role: user.role,
-        profile_picture: user.profile_picture,
-        team_id: user.team_id,
-        workspaceId: user.workspaceId
-      }
+    res.json({
+      message: 'Profile picture updated successfully',
+      user: sanitizeUser(user)
     });
   } catch (error) {
     const statusCode = error.message.includes('image') || error.message.includes('Image') || error.message.includes('base64')
@@ -132,23 +126,15 @@ router.post('/me/profile-picture', authenticate, async (req, res) => {
 // Delete profile picture (authenticated users only)
 router.delete('/me/profile-picture', authenticate, async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
+    const user = await User.findOneAndUpdate(
+      { _id: req.user._id, workspaceId: req.context.workspaceId },
       { profile_picture: null, updated_at: Date.now() },
       { new: true }
     ).select('-password_hash');
 
-    res.json({ 
-      message: 'Profile picture removed successfully', 
-      user: {
-        id: user._id,
-        full_name: user.full_name,
-        email: user.email,
-        role: user.role,
-        profile_picture: null,
-        team_id: user.team_id,
-        workspaceId: user.workspaceId
-      }
+    res.json({
+      message: 'Profile picture removed successfully',
+      user: sanitizeUser(user)
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -206,7 +192,7 @@ router.get('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), asy
       .populate('teams', 'name')
       .sort({ created_at: -1 });
 
-    res.json({ users, count: users.length });
+    res.json({ users: users.map(sanitizeUser), count: users.length });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -237,7 +223,7 @@ router.get('/team-members', authenticate, checkRole(['team_lead']), async (req, 
       }
     }
 
-    res.json({ users, count: users.length });
+    res.json({ users: users.map(sanitizeUser), count: users.length });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -259,7 +245,7 @@ router.get('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({ user });
+    res.json({ user: sanitizeUser(user) });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -362,7 +348,7 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
     // Respond immediately without waiting for email
     res.status(201).json({
       message: 'User created successfully. Credentials will be sent via email.',
-      user: userResponse,
+      user: sanitizeUser(userResponse),
       emailQueued: true
     });
   } catch (error) {
@@ -577,7 +563,7 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
       req.app.get('io').to(`workspace:${req.context.workspaceId}`).emit('user:updated', user);
     }
 
-    res.json({ message: 'User updated successfully', user });
+    res.json({ message: 'User updated successfully', user: sanitizeUser(user) });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -723,7 +709,7 @@ router.patch('/:id/role', authenticate, checkRole(['admin', 'hr']), async (req, 
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({ message: 'User role updated', user });
+    res.json({ message: 'User role updated', user: sanitizeUser(user) });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

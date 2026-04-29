@@ -1,4 +1,4 @@
-﻿import { createContext, useState, useContext, useEffect, useRef } from 'react';
+import { createContext, useState, useContext, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { io } from 'socket.io-client';
 
@@ -37,7 +37,33 @@ export const AuthProvider = ({ children }) => {
     if (socket) {
       socket.disconnect();
     }
-    const newSocket = io(SOCKET_URL);
+
+    // Temporarily override addEventListener to prevent deprecated unload listener
+    const originalAddEventListener = window.addEventListener;
+    let unloadHandler = null;
+    window.addEventListener = function(type, handler, options) {
+      if (type === 'unload') {
+        unloadHandler = handler;
+        return; // Don't add the listener
+      }
+      return originalAddEventListener.call(this, type, handler, options);
+    };
+
+    const newSocket = io(SOCKET_URL, {
+      closeOnBeforeunload: false,
+      autoConnect: true
+    });
+
+    // Restore original addEventListener
+    window.addEventListener = originalAddEventListener;
+
+    // Manually handle cleanup if needed
+    if (unloadHandler) {
+      // We can call cleanup manually when the socket disconnects
+      newSocket.on('disconnect', () => {
+        // Perform any necessary cleanup here if needed
+      });
+    }
     
     newSocket.on('connect', () => {
       newSocket.emit('join', { userId, workspaceId });

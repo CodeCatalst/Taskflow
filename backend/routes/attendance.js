@@ -7,6 +7,7 @@ import User from '../models/User.js';
 import { logChange } from '../utils/changeLogService.js';
 import getClientIP from '../utils/getClientIP.js';
 import { isValidObjectIdString } from '../utils/requestValidation.js';
+import { emitWorkspaceEvent } from '../utils/socketEvents.js';
 
 const router = express.Router();
 const getEffectiveRole = (req) => req.context?.isSystemAdmin ? 'admin' : (req.context?.currentRole || req.user.role);

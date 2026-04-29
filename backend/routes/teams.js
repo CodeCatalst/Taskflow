@@ -332,9 +332,11 @@ router.post('/:id/members', authenticate, checkRole(['admin', 'hr', 'community_a
     }
 
     // Add to team using $addToSet to prevent duplicates
-    await Team.findByIdAndUpdate(teamId, {
-      $addToSet: { members: userId }
-    });
+    await Team.findOneAndUpdate(
+      { _id: teamId, workspaceId: req.context.workspaceId },
+      { $addToSet: { members: userId } },
+      { new: true }
+    );
 
     // MULTIPLE TEAMS SUPPORT: For Core Workspace, add to teams array; Community uses single team_id
     const isCoreWorkspace = req.context.workspaceType === 'CORE';
