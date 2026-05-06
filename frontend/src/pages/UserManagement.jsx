@@ -7,7 +7,7 @@ import api from '../api/axios';
 import Sidebar from '../components/Sidebar';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import useRealtimeSync from '../hooks/useRealtimeSync';
-import { Upload, Download, FileJson, FileSpreadsheet, X, Search, Filter, Users as UsersIcon, User, Shield, Trash2, Edit2, Key, Plus, Menu } from 'lucide-react';
+import { Upload, Download, FileJson, FileSpreadsheet, X, Search, Filter, Users as UsersIcon, User, Shield, Trash2, Edit2, Key, Plus, Menu, Sparkles, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
 export default function UserManagement() {
   const { user } = useAuth();
@@ -1056,7 +1056,10 @@ export default function UserManagement() {
                   {bulkImportResults.teamsCreated && bulkImportResults.teamsCreated.length > 0 && (
                     <div className="bg-purple-500/10 border border-purple-500/30 rounded p-3">
                       <p className="text-sm text-purple-400 font-medium mb-2">
-                        âœ¨ Created {bulkImportResults.teamsCreated.length} new team(s):
+                        <span className="inline-flex items-center gap-1.5">
+                          <Sparkles size={14} />
+                          <span>Created {bulkImportResults.teamsCreated.length} new team(s):</span>
+                        </span>
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {bulkImportResults.teamsCreated.map((team, idx) => (
@@ -1071,7 +1074,10 @@ export default function UserManagement() {
                   {/* Success Details */}
                   {bulkImportResults.successful.length > 0 && (
                     <div className="bg-green-500/10 border border-green-500/30 rounded p-3">
-                      <p className="text-sm text-green-400 font-medium mb-2">âœ“ Successfully Imported Users:</p>
+                      <p className="text-sm text-green-400 font-medium mb-2 inline-flex items-center gap-1.5">
+                        <CheckCircle2 size={14} />
+                        <span>Successfully Imported Users:</span>
+                      </p>
                       <div className="space-y-1.5 max-h-32 overflow-y-auto">
                         {bulkImportResults.successful.slice(0, 5).map((user, idx) => (
                           <div key={idx} className="text-xs text-green-300 flex justify-between gap-2">
@@ -1091,7 +1097,10 @@ export default function UserManagement() {
                   {/* Failed Details */}
                   {bulkImportResults.failed.length > 0 && (
                     <div className="bg-red-500/10 border border-red-500/30 rounded p-3">
-                      <p className="text-sm text-red-400 font-medium mb-2">âœ— Failed Imports:</p>
+                      <p className="text-sm text-red-400 font-medium mb-2 inline-flex items-center gap-1.5">
+                        <XCircle size={14} />
+                        <span>Failed Imports:</span>
+                      </p>
                       <div className="space-y-1.5 max-h-40 overflow-y-auto">
                         {bulkImportResults.failed.map((fail, idx) => (
                           <div key={idx} className="text-xs">
@@ -1120,7 +1129,7 @@ export default function UserManagement() {
                 >
                   {bulkImportLoading ? (
                     <>
-                      <span className="animate-spin">â³</span>
+                      <Loader2 size={16} className="animate-spin" />
                       Importing...
                     </>
                   ) : (

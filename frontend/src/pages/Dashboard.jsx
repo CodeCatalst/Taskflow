@@ -10,7 +10,7 @@ import Sidebar from '../components/Sidebar';
 import { 
   Plus, Users, CheckSquare, TrendingUp, Clock, FileSpreadsheet, FileText, 
   AlertTriangle, Calendar, Filter, X, Download, Smartphone, Search,
-  Bell, HelpCircle, Settings, Menu
+  Bell, HelpCircle, Settings, Menu, ArrowRight
 } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { generateExcelReport } from '../utils/reportGenerator';
@@ -638,7 +638,10 @@ const Dashboard = () => {
                   to="/analytics"
                   className="text-xs text-[#136dec] hover:text-blue-400 font-medium"
                 >
-                  View Detailed Analytics â†’
+                  <span className="inline-flex items-center gap-1">
+                    View Detailed Analytics
+                    <ArrowRight className="w-3 h-3" />
+                  </span>
                 </Link>
               </div>
 

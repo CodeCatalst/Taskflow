@@ -610,19 +610,19 @@ const Sidebar = () => {
         {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
       </button>
 
-      {/* Confirm Modal */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        onClose={confirmModal.onClose}
-        onConfirm={confirmModal.onConfirm}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        confirmText={confirmModal.confirmText}
-        cancelText={confirmModal.cancelText}
-        variant={confirmModal.variant}
-        isLoading={confirmModal.isLoading}
-      />
     </aside>
+    {/* Confirm Modal */}
+    <ConfirmModal
+      isOpen={confirmModal.isOpen}
+      onClose={confirmModal.onClose}
+      onConfirm={confirmModal.onConfirm}
+      title={confirmModal.title}
+      message={confirmModal.message}
+      confirmText={confirmModal.confirmText}
+      cancelText={confirmModal.cancelText}
+      variant={confirmModal.variant}
+      isLoading={confirmModal.isLoading}
+    />
     </>
   );
 };

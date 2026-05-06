@@ -291,7 +291,7 @@ const ForgotPassword = () => {
         {/* Footer */}
         <div className="text-center mt-6">
           <p className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}`}>
-            Â© 2026 TaskFlow. All rights reserved.
+            © 2026 TaskFlow. All rights reserved.
           </p>
         </div>
       </div>

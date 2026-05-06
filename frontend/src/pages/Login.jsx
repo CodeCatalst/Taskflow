@@ -2,7 +2,7 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import WorkspaceSelector from '../components/WorkspaceSelector';
 
 const Login = () => {
@@ -225,7 +225,10 @@ const Login = () => {
                       onClick={() => navigate('/verify-email', { state: { email: formData.email } })}
                       className="mt-2 text-red-600 dark:text-red-400 underline hover:text-red-800 dark:hover:text-red-300 font-semibold"
                     >
-                      Go to verification page â†’
+                      <span className="inline-flex items-center gap-1">
+                        Go to verification page
+                        <ArrowRight className="w-3 h-3" />
+                      </span>
                     </button>
                   )}
                 </div>
@@ -288,7 +291,7 @@ const Login = () => {
         {/* Page Footer */}
         <div className="mt-8 flex flex-col items-center gap-4">
           <p className={`text-xs ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} font-normal`}>
-            Â© 2025 TaskFlow. Enterprise Edition.
+            © 2025 TaskFlow. Enterprise Edition.
           </p>
         </div>
       </div>

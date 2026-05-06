@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
 import Sidebar from '../components/Sidebar';
 import api from '../api/axios';
-import { Bell, Check, CheckCheck, Trash2, Filter, Calendar, User, AlertCircle, Menu } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, Filter, Calendar, User, AlertCircle, Menu, ArrowRight } from 'lucide-react';
 
 const Notifications = () => {
   const { user } = useAuth();
@@ -273,7 +273,10 @@ const Notifications = () => {
                         href={`/tasks`}
                         className="text-xs text-[#136dec] hover:text-blue-400 font-medium"
                       >
-                        View Task â†’
+                        <span className="inline-flex items-center gap-1">
+                          View Task
+                          <ArrowRight className="w-3 h-3" />
+                        </span>
                       </a>
                     </div>
                   )}

@@ -7,7 +7,7 @@ import Sidebar from '../components/Sidebar';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import api from '../api/axios';
 import useRealtimeSync from '../hooks/useRealtimeSync';
-import { Plus, X, Users, UserPlus, UserMinus, Trash2, Pin, GripVertical, Search, Filter, Menu, Edit } from 'lucide-react';
+import { Plus, X, Users, UserPlus, UserMinus, Trash2, Pin, GripVertical, Search, Filter, Menu, Edit, ChevronLeft, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
 
 const Teams = () => {
   const { user } = useAuth();
@@ -831,7 +831,11 @@ const Teams = () => {
                         : 'bg-[#136dec] text-white hover:bg-[#1158c7] shadow-lg shadow-[#136dec]/25'
                     }`}
                   >
-                    {isMultiSelect ? 'â† Single Select' : 'Multi-Select â†’'}
+                    <span className="inline-flex items-center gap-2">
+                      {isMultiSelect ? <ChevronLeft size={16} /> : null}
+                      <span>{isMultiSelect ? 'Single Select' : 'Multi-Select'}</span>
+                      {!isMultiSelect ? <ChevronRight size={16} /> : null}
+                    </span>
                   </button>
                 </div>
 
@@ -848,9 +852,10 @@ const Teams = () => {
                         onClick={toggleSelectAll}
                         className="text-sm font-medium text-[#136dec] hover:text-[#1158c7] transition-colors"
                       >
-                        {selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0
-                          ? 'âœ— Deselect All'
-                          : 'âœ“ Select All'}
+                        <span className="inline-flex items-center gap-1.5">
+                          {selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0 ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
+                          <span>{selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0 ? 'Deselect All' : 'Select All'}</span>
+                        </span>
                       </button>
                     </div>
                     <div className="border border-[#282f39] rounded-[0.125rem] max-h-96 overflow-y-auto bg-[#111418]">

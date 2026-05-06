@@ -36,7 +36,8 @@ import {
   Edit,
   XCircle,
   Shield,
-  Star
+  Star,
+  ArrowRight
 } from 'lucide-react';
 
 const ChangeLog = () => {
@@ -667,7 +668,7 @@ const getTargetTypeIcon = (targetType) => {
                                   <span className={theme === 'dark' ? 'text-red-400' : 'text-red-600'}>
                                     {change.old !== undefined ? String(change.old) : 'null'}
                                   </span>
-                                  <span className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-400'}>â†’</span>
+                                  <ArrowRight size={14} className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-400'} />
                                   <span className={theme === 'dark' ? 'text-green-400' : 'text-green-600'}>
                                     {change.new !== undefined ? String(change.new) : 'null'}
                                   </span>

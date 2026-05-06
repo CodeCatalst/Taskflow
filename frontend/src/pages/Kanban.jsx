@@ -10,7 +10,7 @@ import Sidebar from '../components/Sidebar';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import {
   Plus, X, Search, Settings, UserPlus, Calendar as CalendarIcon,
-  MoreHorizontal, MessageSquare, Menu
+  MoreHorizontal, MessageSquare, Menu, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 const Kanban = () => {
@@ -361,6 +361,11 @@ const Kanban = () => {
               ></div>
             ))}
           </div>
+          <span className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+            <ChevronLeft className="w-4 h-4" />
+            <span>Swipe to see more columns</span>
+            <ChevronRight className="w-4 h-4" />
+          </span>
           <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-medium`}>Loading Kanban board...</p>
         </div>
       </div>
@@ -463,7 +468,11 @@ const Kanban = () => {
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-3 sm:p-6">
           {/* Mobile hint */}
           <div className="lg:hidden mb-2 flex items-center gap-2 text-xs text-[#9da8b9]">
-            <span>â† Swipe to see more columns â†’</span>
+            <span className="inline-flex items-center gap-1.5">
+              <ChevronLeft className="w-4 h-4" />
+              <span>Swipe to see more columns</span>
+              <ChevronRight className="w-4 h-4" />
+            </span>
           </div>
 
           <div className="flex h-full gap-3 sm:gap-4 pb-4" style={{ minWidth: 'max-content' }}>

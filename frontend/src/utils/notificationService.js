@@ -39,7 +39,7 @@ class NotificationService {
       if (permission === 'granted') {
         
         // Show a welcome notification to confirm it's working
-        await this.showNotification('ðŸŽ‰ Notifications Enabled!', {
+        await this.showNotification('Notifications Enabled!', {
           body: 'You will now receive task updates and reminders.',
           icon: '/icons/pwa-192x192.png',
           badge: '/icons/pwa-64x64.png',

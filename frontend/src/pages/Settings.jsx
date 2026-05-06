@@ -11,7 +11,7 @@ import SessionSettings from '../components/SessionSettings';
 
 import ConfirmModal from '../components/modals/ConfirmModal';
 import api from '../api/axios';
-import { User, Settings as SettingsIcon, Palette, Monitor, Lock, Eye, EyeOff, Bell, AlertCircle, Camera, Trash2, Upload, AlertTriangle, Menu, Download } from 'lucide-react';
+import { User, Settings as SettingsIcon, Palette, Monitor, Lock, Eye, EyeOff, Bell, AlertCircle, Camera, Trash2, Upload, AlertTriangle, Menu, Download, CheckCircle2, XCircle } from 'lucide-react';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -609,7 +609,10 @@ const Settings = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <span className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}>Browser Support:</span>
                     <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {'Notification' in window ? 'âœ… Supported' : 'âŒ Not Supported'}
+                      <span className="inline-flex items-center gap-1">
+                        {'Notification' in window ? <CheckCircle2 size={14} className="text-green-500" /> : <XCircle size={14} className="text-red-500" />}
+                        <span>{'Notification' in window ? 'Supported' : 'Not Supported'}</span>
+                      </span>
                     </span>
                     
                     <span className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}>Permission:</span>
@@ -619,7 +622,10 @@ const Settings = () => {
                     
                     <span className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}>Service Worker:</span>
                     <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {'serviceWorker' in navigator ? 'âœ… Available' : 'âŒ Not Available'}
+                      <span className="inline-flex items-center gap-1">
+                        {'serviceWorker' in navigator ? <CheckCircle2 size={14} className="text-green-500" /> : <XCircle size={14} className="text-red-500" />}
+                        <span>{'serviceWorker' in navigator ? 'Available' : 'Not Available'}</span>
+                      </span>
                     </span>
                     
                     <span className={theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'}>SW Registered:</span>
