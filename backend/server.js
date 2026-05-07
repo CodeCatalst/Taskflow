@@ -35,6 +35,8 @@ const io = new Server(httpServer, {
     origin: [
       'http://localhost:3000',
       'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
       'https://taskflow-nine-phi.vercel.app'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
@@ -57,6 +59,8 @@ app.use(cors({
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
       'https://taskflow-nine-phi.vercel.app'
     ];
     
