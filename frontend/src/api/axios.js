@@ -10,7 +10,7 @@ const api = axios.create({
   withCredentials: true, // Required for cookie-based authentication
 });
 
-// Handle token refresh using secure cookies
+// Handle token refresh using secure cookies with fallback to token-based auth
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -21,14 +21,33 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        await api.post('/auth/refresh', {});
+        // For cross-domain requests, send refresh token in body as fallback
+        // since cookies may not be sent with credentials: 'include'
+        const refreshToken = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('refreshToken='))
+          ?.split('=')[1];
+
+        const refreshPayload = refreshToken ? { refreshToken } : {};
+
+        const refreshResponse = await api.post('/auth/refresh', refreshPayload);
+        
         localStorage.setItem('lastActivityTime', Date.now().toString());
+
+        // If server sent tokens in response body (for cross-domain), extract them
+        if (refreshResponse.data.accessToken && refreshResponse.data.refreshToken) {
+          // Store tokens for fallback usage if cookies aren't persisted
+          localStorage.setItem('accessToken', refreshResponse.data.accessToken);
+          localStorage.setItem('refreshToken', refreshResponse.data.refreshToken);
+        }
 
         return api(originalRequest);
       } catch (refreshError) {
         // On refresh failure, clear all auth data and redirect to login
         localStorage.removeItem('user');
         localStorage.removeItem('lastActivityTime');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
 
         window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'refresh-failed' } }));
 

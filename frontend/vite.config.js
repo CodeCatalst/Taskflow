@@ -79,7 +79,7 @@ export default defineConfig(({ mode }) => {
       } : false,
       proxy: isDevelopment ? {
         '/api': {
-          target: process.env.VITE_API_URL || 'http://localhost:5001',
+          target: process.env.VITE_API_URL || 'http://localhost:5000',
           changeOrigin: true,
           secure: false,
         }

@@ -1,5 +1,5 @@
 services:
-  # Backend Service
+  # Backend Service (Node.js/Express)
   - type: web
     name: taskflow-backend
     env: node
@@ -9,17 +9,43 @@ services:
     buildCommand: npm install
     startCommand: node server.js
     envVars:
+      # Basic Configuration
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 10000
+      
+      # Database
       - key: MONGODB_URI
         sync: false
+        # Example: mongodb+srv://username:password@cluster.mongodb.net/taskflow
+      
+      # JWT Secrets (generate secure random strings, minimum 32 bytes)
       - key: JWT_SECRET
         sync: false
-      - key: JWT_REFRESH_SECRET
+        # Generate with: openssl rand -hex 32
+      - key: REFRESH_SECRET
+        sync: false
+        # Generate with: openssl rand -hex 32
+      
+      # Frontend Configuration (set to your deployed frontend URL)
+      - key: FRONTEND_URL
+        sync: false
+        # Example: https://taskflow-frontend.vercel.app
+      
+      # Email Configuration (Brevo/SMTP)
+      - key: BREVO_API_KEY
         sync: false
       - key: EMAIL_USER
         sync: false
       - key: EMAIL_PASS
         sync: false
-      - key: FRONTEND_URL
+      
+      # Trust Proxy (important for getting correct IP behind reverse proxy)
+      - key: TRUST_PROXY
+        value: 1
+      
+      # Cron API Key (for automation triggers)
+      - key: CRON_API_KEY
         sync: false
+        # Generate with: openssl rand -hex 32
