@@ -44,6 +44,11 @@ const workspaceContext = async (req, res, next) => {
     }
     
     const getWorkspaceIdValue = (value) => value?._id || value;
+    const getDefaultCoreWorkspace = async () => {
+      return Workspace.findOne({ type: 'CORE', isActive: true })
+        .select('name type isActive settings limits usage')
+        .lean();
+    };
 
     let activeWorkspaceId = requestedWorkspaceId || getWorkspaceIdValue(user.currentWorkspaceId) || getWorkspaceIdValue(user.workspaceId);
     
@@ -70,15 +75,15 @@ const workspaceContext = async (req, res, next) => {
     // If user has no workspace set
 
     if (!activeWorkspaceId) {
-      // ADMIN PRIVILEGE: Admins can exist without workspace (system-wide access)
+      // ADMIN PRIVILEGE: Admins can exist without workspace. Prefer the default CORE workspace when available.
       if (user.role === 'admin') {
-        req.context = {
-          workspaceId: null,
-          workspaceType: 'SYSTEM',
-          workspaceName: 'System Administrator',
-          workspace: null,
+        const defaultCoreWorkspace = await getDefaultCoreWorkspace();
+
+        const systemAdminContext = {
           isSystemAdmin: true,
           allWorkspaceIds: [],
+          manageableWorkspaceIds: [],
+          currentRole: 'admin',
           user: {
             id: user._id,
             email: user.email,
@@ -87,7 +92,33 @@ const workspaceContext = async (req, res, next) => {
           },
         };
 
-        // System admins have all privileges
+        if (defaultCoreWorkspace) {
+          activeWorkspaceId = defaultCoreWorkspace._id;
+          req.user.currentWorkspaceId = defaultCoreWorkspace._id;
+
+          const allAdminWorkspaces = await Workspace.find({ isActive: true })
+            .select('_id')
+            .lean();
+
+          req.context = {
+            ...systemAdminContext,
+            workspaceId: defaultCoreWorkspace._id,
+            workspaceType: defaultCoreWorkspace.type,
+            workspaceName: defaultCoreWorkspace.name,
+            workspace: defaultCoreWorkspace,
+            allWorkspaceIds: allAdminWorkspaces.map((workspace) => workspace._id),
+            manageableWorkspaceIds: allAdminWorkspaces.map((workspace) => workspace._id),
+          };
+        } else {
+          req.context = {
+            ...systemAdminContext,
+            workspaceId: null,
+            workspaceType: 'SYSTEM',
+            workspaceName: 'System Administrator',
+            workspace: null,
+          };
+        }
+
         req.isCoreWorkspace = () => true;
         req.isCommunityWorkspace = () => false;
         req.hasFeature = () => true;
@@ -97,14 +128,12 @@ const workspaceContext = async (req, res, next) => {
 
         return next();
       }
-      
+
       // Check if user has any workspaces in the new multi-workspace array
       if (user.workspaces && user.workspaces.length > 0) {
         const firstActiveWorkspace = user.workspaces.find(ws => ws.isActive);
         if (firstActiveWorkspace) {
           activeWorkspaceId = getWorkspaceIdValue(firstActiveWorkspace.workspaceId);
-          // Note: We no longer auto-save user in middleware to avoid side effects
-          // The currentWorkspaceId is set in memory for this request only
         } else {
           return res.status(403).json({
             message: 'User has no active workspaces. Please contact support.',

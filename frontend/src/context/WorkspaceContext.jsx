@@ -91,6 +91,17 @@ export const WorkspaceProvider = ({ children }) => {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!user || workspace.id || user.workspace) {
+      return;
+    }
+
+    const fallbackWorkspace = allWorkspaces.find((item) => item.type === 'CORE') || allWorkspaces[0];
+    if (fallbackWorkspace) {
+      updateWorkspace(fallbackWorkspace);
+    }
+  }, [user, allWorkspaces, workspace.id]);
+
   /**
    * Update workspace information
    * @param {Object} workspaceData - Workspace data from API
@@ -100,7 +111,7 @@ export const WorkspaceProvider = ({ children }) => {
       id: workspaceData.id,
       name: workspaceData.name,
       type: workspaceData.type,
-      features: workspaceData.features || {},
+      features: workspaceData.settings?.features || {},
       limits: workspaceData.limits || {},
       usage: workspaceData.usage || {},
     };

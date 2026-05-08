@@ -172,13 +172,6 @@ export const checkTeamLimit = (req, res, next) => {
  * System admins, workspace admins, and HR bypass restrictions
  */
 export const requireBulkImport = [
-  (req, res, next) => {
-    // Allow admins, HR, and system admins to bypass
-    if (req.context?.isSystemAdmin || hasEffectiveRole(req, ['admin', 'hr'])) {
-      return next();
-    }
-    next();
-  },
   requireFeature('bulkUserImport'),
 ];
 
@@ -188,13 +181,6 @@ export const requireBulkImport = [
  * System admins, workspace admins, and HR bypass restrictions
  */
 export const requireAuditLogs = [
-  (req, res, next) => {
-    // Allow admins, HR, and system admins to bypass
-    if (req.context?.isSystemAdmin || hasEffectiveRole(req, ['admin', 'hr'])) {
-      return next();
-    }
-    next();
-  },
   requireFeature('auditLogs'),
 ];
 

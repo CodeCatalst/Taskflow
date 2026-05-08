@@ -47,6 +47,12 @@ const validateLogin = [
   body('password').notEmpty().withMessage('Password is required')
 ];
 
+const getDefaultCoreWorkspace = async () => {
+  return Workspace.findOne({ type: 'CORE', isActive: true })
+    .select('name type settings.features limits usage')
+    .lean();
+};
+
 // Public registration is disabled
 // Users can only be created by Admin or HR through the user management system
 router.post('/register', (req, res) => {
@@ -246,7 +252,16 @@ router.post('/login', validateLogin, async (req, res) => {
           message: 'Your account is not associated with any workspace. Please contact support.' 
         });
       }
-      // Admin without workspace = system admin, continue login
+      // Admin without workspace = system admin. Prefer the default CORE workspace when available.
+      if (user.role === 'admin') {
+        const defaultCoreWorkspace = await getDefaultCoreWorkspace();
+        if (defaultCoreWorkspace) {
+          activeWorkspaceId = defaultCoreWorkspace._id;
+          activeWorkspace = defaultCoreWorkspace;
+          user.currentWorkspaceId = activeWorkspaceId;
+          await user.save();
+        }
+      }
       // Community admin without workspace = edge case, allow login
     } else {
       // Populate workspace if it's an ObjectId
@@ -457,6 +472,12 @@ router.post('/refresh', async (req, res) => {
         return res.status(403).json({ 
           message: 'Workspace is not available' 
         });
+      }
+    } else if (user.role === 'admin') {
+      const defaultCoreWorkspace = await getDefaultCoreWorkspace();
+      if (defaultCoreWorkspace) {
+        user.currentWorkspaceId = defaultCoreWorkspace._id;
+        await user.save();
       }
     } else if (user.role !== 'admin') {
       // Non-admin without workspace should not be allowed

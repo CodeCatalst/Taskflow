@@ -61,15 +61,13 @@ const validateUserCreation = [
 // Get current user
 router.get('/me', authenticate, async (req, res) => {
   try {
-    // WORKSPACE SUPPORT: Scope by workspace
     const user = await User.findOne({
-      _id: req.user._id,
-      workspaceId: req.context.workspaceId
+      _id: req.user._id
     })
       .select('-password_hash')
       .populate('team_id')
       .populate('teams', 'name');
-    
+
     res.json({ user: sanitizeUser(user) });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -86,7 +84,7 @@ router.patch('/me', authenticate, async (req, res) => {
     updates.updated_at = Date.now();
 
     const user = await User.findOneAndUpdate(
-      { _id: req.user._id, workspaceId: req.context.workspaceId },
+      { _id: req.user._id },
       updates,
       { new: true }
     ).select('-password_hash');
@@ -106,7 +104,7 @@ router.post('/me/profile-picture', authenticate, async (req, res) => {
     });
 
     const user = await User.findOneAndUpdate(
-      { _id: req.user._id, workspaceId: req.context.workspaceId },
+      { _id: req.user._id },
       { profile_picture: validatedImage.normalizedDataUrl, updated_at: Date.now() },
       { new: true }
     ).select('-password_hash');
@@ -127,7 +125,7 @@ router.post('/me/profile-picture', authenticate, async (req, res) => {
 router.delete('/me/profile-picture', authenticate, async (req, res) => {
   try {
     const user = await User.findOneAndUpdate(
-      { _id: req.user._id, workspaceId: req.context.workspaceId },
+      { _id: req.user._id },
       { profile_picture: null, updated_at: Date.now() },
       { new: true }
     ).select('-password_hash');
@@ -236,11 +234,12 @@ router.get('/team-members', authenticate, checkRole(['team_lead']), async (req, 
 // Get single user by ID (Admin, HR & Community Admin)
 router.get('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), async (req, res) => {
   try {
-    // WORKSPACE SUPPORT: Find user only within current workspace
-    const user = await User.findOne({ 
-      _id: req.params.id,
-      workspaceId: req.context.workspaceId 
-    })
+    // WORKSPACE SUPPORT: System admins can view users across all workspaces
+    const query = req.context?.isSystemAdmin
+      ? { _id: req.params.id }
+      : { _id: req.params.id, workspaceId: req.context.workspaceId };
+
+    const user = await User.findOne(query)
       .select('-password_hash')
       .populate('team_id', 'name')
       .populate('teams', 'name');
@@ -477,22 +476,23 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
     }
 
     // WORKSPACE SUPPORT: Verify user exists in current workspace
-    const currentUser = await User.findOne({ 
-      _id: id,
-      workspaceId: req.context.workspaceId 
-    });
-    
+    const query = req.context?.isSystemAdmin
+      ? { _id: id }
+      : { _id: id, workspaceId: req.context.workspaceId };
+
+    const currentUser = await User.findOne(query);
+
     if (!currentUser) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     // Check if email is being changed and if it's already taken in this workspace
     if (email && email !== currentUser.email) {
-      const existingUser = await User.findOne({ 
-        email, 
-        workspaceId: req.context.workspaceId,
-        _id: { $ne: id } 
-      });
+      const emailQuery = req.context?.isSystemAdmin
+        ? { email, _id: { $ne: id } }
+        : { email, workspaceId: req.context.workspaceId, _id: { $ne: id } };
+
+      const existingUser = await User.findOne(emailQuery);
       if (existingUser) {
         return res.status(400).json({ message: 'Email already in use' });
       }
@@ -541,7 +541,7 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
 
     // First, update the basic fields
     const user = await User.findOneAndUpdate(
-      { _id: id, workspaceId: req.context.workspaceId },
+      req.context?.isSystemAdmin ? { _id: id } : { _id: id, workspaceId: req.context.workspaceId },
       updates,
       { new: true, runValidators: true }
     ).select('-password_hash').populate('team_id', 'name').populate('teams', 'name');
@@ -553,17 +553,18 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
     // MULTIPLE TEAMS SUPPORT: For Core Workspace, also add team_id to teams array if specified
     if (isCoreWorkspace && finalTeamId && role !== 'admin' && teams === undefined) {
       // Only add to teams array if teams wasn't explicitly provided
+      const teamQuery = req.context?.isSystemAdmin ? { _id: id } : { _id: id, workspaceId: req.context.workspaceId };
       await User.findOneAndUpdate(
-        { _id: id, workspaceId: req.context.workspaceId },
+        teamQuery,
         { $addToSet: { teams: finalTeamId } }
       );
-      
+
       // Refresh user data with updated teams array
-      const updatedUser = await User.findOne({ _id: id, workspaceId: req.context.workspaceId })
+      const updatedUser = await User.findOne(teamQuery)
         .select('-password_hash')
         .populate('team_id', 'name')
         .populate('teams', 'name');
-      
+
       if (updatedUser) {
         Object.assign(user, updatedUser.toObject());
       }
@@ -595,10 +596,11 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res)
     }
 
     // WORKSPACE SUPPORT: Find and delete user only within current workspace
-    const user = await User.findOne({ 
-      _id: id, 
-      workspaceId: req.context.workspaceId 
-    });
+    const query = req.context?.isSystemAdmin
+      ? { _id: id }
+      : { _id: id, workspaceId: req.context.workspaceId };
+
+    const user = await User.findOne(query);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -674,7 +676,7 @@ router.patch('/:id/password', authenticate, checkRole(['admin', 'hr', 'community
       });
     }
 
-    const user = await User.findOne({ _id: id, workspaceId: req.context.workspaceId });
+    const user = await User.findOne(req.context?.isSystemAdmin ? { _id: id } : { _id: id, workspaceId: req.context.workspaceId });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -715,7 +717,7 @@ router.patch('/:id/role', authenticate, checkRole(['admin', 'hr']), async (req, 
     }
 
     const user = await User.findOneAndUpdate(
-      { _id: id, workspaceId: req.context.workspaceId },
+      req.context?.isSystemAdmin ? { _id: id } : { _id: id, workspaceId: req.context.workspaceId },
       { role, updated_at: Date.now() },
       { new: true }
     ).select('-password_hash');
