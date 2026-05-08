@@ -114,9 +114,9 @@ userSchema.index({ workspaceId: 1, email: 1 });
 userSchema.index({ 'workspaces.workspaceId': 1 });
 userSchema.index({ currentWorkspaceId: 1 });
 
-// Pre-save hook: Sync legacy workspaceId with workspaces array
-userSchema.pre('save', function(next) {
-  // If this is a new document with workspaceId but no workspaces array
+// Pre-save hook: Sync legacy workspaceId and hash password
+userSchema.pre('save', async function() {
+  // Sync workspaceId with workspaces array
   if (this.isNew && this.workspaceId && (!this.workspaces || this.workspaces.length === 0)) {
     this.workspaces = [{
       workspaceId: this.workspaceId,
@@ -126,16 +126,12 @@ userSchema.pre('save', function(next) {
     }];
     this.currentWorkspaceId = this.workspaceId;
   }
-  next();
-});
 
-// Hash password before saving
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password_hash')) return next();
+  // Hash password if modified
+  if (!this.isModified('password_hash')) return;
   
   const salt = await bcrypt.genSalt(10);
   this.password_hash = await bcrypt.hash(this.password_hash, salt);
-  next();
 });
 
 // Method to compare passwords

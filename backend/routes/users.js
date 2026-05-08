@@ -185,8 +185,12 @@ router.post('/me/change-password', authenticate, async (req, res) => {
 // Get all users (Admin, HR & Community Admin)
 router.get('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), async (req, res) => {
   try {
-    // WORKSPACE SUPPORT: Scope by workspace
-    const users = await User.find({ workspaceId: req.context.workspaceId })
+    // WORKSPACE SUPPORT: System admins can see all users; other roles remain workspace-scoped.
+    const query = req.context?.isSystemAdmin
+      ? {}
+      : { workspaceId: req.context.workspaceId };
+
+    const users = await User.find(query)
       .select('-password_hash')
       .populate('team_id')
       .populate('teams', 'name')
@@ -260,12 +264,15 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
     }
 
     const { full_name, email, password, role, team_id } = req.body;
+    const workspaceId = req.context?.workspaceId || null;
 
-    // WORKSPACE SUPPORT: Check if user exists in this workspace
-    const existingUser = await User.findOne({ 
-      email,
-      workspaceId: req.context.workspaceId 
-    });
+    // WORKSPACE SUPPORT: Check for duplicates in the active workspace when available,
+    // otherwise fall back to a global lookup for system-wide admin flows.
+    const existingUser = await User.findOne(
+      workspaceId
+        ? { email, workspaceId }
+        : { email }
+    );
     if (existingUser) {
       return res.status(400).json({ message: 'Email already registered' });
     }
@@ -285,16 +292,18 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
       password_hash: password,
       role: role || 'member',
       team_id: (role === 'admin') ? null : (team_id || null),
-      workspaceId: req.context.workspaceId  // WORKSPACE SUPPORT
+      workspaceId: workspaceId  // WORKSPACE SUPPORT
     });
 
     await user.save();
 
-    // Update workspace user count
-    await Workspace.findByIdAndUpdate(
-      req.context.workspaceId,
-      { $inc: { 'usage.userCount': 1 } }
-    );
+    // Update workspace user count only when the new user belongs to a workspace.
+    if (workspaceId) {
+      await Workspace.findByIdAndUpdate(
+        workspaceId,
+        { $inc: { 'usage.userCount': 1 } }
+      );
+    }
 
     // Send credential email with timeout (non-blocking)
     // Don't wait more than 10 seconds for email
@@ -340,7 +349,7 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
         role,
         team_id
       },
-      workspaceId: req.context.workspaceId
+      workspaceId
     });
 
     emitWorkspaceEvent(req, 'user:created', userResponse);
@@ -352,6 +361,12 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
       emailQueued: true
     });
   } catch (error) {
+    console.error('Error creating user:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+      keyPattern: error.keyPattern
+    });
     
     // Handle duplicate email error
     if (error.code === 11000 && error.keyPattern?.email) {

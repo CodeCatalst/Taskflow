@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const userData = JSON.parse(storedUser);
         setUser(userData);
-        initializeSocket(userData.id, userData.workspace?.id || userData.workspaceId || userData.currentWorkspaceId);
+        void initializeSocket(userData.id, userData.workspace?.id || userData.workspaceId || userData.currentWorkspaceId);
       } catch (error) {
         localStorage.removeItem('user');
       }
@@ -32,10 +32,25 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const initializeSocket = (userId, workspaceId) => {
+  const initializeSocket = async (userId, workspaceId) => {
     const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
     if (socket) {
       socket.disconnect();
+    }
+
+    try {
+      const healthController = new AbortController();
+      const healthTimeout = setTimeout(() => healthController.abort(), 2000);
+      const healthResponse = await fetch(`${SOCKET_URL}/api/health`, { signal: healthController.signal });
+      clearTimeout(healthTimeout);
+
+      if (!healthResponse.ok) {
+        setSocket(null);
+        return;
+      }
+    } catch (error) {
+      setSocket(null);
+      return;
     }
 
     // Temporarily override addEventListener to prevent deprecated unload listener
@@ -104,7 +119,7 @@ export const AuthProvider = ({ children }) => {
 
       localStorage.setItem('user', JSON.stringify(userWithWorkspace));
       setUser(userWithWorkspace);
-      initializeSocket(user.id, workspace?.id || user.workspaceId || user.currentWorkspaceId);
+      void initializeSocket(user.id, workspace?.id || user.workspaceId || user.currentWorkspaceId);
 
       return { success: true };
     } catch (error) {
@@ -139,7 +154,7 @@ export const AuthProvider = ({ children }) => {
 
       localStorage.setItem('user', JSON.stringify(userWithWorkspace));
       setUser(userWithWorkspace);
-      initializeSocket(userData.id, workspace.id);
+      void initializeSocket(userData.id, workspace.id);
 
       return { success: true };
     } catch (error) {
@@ -163,7 +178,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(user));
 
       setUser(user);
-      initializeSocket(user.id, user.workspace?.id || user.workspaceId || user.currentWorkspaceId);
+      void initializeSocket(user.id, user.workspace?.id || user.workspaceId || user.currentWorkspaceId);
 
       return { success: true };
     } catch (error) {

@@ -184,7 +184,15 @@ export default function UserManagement() {
       await fetchUsers();
       setTimeout(() => { setShowModal(false); setSuccess(''); }, 1500);
     } catch (err) {
-      setError(err.response?.data?.message || `Failed to ${modalMode} user`);
+      const validationMessages = err.response?.data?.errors
+        ?.map((item) => item.msg)
+        .filter(Boolean);
+
+      setError(
+        err.response?.data?.message ||
+        validationMessages?.join(', ') ||
+        `Failed to ${modalMode} user`
+      );
     }
   };
 
@@ -751,6 +759,7 @@ export default function UserManagement() {
                     <input
                       type="email"
                       name="email"
+                      autoComplete="username"
                       value={formData.email}
                       onChange={handleInputChange}
                       className={`w-full px-4 py-2 ${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded ${currentTheme.text} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
@@ -768,9 +777,12 @@ export default function UserManagement() {
                         onChange={handleInputChange}
                         className={`w-full px-4 py-2 ${currentTheme.surfaceSecondary} border ${currentTheme.border} rounded ${currentTheme.text} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
                         required
-                        minLength={6}
+                        minLength={8}
+                        autoComplete="new-password"
                       />
-                      <p className={`text-xs ${currentTheme.textSecondary} mt-1`}>Minimum 6 characters</p>
+                      <p className={`text-xs ${currentTheme.textSecondary} mt-1`}>
+                        Minimum 8 characters, including uppercase, lowercase, number, and special character
+                      </p>
                     </div>
                   )}
                 </div>

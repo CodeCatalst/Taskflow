@@ -142,6 +142,7 @@ const Login = () => {
                 className={`flex w-full min-w-0 resize-none overflow-hidden rounded ${theme === 'dark' ? 'text-white border-[#282f39] bg-[#111418] placeholder:text-[#9da8b9]' : 'text-gray-900 border-gray-300 bg-white placeholder:text-gray-400'} focus:outline-0 focus:ring-2 focus:ring-[#136dec] border focus:border-[#136dec] h-12 px-4 text-base font-normal transition-colors`}
                 placeholder="name@company.com"
                 required
+                autoComplete="username"
                 data-testid="login-email"
               />
             </div>
@@ -160,6 +161,7 @@ const Login = () => {
                   className={`flex w-full min-w-0 resize-none overflow-hidden rounded ${theme === 'dark' ? 'text-white border-[#282f39] bg-[#111418] placeholder:text-[#9da8b9]' : 'text-gray-900 border-gray-300 bg-white placeholder:text-gray-400'} focus:outline-0 focus:ring-2 focus:ring-[#136dec] border focus:border-[#136dec] h-12 px-4 pr-12 text-base font-normal transition-colors`}
                   placeholder="••••••••"
                   required
+                  autoComplete="current-password"
                   data-testid="login-password"
                 />
                 <div className="absolute right-0 top-0 h-full flex items-center pr-3">

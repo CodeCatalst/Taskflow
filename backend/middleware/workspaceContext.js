@@ -43,7 +43,9 @@ const workspaceContext = async (req, res, next) => {
       });
     }
     
-    let activeWorkspaceId = requestedWorkspaceId || user.currentWorkspaceId || user.workspaceId;
+    const getWorkspaceIdValue = (value) => value?._id || value;
+
+    let activeWorkspaceId = requestedWorkspaceId || getWorkspaceIdValue(user.currentWorkspaceId) || getWorkspaceIdValue(user.workspaceId);
     
     // Skip workspace resolution for workspace creation endpoint
     // This allows users without workspaces to create their first workspace
@@ -100,7 +102,7 @@ const workspaceContext = async (req, res, next) => {
       if (user.workspaces && user.workspaces.length > 0) {
         const firstActiveWorkspace = user.workspaces.find(ws => ws.isActive);
         if (firstActiveWorkspace) {
-          activeWorkspaceId = firstActiveWorkspace.workspaceId;
+          activeWorkspaceId = getWorkspaceIdValue(firstActiveWorkspace.workspaceId);
           // Note: We no longer auto-save user in middleware to avoid side effects
           // The currentWorkspaceId is set in memory for this request only
         } else {
@@ -127,7 +129,7 @@ const workspaceContext = async (req, res, next) => {
     }
 
     // Fetch the active workspace
-    let workspace = await Workspace.findById(activeWorkspaceId)
+    let workspace = await Workspace.findById(getWorkspaceIdValue(activeWorkspaceId))
       .select('name type isActive settings limits usage')
       .lean();
     

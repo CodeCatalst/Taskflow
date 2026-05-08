@@ -124,7 +124,7 @@ workspaceSchema.index({ type: 1, isActive: 1 });
 workspaceSchema.index({ owner: 1 });
 
 // Pre-save hook to set default features based on workspace type
-workspaceSchema.pre('save', function(next) {
+workspaceSchema.pre('save', async function() {
   if (this.isNew || this.isModified('type')) {
     if (this.type === 'CORE') {
       // CORE workspaces get all features
@@ -156,7 +156,6 @@ workspaceSchema.pre('save', function(next) {
       this.subscription.planType = 'FREE';
     }
   }
-  next();
 });
 
 // Instance methods
