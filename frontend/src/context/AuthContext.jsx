@@ -14,10 +14,6 @@ export const AuthProvider = ({ children }) => {
 
 
   useEffect(() => {
-    // Clear legacy browser-readable tokens now that auth is cookie-only.
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-
     // Check if user is logged in from persisted profile state.
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -98,6 +94,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post('/auth/login', { email, password, rememberMe, sessionTimeout });
       const { user, workspace, workspaces } = response.data;
+
+      if (response.data.accessToken && response.data.refreshToken) {
+        localStorage.setItem('accessToken', response.data.accessToken);
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+      }
 
       // If user has multiple workspaces, return them for selection
       if (workspaces && workspaces.length > 1) {
@@ -192,6 +193,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('lastActivityTime');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     setUser(null);
     if (socket) {
       socket.disconnect();

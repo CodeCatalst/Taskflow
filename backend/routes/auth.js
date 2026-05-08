@@ -378,6 +378,9 @@ router.post('/login', validateLogin, async (req, res) => {
 
     res.json({
       message: 'Login successful',
+      // Include tokens in response body for cross-domain fallback (important for Render + Vercel)
+      accessToken,
+      refreshToken,
       user: {
         id: user._id,
         full_name: user.full_name,
@@ -495,6 +498,9 @@ router.post('/refresh', async (req, res) => {
     res.cookie('refreshToken', newRefreshToken, cookieOptions);
 
     res.json({
+      // Include tokens in response body for cross-domain fallback (important for Render + Vercel)
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
       user: {
         id: user._id,
         full_name: user.full_name,
