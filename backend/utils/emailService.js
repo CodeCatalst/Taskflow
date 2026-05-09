@@ -365,13 +365,13 @@ const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
         <div class="logo-container">
           <img src="https://taskflow-nine-phi.vercel.app/logo.png" alt="TaskFlow Logo" />
         </div>
-        <h1>Welcome to TaskFlow! ðŸš€</h1>
+        <h1>Welcome to TaskFlow! &#x1F680;</h1>
         <p>Your account is ready to go</p>
       </div>
       
       <div class="content">
         <div class="greeting">
-          ðŸ‘‹ Hi <strong>${fullName}</strong>!
+          &#x1F44B; Hi <strong>${fullName}</strong>!
         </div>
         
         <div class="message">
@@ -381,54 +381,54 @@ const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
 
         <div class="credentials-box">
           <h3>
-            <span>ðŸ”</span>
+            <span>&#x1F510;</span>
             Your Login Credentials
           </h3>
           <div class="credential-item">
-            <span class="credential-label">ðŸ“§ Email Address</span>
+            <span class="credential-label">&#x1F4E7; Email Address</span>
             <div class="credential-value">${email}</div>
           </div>
           <div class="credential-item">
-            <span class="credential-label">ðŸ”‘ Temporary Password</span>
+            <span class="credential-label">&#x1F511; Temporary Password</span>
             <div class="credential-value">${password}</div>
           </div>
         </div>
 
         <div class="security-notice">
-          <div style="font-size: 24px;">âš ï¸</div>
+          <div style="font-size: 24px;">&#x26A0;&#xFE0F;</div>
           <p><strong>Security First:</strong> Please change your password after your first login. Head to Settings â†’ Change Password to set a secure password of your choice.</p>
         </div>
 
         <div class="button-container">
-          <a href="${appUrl}" class="btn">ðŸš€ Launch TaskFlow</a>
+          <a href="${appUrl}" class="btn">&#x1F680; Launch TaskFlow</a>
         </div>
 
         <div class="divider"></div>
 
         <div class="features">
-          <h3>âœ¨ What's Waiting for You</h3>
+          <h3>&#x2728; What's Waiting for You</h3>
           
           <div class="feature-grid">
             <div class="feature-item">
-              <div class="feature-icon">ðŸ“‹</div>
+              <div class="feature-icon">&#x1F4CB;</div>
               <div class="feature-title">Task Management</div>
               <div class="feature-text">Create, assign, and track tasks with ease</div>
             </div>
             
             <div class="feature-item">
-              <div class="feature-icon">ðŸ“Š</div>
+              <div class="feature-icon">&#x1F4CA;</div>
               <div class="feature-title">Kanban Boards</div>
               <div class="feature-text">Visualize workflow with drag-and-drop</div>
             </div>
             
             <div class="feature-item">
-              <div class="feature-icon">ðŸ‘¥</div>
+              <div class="feature-icon">&#x1F465;</div>
               <div class="feature-title">Team Collaboration</div>
               <div class="feature-text">Work together in real-time</div>
             </div>
             
             <div class="feature-item">
-              <div class="feature-icon">ðŸ“ˆ</div>
+              <div class="feature-icon">&#x1F4C8;</div>
               <div class="feature-title">Analytics & Reports</div>
               <div class="feature-text">Track progress with insights</div>
             </div>
@@ -438,8 +438,8 @@ const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
         <div class="divider"></div>
 
         <div class="message" style="text-align: center;">
-          <p style="font-size: 16px; color: #4a5568;">Need help getting started? Your admin team is here to support you! ðŸ’ª</p>
-          <p style="font-size: 18px; font-weight: 600; color: #667eea; margin-top: 20px;">Let's make productivity happen! ðŸŽ¯</p>
+          <p style="font-size: 16px; color: #4a5568;">Need help getting started? Your admin team is here to support you! &#x1F4AA;</p>
+          <p style="font-size: 18px; font-weight: 600; color: #667eea; margin-top: 20px;">Let's make productivity happen! &#x1F3AF;</p>
         </div>
       </div>
 
@@ -448,7 +448,7 @@ const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
         <p>Collaborative Task Management System</p>
         <p style="margin-top: 20px; font-size: 12px; opacity: 0.8;">This is an automated message. Please do not reply.</p>
         <p style="margin-top: 15px;">
-          <a href="${appUrl}" style="color: #90cdf4; text-decoration: none;">ðŸŒ Visit TaskFlow</a>
+          <a href="${appUrl}" style="color: #90cdf4; text-decoration: none;">&#x1F310; Visit TaskFlow</a>
         </p>
       </div>
     </div>
@@ -485,7 +485,7 @@ export const sendVerificationEmail = async (fullName, email, verificationCode, p
 <body>
   <div class="container">
     <div class="header">
-      <h1>ðŸŽ‰ Welcome to ${workspaceName}!</h1>
+      <h1>&#x1F389; Welcome to ${workspaceName}!</h1>
       <p>Verify your email to get started</p>
     </div>
     <div class="content">
@@ -506,7 +506,7 @@ export const sendVerificationEmail = async (fullName, email, verificationCode, p
       </div>
 
       <div class="warning">
-        <strong>âš ï¸ Important:</strong>
+        <strong>&#x26A0;&#xFE0F; Important:</strong>
         <ul style="margin: 10px 0;">
           <li>This verification code expires in 24 hours</li>
           <li>Keep your credentials safe</li>
@@ -550,7 +550,7 @@ export const sendCredentialEmail = async (fullName, email, password) => {
       : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
 
     const htmlContent = getCredentialEmailTemplate(fullName, email, password, appUrl);
-    const subject = 'ðŸŽ‰ Welcome to TaskFlow - Your Account is Ready!';
+    const subject = '&#x1F389; Welcome to TaskFlow - Your Account is Ready!';
 
     const result = await sendEmail(email, subject, htmlContent);
     
@@ -591,7 +591,7 @@ const getTaskAssignmentTemplate = (userName, taskTitle, taskDescription, priorit
 <body>
   <div class="container">
     <div class="header">
-      <h1>ðŸ“‹ New Task Assigned</h1>
+      <h1>&#x1F4CB; New Task Assigned</h1>
     </div>
     <div class="content">
       <p>Hello <strong>${userName}</strong>,</p>
@@ -624,7 +624,7 @@ export const sendTaskAssignmentEmail = async (userName, userEmail, taskTitle, ta
       : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
 
     const htmlContent = getTaskAssignmentTemplate(userName, taskTitle, taskDescription, priority, dueDate, appUrl);
-    const subject = `ðŸ“‹ New Task Assigned: ${taskTitle}`;
+    const subject = `&#x1F4CB; New Task Assigned: ${taskTitle}`;
 
     const result = await sendEmail(userEmail, subject, htmlContent);
     
@@ -662,7 +662,7 @@ const getTaskStatusTemplate = (userName, taskTitle, oldStatus, newStatus, update
 <body>
   <div class="container">
     <div class="header">
-      <h1>ðŸ”„ Task Status Updated</h1>
+      <h1>&#x1F504; Task Status Updated</h1>
     </div>
     <div class="content">
       <p>Hello <strong>${userName}</strong>,</p>
@@ -697,7 +697,7 @@ export const sendTaskStatusEmail = async (userName, userEmail, taskTitle, oldSta
       : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
 
     const htmlContent = getTaskStatusTemplate(userName, taskTitle, oldStatus, newStatus, updatedBy, appUrl);
-    const subject = `ðŸ”„ Task Status Updated: ${taskTitle}`;
+    const subject = `&#x1F504; Task Status Updated: ${taskTitle}`;
 
     const result = await sendEmail(userEmail, subject, htmlContent);
     
@@ -800,7 +800,7 @@ const getPasswordResetTemplate = (fullName, resetToken) => {
 <body>
   <div class="container">
     <div class="header">
-      <h1>ðŸ” Password Reset Request</h1>
+      <h1>&#x1F510; Password Reset Request</h1>
     </div>
     <div class="content">
       <p>Hello ${fullName},</p>
@@ -811,7 +811,7 @@ const getPasswordResetTemplate = (fullName, resetToken) => {
       </div>
       <p style="text-align: center; color: #666; font-size: 14px;">Enter this code on the password reset page</p>
       <div class="warning">
-        <strong>âš ï¸ Important:</strong>
+        <strong>&#x26A0;&#xFE0F; Important:</strong>
         <ul style="margin: 10px 0;">
           <li>This code will expire in 1 hour</li>
           <li>Do not share this code with anyone</li>
@@ -856,7 +856,7 @@ export const sendPasswordResetEmail = async (fullName, email, newPassword) => {
 <body>
   <div class="container">
     <div class="header">
-      <h1>ðŸ” Password Reset Successful</h1>
+      <h1>&#x1F510; Password Reset Successful</h1>
       <p>Your password has been updated</p>
     </div>
     <div class="content">
@@ -871,7 +871,7 @@ export const sendPasswordResetEmail = async (fullName, email, newPassword) => {
       <p style="text-align: center; color: #666; font-size: 14px;">Use this password to log in to your account</p>
 
       <div class="warning">
-        <strong>âš ï¸ Security Reminder:</strong>
+        <strong>&#x26A0;&#xFE0F; Security Reminder:</strong>
         <ul style="margin: 10px 0;">
           <li>Change this password after your next login</li>
           <li>Keep your credentials secure</li>
@@ -944,7 +944,7 @@ const getCommentNotificationTemplate = (userName, commenterName, taskTitle, comm
 <body>
   <div class="container">
     <div class="header">
-      <h1>ðŸ’¬ New Comment on Task</h1>
+      <h1>&#x1F4AC; New Comment on Task</h1>
     </div>
     <div class="content">
       <p>Hello <strong>${userName}</strong>,</p>
@@ -975,7 +975,7 @@ export const sendCommentNotification = async (userName, userEmail, commenterName
       : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
 
     const htmlContent = getCommentNotificationTemplate(userName, commenterName, taskTitle, commentText, appUrl);
-    const subject = `ðŸ’¬ New Comment: ${taskTitle}`;
+    const subject = `&#x1F4AC; New Comment: ${taskTitle}`;
 
     const result = await sendEmail(userEmail, subject, htmlContent);
     
@@ -1024,7 +1024,7 @@ export const sendOverdueTaskReminder = async (userName, userEmail, taskTitle, da
 <body>
   <div class="container">
     <div class="header">
-      <h1>ðŸš¨ Overdue Task Alert</h1>
+      <h1>&#x1F6A8; Overdue Task Alert</h1>
     </div>
     <div class="content">
       <p>Hello <strong>${userName}</strong>,</p>
@@ -1045,7 +1045,7 @@ export const sendOverdueTaskReminder = async (userName, userEmail, taskTitle, da
 </html>
     `;
 
-    const subject = `ðŸš¨ Overdue Task: ${taskTitle}`;
+    const subject = `&#x1F6A8; Overdue Task: ${taskTitle}`;
 
     const result = await sendEmail(userEmail, subject, htmlContent);
     
