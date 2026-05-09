@@ -315,7 +315,14 @@ router.post('/:id/members', authenticate, checkRole(['admin', 'hr', 'community_a
     const teamId = req.params.id;
 
     // WORKSPACE SUPPORT: Verify user exists in same workspace
-    const user = await User.findOne({ _id: userId, workspaceId: req.context.workspaceId });
+    const userQuery = {
+      _id: userId,
+      $or: [
+        { workspaceId: req.context.workspaceId },
+        { role: 'admin', workspaceId: null },
+      ],
+    };
+    const user = await User.findOne(userQuery);
     if (!user) {
       return res.status(400).json({ message: 'User not found' });
     }
@@ -380,7 +387,13 @@ router.post('/:id/members/bulk', authenticate, checkRole(['admin', 'hr', 'commun
     for (const userId of userIds) {
       try {
         // WORKSPACE SUPPORT: Verify user exists in same workspace
-        const user = await User.findOne({ _id: userId, workspaceId: req.context.workspaceId });
+        const user = await User.findOne({
+          _id: userId,
+          $or: [
+            { workspaceId: req.context.workspaceId },
+            { role: 'admin', workspaceId: null },
+          ],
+        });
         if (!user) {
           results.failed.push({ userId, reason: 'User not found' });
           continue;

@@ -186,7 +186,12 @@ router.get('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), asy
     // WORKSPACE SUPPORT: System admins can see all users; other roles remain workspace-scoped.
     const query = req.context?.isSystemAdmin
       ? {}
-      : { workspaceId: req.context.workspaceId };
+      : {
+          $or: [
+            { workspaceId: req.context.workspaceId },
+            { role: 'admin', workspaceId: null },
+          ],
+        };
 
     const users = await User.find(query)
       .select('-password_hash')

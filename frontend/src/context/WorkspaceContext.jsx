@@ -20,17 +20,54 @@ import { useAuth } from './AuthContext';
 
 const WorkspaceContext = createContext(null);
 
+const defaultWorkspaceState = {
+  id: null,
+  name: null,
+  type: null,
+  features: {},
+  limits: {},
+  usage: {},
+};
+
+const normalizeWorkspace = (workspaceData) => {
+  if (!workspaceData) {
+    return null;
+  }
+
+  const id = workspaceData.id || workspaceData._id || null;
+  if (!id) {
+    return null;
+  }
+
+  return {
+    id,
+    name: workspaceData.name || null,
+    type: workspaceData.type || null,
+    features: workspaceData.settings?.features || workspaceData.features || {},
+    limits: workspaceData.limits || {},
+    usage: workspaceData.usage || {},
+  };
+};
+
+const readStoredWorkspace = () => {
+  const storedWorkspace = localStorage.getItem('workspace');
+
+  if (!storedWorkspace) {
+    return null;
+  }
+
+  try {
+    return normalizeWorkspace(JSON.parse(storedWorkspace));
+  } catch (error) {
+    localStorage.removeItem('workspace');
+    return null;
+  }
+};
+
 export const WorkspaceProvider = ({ children }) => {
   const { user } = useAuth();
   
-  const [workspace, setWorkspace] = useState({
-    id: null,
-    name: null,
-    type: null,
-    features: {},
-    limits: {},
-    usage: {},
-  });
+  const [workspace, setWorkspace] = useState(defaultWorkspaceState);
   
   const [allWorkspaces, setAllWorkspaces] = useState([]);
 
@@ -38,16 +75,11 @@ export const WorkspaceProvider = ({ children }) => {
 
   // Initialize workspace from localStorage on mount
   useEffect(() => {
-    const storedWorkspace = localStorage.getItem('workspace');
+    const storedWorkspace = readStoredWorkspace();
     const storedWorkspaces = localStorage.getItem('allWorkspaces');
     
     if (storedWorkspace) {
-      try {
-        const parsed = JSON.parse(storedWorkspace);
-        setWorkspace(parsed);
-      } catch (error) {
-        localStorage.removeItem('workspace');
-      }
+      setWorkspace(storedWorkspace);
     }
     
     if (storedWorkspaces) {
@@ -64,30 +96,43 @@ export const WorkspaceProvider = ({ children }) => {
 
   // Update workspace when user changes
   useEffect(() => {
-    if (user && user.workspace) {
-      // Check if we have a stored workspace ID that's different from user.workspace
-      // This happens after a workspace switch - trust the stored workspace over user object
-      const storedWorkspace = localStorage.getItem('workspace');
-      if (storedWorkspace) {
-        try {
-          const parsed = JSON.parse(storedWorkspace);
-          // If stored workspace ID differs from user.workspace.id, keep the stored one
-          // (it's newer because switchWorkspace updated it before reload)
-          if (parsed.id && parsed.id !== user.workspace.id) {
-            // Don't update from user.workspace - keep the stored one
-            return;
-          }
-        } catch (e) {
-        }
-      }
-      updateWorkspace(user.workspace);
+    if (!user) {
+      clearWorkspace();
+      return;
     }
-    if (user && user.workspaces) {
+
+    if (user.workspaces) {
       setAllWorkspaces(user.workspaces);
       localStorage.setItem('allWorkspaces', JSON.stringify(user.workspaces));
     }
-    if (!user) {
-      clearWorkspace();
+
+    const normalizedUserWorkspace = normalizeWorkspace(user.workspace);
+    const normalizedUserWorkspaces = (user.workspaces || [])
+      .map(normalizeWorkspace)
+      .filter(Boolean);
+    const storedWorkspace = readStoredWorkspace();
+    const currentWorkspaceId = user.currentWorkspaceId || user.workspaceId || normalizedUserWorkspace?.id || null;
+    const validWorkspaceIds = new Set(
+      [
+        currentWorkspaceId,
+        normalizedUserWorkspace?.id,
+        ...normalizedUserWorkspaces.map((item) => item.id),
+      ].filter(Boolean)
+    );
+
+    if (storedWorkspace && validWorkspaceIds.has(storedWorkspace.id)) {
+      updateWorkspace(storedWorkspace);
+      return;
+    }
+
+    if (normalizedUserWorkspace) {
+      updateWorkspace(normalizedUserWorkspace);
+      return;
+    }
+
+    const fallbackWorkspace = normalizedUserWorkspaces.find((item) => item.id === currentWorkspaceId) || normalizedUserWorkspaces[0];
+    if (fallbackWorkspace) {
+      updateWorkspace(fallbackWorkspace);
     }
   }, [user]);
 
@@ -107,14 +152,11 @@ export const WorkspaceProvider = ({ children }) => {
    * @param {Object} workspaceData - Workspace data from API
    */
   const updateWorkspace = (workspaceData) => {
-    const newWorkspace = {
-      id: workspaceData.id,
-      name: workspaceData.name,
-      type: workspaceData.type,
-      features: workspaceData.settings?.features || {},
-      limits: workspaceData.limits || {},
-      usage: workspaceData.usage || {},
-    };
+    const newWorkspace = normalizeWorkspace(workspaceData);
+
+    if (!newWorkspace) {
+      return;
+    }
     
     setWorkspace(newWorkspace);
     localStorage.setItem('workspace', JSON.stringify(newWorkspace));
@@ -124,14 +166,7 @@ export const WorkspaceProvider = ({ children }) => {
    * Clear workspace data (on logout)
    */
   const clearWorkspace = () => {
-    setWorkspace({
-      id: null,
-      name: null,
-      type: null,
-      features: {},
-      limits: {},
-      usage: {},
-    });
+    setWorkspace(defaultWorkspaceState);
     setAllWorkspaces([]);
     localStorage.removeItem('workspace');
     localStorage.removeItem('allWorkspaces');

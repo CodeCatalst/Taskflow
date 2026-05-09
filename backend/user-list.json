@@ -1,0 +1,147 @@
+[
+  {
+    "id": "69541d2833826f5c2822ac84",
+    "full_name": "Rahul Kumar",
+    "email": "rahul12kumar04@gmail.com",
+    "role": "team_lead",
+    "employmentStatus": "ACTIVE",
+    "workspaceId": "6953e4fa9d54cd8f9172a596",
+    "currentWorkspaceId": "6953e4fa9d54cd8f9172a596",
+    "workspaces": [],
+    "isEmailVerified": false,
+    "created_at": "2025-12-30T18:42:48.436Z",
+    "updated_at": "2026-04-18T16:23:40.949Z"
+  },
+  {
+    "id": "69541d2833826f5c2822ac92",
+    "full_name": "Kumkum Morewal",
+    "email": "kumkum.morewal27@gmail.com",
+    "role": "team_lead",
+    "employmentStatus": "ACTIVE",
+    "workspaceId": "6953e4fa9d54cd8f9172a596",
+    "currentWorkspaceId": "6953e4fa9d54cd8f9172a596",
+    "workspaces": [],
+    "isEmailVerified": false,
+    "created_at": "2025-12-30T18:42:48.929Z",
+    "updated_at": "2026-04-18T16:23:41.645Z"
+  },
+  {
+    "id": "69541d2a33826f5c2822acba",
+    "full_name": "Khushal",
+    "email": "khushal2005kumar@gmail.com",
+    "role": "member",
+    "employmentStatus": "ACTIVE",
+    "workspaceId": "6953e4fa9d54cd8f9172a596",
+    "currentWorkspaceId": "6953e4fa9d54cd8f9172a596",
+    "workspaces": [],
+    "isEmailVerified": false,
+    "created_at": "2025-12-30T18:42:50.913Z",
+    "updated_at": "2026-02-25T15:23:45.227Z"
+  },
+  {
+    "id": "69541d2b33826f5c2822acd2",
+    "full_name": "Nikhil Mishra",
+    "email": "nk7781828@gmail.com",
+    "role": "member",
+    "employmentStatus": "ACTIVE",
+    "workspaceId": "6953e4fa9d54cd8f9172a596",
+    "currentWorkspaceId": "6953e4fa9d54cd8f9172a596",
+    "workspaces": [],
+    "isEmailVerified": false,
+    "created_at": "2025-12-30T18:42:51.851Z",
+    "updated_at": "2026-04-18T16:23:42.337Z"
+  },
+  {
+    "id": "69a930992dda7323c379bf11",
+    "full_name": "Arjan Singh Jassal",
+    "email": "jassalarjansingh@gmail.com",
+    "role": "admin",
+    "employmentStatus": "ACTIVE",
+    "workspaceId": "6953e4fa9d54cd8f9172a596",
+    "currentWorkspaceId": "6953e4fa9d54cd8f9172a596",
+    "workspaces": [
+      {
+        "workspaceId": "6953e4fa9d54cd8f9172a596",
+        "role": "admin",
+        "joinedAt": "2026-03-05T07:28:25.266Z",
+        "isActive": true
+      }
+    ],
+    "isEmailVerified": false,
+    "created_at": "2026-03-05T07:28:25.265Z",
+    "updated_at": "2026-04-18T16:22:49.107Z"
+  },
+  {
+    "id": "69b429ca38e83ceaf3f8ae05",
+    "full_name": "Payal Bainsla",
+    "email": "bainslapayal377@gmail.com",
+    "role": "member",
+    "employmentStatus": "ACTIVE",
+    "workspaceId": "6953e4fa9d54cd8f9172a596",
+    "currentWorkspaceId": "6953e4fa9d54cd8f9172a596",
+    "workspaces": [
+      {
+        "workspaceId": "6953e4fa9d54cd8f9172a596",
+        "role": "member",
+        "joinedAt": "2026-03-13T15:14:18.607Z",
+        "isActive": true
+      }
+    ],
+    "isEmailVerified": false,
+    "created_at": "2026-03-13T15:14:18.606Z",
+    "updated_at": "2026-03-13T15:14:18.606Z"
+  },
+  {
+    "id": "69b95ca3e7ec43f643786213",
+    "full_name": "Ramveer",
+    "email": "ramveerk2007@gmail.com",
+    "role": "member",
+    "employmentStatus": "ACTIVE",
+    "workspaceId": "6953e4fa9d54cd8f9172a596",
+    "currentWorkspaceId": "6953e4fa9d54cd8f9172a596",
+    "workspaces": [
+      {
+        "workspaceId": "6953e4fa9d54cd8f9172a596",
+        "role": "member",
+        "joinedAt": "2026-03-17T13:52:35.490Z",
+        "isActive": true
+      }
+    ],
+    "isEmailVerified": false,
+    "created_at": "2026-03-17T13:52:35.490Z",
+    "updated_at": "2026-03-17T13:52:35.490Z"
+  },
+  {
+    "id": "69e6477e5a30da20074c9c9a",
+    "full_name": "Arjan Singh Jassal (Tester)",
+    "email": "jassalarjan.awc@gmail.com",
+    "role": "member",
+    "employmentStatus": "ACTIVE",
+    "workspaceId": "6953e4fa9d54cd8f9172a596",
+    "currentWorkspaceId": "6953e4fa9d54cd8f9172a596",
+    "workspaces": [
+      {
+        "workspaceId": "6953e4fa9d54cd8f9172a596",
+        "role": "member",
+        "joinedAt": "2026-04-20T15:34:22.630Z",
+        "isActive": true
+      }
+    ],
+    "isEmailVerified": false,
+    "created_at": "2026-04-20T15:34:22.627Z",
+    "updated_at": "2026-04-20T15:34:22.627Z"
+  },
+  {
+    "id": "69fedb0435f972c44049a071",
+    "full_name": "Divy Bajpai",
+    "email": "divybajpai25@gmail.com",
+    "role": "admin",
+    "employmentStatus": "ACTIVE",
+    "workspaceId": null,
+    "currentWorkspaceId": null,
+    "workspaces": [],
+    "isEmailVerified": false,
+    "created_at": "2026-05-09T06:58:12.484Z",
+    "updated_at": "2026-05-09T06:58:12.484Z"
+  }
+]

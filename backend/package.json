@@ -10,6 +10,7 @@
     "test:email": "node test-email.js",
     "seed:admin": "node scripts/seedAdmin.js",
     "cleanup:admins": "node scripts/cleanupAdminUsers.js",
+    "cleanup:orphan-users": "node scripts/delete-orphan-users.js --confirm",
     "migrate:workspaces": "node scripts/migrateToWorkspaces.js"
   },
   "dependencies": {

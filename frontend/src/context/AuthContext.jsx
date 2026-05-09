@@ -10,6 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState(null);
+  const socketRef = useRef(null);
 
 
 
@@ -28,10 +29,22 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      logout();
+    };
+
+    window.addEventListener('auth:logout', handleAuthLogout);
+
+    return () => {
+      window.removeEventListener('auth:logout', handleAuthLogout);
+    };
+  }, []);
+
   const initializeSocket = async (userId, workspaceId) => {
     const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
-    if (socket) {
-      socket.disconnect();
+    if (socketRef.current) {
+      socketRef.current.disconnect();
     }
 
     try {
@@ -87,6 +100,7 @@ export const AuthProvider = ({ children }) => {
     // Note: Actual notification listeners are set up in useNotifications hook
     // to avoid duplicate event handlers
     
+    socketRef.current = newSocket;
     setSocket(newSocket);
   };
 
@@ -196,10 +210,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setUser(null);
-    if (socket) {
-      socket.disconnect();
-      setSocket(null);
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
     }
+    setSocket(null);
   };
 
   // Update user data (e.g., after profile picture change)
