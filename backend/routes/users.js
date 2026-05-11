@@ -240,9 +240,16 @@ router.get('/team-members', authenticate, checkRole(['team_lead']), async (req, 
 router.get('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), async (req, res) => {
   try {
     // WORKSPACE SUPPORT: System admins can view users across all workspaces
+    // Match logic from GET /users endpoint for consistency
     const query = req.context?.isSystemAdmin
       ? { _id: req.params.id }
-      : { _id: req.params.id, workspaceId: req.context.workspaceId };
+      : {
+          _id: req.params.id,
+          $or: [
+            { workspaceId: req.context.workspaceId },
+            { role: 'admin', workspaceId: null },
+          ],
+        };
 
     const user = await User.findOne(query)
       .select('-password_hash')
@@ -396,10 +403,15 @@ router.post('/bulk-delete', authenticate, checkRole(['admin', 'hr']), ...require
     }
 
     // WORKSPACE SUPPORT: Only delete users in current workspace
-    const usersToDelete = await User.find({ 
+    // Match logic from GET /users endpoint for consistency
+    const userQuery = {
       _id: { $in: idsToDelete },
-      workspaceId: req.context.workspaceId 
-    });
+      $or: [
+        { workspaceId: req.context.workspaceId },
+        { role: 'admin', workspaceId: null },
+      ],
+    };
+    const usersToDelete = await User.find(userQuery);
 
     // MULTIPLE TEAMS SUPPORT: Remove users from all teams
     const isCoreWorkspace = req.context.workspaceType === 'CORE';
@@ -421,10 +433,14 @@ router.post('/bulk-delete', authenticate, checkRole(['admin', 'hr']), ...require
     }
 
     // Delete the users
-    const result = await User.deleteMany({ 
+    const deleteQuery = {
       _id: { $in: idsToDelete },
-      workspaceId: req.context.workspaceId 
-    });
+      $or: [
+        { workspaceId: req.context.workspaceId },
+        { role: 'admin', workspaceId: null },
+      ],
+    };
+    const result = await User.deleteMany(deleteQuery);
 
     // Update workspace user count
     await Workspace.findByIdAndUpdate(
@@ -481,9 +497,16 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
     }
 
     // WORKSPACE SUPPORT: Verify user exists in current workspace
+    // Match logic from GET /users endpoint for consistency
     const query = req.context?.isSystemAdmin
       ? { _id: id }
-      : { _id: id, workspaceId: req.context.workspaceId };
+      : {
+          _id: id,
+          $or: [
+            { workspaceId: req.context.workspaceId },
+            { role: 'admin', workspaceId: null },
+          ],
+        };
 
     const currentUser = await User.findOne(query);
 
@@ -495,7 +518,14 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
     if (email && email !== currentUser.email) {
       const emailQuery = req.context?.isSystemAdmin
         ? { email, _id: { $ne: id } }
-        : { email, workspaceId: req.context.workspaceId, _id: { $ne: id } };
+        : {
+            email,
+            _id: { $ne: id },
+            $or: [
+              { workspaceId: req.context.workspaceId },
+              { role: 'admin', workspaceId: null },
+            ],
+          };
 
       const existingUser = await User.findOne(emailQuery);
       if (existingUser) {
@@ -545,8 +575,18 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
     }
 
     // First, update the basic fields
+    // Match logic from GET /users endpoint for consistency
+    const updateQuery = req.context?.isSystemAdmin
+      ? { _id: id }
+      : {
+          _id: id,
+          $or: [
+            { workspaceId: req.context.workspaceId },
+            { role: 'admin', workspaceId: null },
+          ],
+        };
     const user = await User.findOneAndUpdate(
-      req.context?.isSystemAdmin ? { _id: id } : { _id: id, workspaceId: req.context.workspaceId },
+      updateQuery,
       updates,
       { new: true, runValidators: true }
     ).select('-password_hash').populate('team_id', 'name').populate('teams', 'name');
@@ -558,7 +598,15 @@ router.put('/:id', authenticate, checkRole(['admin', 'hr', 'community_admin']), 
     // MULTIPLE TEAMS SUPPORT: For Core Workspace, also add team_id to teams array if specified
     if (isCoreWorkspace && finalTeamId && role !== 'admin' && teams === undefined) {
       // Only add to teams array if teams wasn't explicitly provided
-      const teamQuery = req.context?.isSystemAdmin ? { _id: id } : { _id: id, workspaceId: req.context.workspaceId };
+      const teamQuery = req.context?.isSystemAdmin
+        ? { _id: id }
+        : {
+            _id: id,
+            $or: [
+              { workspaceId: req.context.workspaceId },
+              { role: 'admin', workspaceId: null },
+            ],
+          };
       await User.findOneAndUpdate(
         teamQuery,
         { $addToSet: { teams: finalTeamId } }
@@ -601,9 +649,16 @@ router.delete('/:id', authenticate, checkRole(['admin', 'hr']), async (req, res)
     }
 
     // WORKSPACE SUPPORT: Find and delete user only within current workspace
+    // Match logic from GET /users endpoint for consistency
     const query = req.context?.isSystemAdmin
       ? { _id: id }
-      : { _id: id, workspaceId: req.context.workspaceId };
+      : {
+          _id: id,
+          $or: [
+            { workspaceId: req.context.workspaceId },
+            { role: 'admin', workspaceId: null },
+          ],
+        };
 
     const user = await User.findOne(query);
 
@@ -681,7 +736,16 @@ router.patch('/:id/password', authenticate, checkRole(['admin', 'hr', 'community
       });
     }
 
-    const user = await User.findOne(req.context?.isSystemAdmin ? { _id: id } : { _id: id, workspaceId: req.context.workspaceId });
+    const userQuery = req.context?.isSystemAdmin
+      ? { _id: id }
+      : {
+          _id: id,
+          $or: [
+            { workspaceId: req.context.workspaceId },
+            { role: 'admin', workspaceId: null },
+          ],
+        };
+    const user = await User.findOne(userQuery);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -721,8 +785,17 @@ router.patch('/:id/role', authenticate, checkRole(['admin', 'hr']), async (req, 
       return res.status(400).json({ message: 'Invalid role' });
     }
 
+    const roleQuery = req.context?.isSystemAdmin
+      ? { _id: id }
+      : {
+          _id: id,
+          $or: [
+            { workspaceId: req.context.workspaceId },
+            { role: 'admin', workspaceId: null },
+          ],
+        };
     const user = await User.findOneAndUpdate(
-      req.context?.isSystemAdmin ? { _id: id } : { _id: id, workspaceId: req.context.workspaceId },
+      roleQuery,
       { role, updated_at: Date.now() },
       { new: true }
     ).select('-password_hash');
@@ -1143,10 +1216,17 @@ router.patch('/:id/deactivate', authenticate, checkRole(['hr', 'admin', 'communi
     const ipAddress = getClientIP(req);
 
     // Check if target user is an admin - only community_admin can deactivate admins
-    const targetUser = await User.findOne({
-      _id: id,
-      workspaceId: req.context.workspaceId
-    });
+    // Match logic from GET /users endpoint for consistency
+    const targetQuery = req.context?.isSystemAdmin
+      ? { _id: id }
+      : {
+          _id: id,
+          $or: [
+            { workspaceId: req.context.workspaceId },
+            { role: 'admin', workspaceId: null },
+          ],
+        };
+    const targetUser = await User.findOne(targetQuery);
 
     if (!targetUser) {
       return res.status(404).json({ message: 'User not found' });
