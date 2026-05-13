@@ -1,6 +1,33 @@
 ﻿import * as brevoAPI from '@getbrevo/brevo';
 import nodemailer from 'nodemailer';
 
+const DEFAULT_PUBLIC_APP_URL = 'https://taskflow-nine-phi.vercel.app';
+
+const isLocalhostUrl = (urlString) => {
+  if (!urlString) return false;
+
+  try {
+    const parsedUrl = new URL(urlString);
+    return ['localhost', '127.0.0.1', '::1'].includes(parsedUrl.hostname);
+  } catch (error) {
+    return false;
+  }
+};
+
+const getPublicAppUrl = (pathSuffix = '') => {
+  const candidateUrls = [
+    process.env.PUBLIC_FRONTEND_URL,
+    process.env.FRONTEND_URL,
+    process.env.CLIENT_URL
+  ].filter(Boolean);
+
+  const baseUrl = candidateUrls.find((url) => !isLocalhostUrl(url)) || DEFAULT_PUBLIC_APP_URL;
+  const normalizedBaseUrl = baseUrl.replace(/\/$/, '');
+  const normalizedPath = pathSuffix ? `/${pathSuffix.replace(/^\/+/, '')}` : '';
+
+  return `${normalizedBaseUrl}${normalizedPath}`;
+};
+
 // Brevo API Client
 let brevoClient = null;
 const getBrevoClient = () => {
@@ -122,14 +149,14 @@ export const sendEmail = async (to, subject, htmlContent, from = null) => {
 };
 
 // HTML Email Template for New User Credentials
-const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
+const getCredentialEmailTemplate = (fullName, email, password, loginUrl, workspaceName) => {
   return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to TaskFlow</title>
+  <title>Welcome to ${workspaceName}</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -444,11 +471,11 @@ const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
       </div>
 
       <div class="footer">
-        <p><strong>TaskFlow</strong></p>
+        <p><strong>${workspaceName}</strong></p>
         <p>Collaborative Task Management System</p>
         <p style="margin-top: 20px; font-size: 12px; opacity: 0.8;">This is an automated message. Please do not reply.</p>
         <p style="margin-top: 15px;">
-          <a href="${appUrl}" style="color: #90cdf4; text-decoration: none;">&#x1F310; Visit TaskFlow</a>
+          <a href="${loginUrl}" style="color: #90cdf4; text-decoration: none;">&#x1F310; Visit ${workspaceName}</a>
         </p>
       </div>
     </div>
@@ -461,9 +488,7 @@ const getCredentialEmailTemplate = (fullName, email, password, appUrl) => {
 // Send verification email for new user registration
 export const sendVerificationEmail = async (fullName, email, verificationCode, password, workspaceName) => {
   try {
-    const appUrl = process.env.NODE_ENV === 'production'
-      ? 'https://taskflow-nine-phi.vercel.app'
-      : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
+    const verifyEmailUrl = getPublicAppUrl('/verify-email');
 
     const htmlContent = `
 <!DOCTYPE html>
@@ -515,7 +540,7 @@ export const sendVerificationEmail = async (fullName, email, verificationCode, p
       </div>
 
       <p>Click the button below to verify your account:</p>
-      <a href="${appUrl}/verify-email" class="btn">Verify Email Address</a>
+      <a href="${verifyEmailUrl}" class="btn">Verify Email Address</a>
 
       <p style="margin-top: 30px;">If you have any questions, please contact your administrator.</p>
       <p>Best regards,<br>TaskFlow Team</p>
@@ -543,14 +568,12 @@ export const sendVerificationEmail = async (fullName, email, verificationCode, p
 };
 
 // Send credential email to new user
-export const sendCredentialEmail = async (fullName, email, password) => {
+export const sendCredentialEmail = async (fullName, email, password, workspaceName = 'TaskFlow') => {
   try {
-    const appUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://taskflow-nine-phi.vercel.app'
-      : (process.env.CLIENT_URL || 'https://taskflow-nine-phi.vercel.app');
+    const loginUrl = getPublicAppUrl('/login');
 
-    const htmlContent = getCredentialEmailTemplate(fullName, email, password, appUrl);
-    const subject = '&#x1F389; Welcome to TaskFlow - Your Account is Ready!';
+    const htmlContent = getCredentialEmailTemplate(fullName, email, password, loginUrl, workspaceName);
+    const subject = `Welcome to ${workspaceName} - Your Account is Ready!`;
 
     const result = await sendEmail(email, subject, htmlContent);
     

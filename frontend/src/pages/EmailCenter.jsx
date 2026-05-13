@@ -15,6 +15,32 @@ import {
   AlertCircle, Edit3, Sparkles, RefreshCw, Search
 } from 'lucide-react';
 
+const DEFAULT_PUBLIC_APP_URL = 'https://taskflow-nine-phi.vercel.app';
+
+const isLocalhostUrl = (urlString) => {
+  if (!urlString) return false;
+
+  try {
+    const parsedUrl = new URL(urlString);
+    return ['localhost', '127.0.0.1', '::1'].includes(parsedUrl.hostname);
+  } catch (error) {
+    return false;
+  }
+};
+
+const getPublicAppUrl = (pathSuffix = '') => {
+  const candidateUrls = [
+    import.meta.env.VITE_PUBLIC_APP_URL,
+    import.meta.env.VITE_FRONTEND_URL
+  ].filter(Boolean);
+
+  const baseUrl = candidateUrls.find((url) => !isLocalhostUrl(url)) || DEFAULT_PUBLIC_APP_URL;
+  const normalizedBaseUrl = baseUrl.replace(/\/$/, '');
+  const normalizedPath = pathSuffix ? `/${pathSuffix.replace(/^\/+/, '')}` : '';
+
+  return `${normalizedBaseUrl}${normalizedPath}`;
+};
+
 /**
  * Email Center - Professional HR Email Management Interface
  * Enhanced with Smart Variable Mapping to eliminate redundant data entry.
@@ -141,7 +167,8 @@ export default function EmailCenter() {
       jobTitle: recipient.role || '',
       currentDate: new Date().toLocaleDateString(),
       workspaceName: currentWorkspace?.name || 'TaskFlow',
-      appUrl: window.location.origin
+      appUrl: getPublicAppUrl(),
+      loginUrl: getPublicAppUrl('/login')
     };
 
     template.variables.forEach(v => {
@@ -174,7 +201,10 @@ export default function EmailCenter() {
             systemVariables[variable.name] = currentWorkspace?.name || 'TaskFlow';
             break;
           case 'appUrl':
-            systemVariables[variable.name] = window.location.origin;
+            systemVariables[variable.name] = getPublicAppUrl();
+            break;
+          case 'loginUrl':
+            systemVariables[variable.name] = getPublicAppUrl('/login');
             break;
           case 'currentDate':
             systemVariables[variable.name] = new Date().toLocaleDateString();
@@ -748,16 +778,16 @@ export default function EmailCenter() {
                   {selectedTemplate?.variables?.filter(v => !['fullName', 'email'].includes(v.name)).map((v) => (
                     <div key={v.name}>
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
-                        {v.name} {['workspaceName', 'appUrl', 'currentDate'].includes(v.name) && '(AUTO)'}
+                        {v.name} {['workspaceName', 'appUrl', 'loginUrl', 'currentDate'].includes(v.name) && '(AUTO)'}
                       </label>
                       <input
                         type="text"
                         placeholder={v.example}
                         value={emailData.variables[v.name] || ''}
                         onChange={(e) => setEmailData(p => ({ ...p, variables: { ...p.variables, [v.name]: e.target.value } }))}
-                        disabled={['workspaceName', 'appUrl', 'currentDate'].includes(v.name)}
+                        disabled={['workspaceName', 'appUrl', 'loginUrl', 'currentDate'].includes(v.name)}
                         className={`w-full px-4 py-3 ${currentTheme.surfaceSecondary} rounded-xl border ${currentTheme.border} ${currentTheme.text} text-xs ${
-                          ['workspaceName', 'appUrl', 'currentDate'].includes(v.name) ? 'opacity-50 cursor-not-allowed' : ''
+                          ['workspaceName', 'appUrl', 'loginUrl', 'currentDate'].includes(v.name) ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                       />
                     </div>
@@ -897,7 +927,7 @@ export default function EmailCenter() {
                 </div>
 
                 <div className="space-y-4">
-                  {selectedTemplate?.variables?.filter(v => !['workspaceName', 'appUrl', 'currentDate'].includes(v.name)).map((v) => {
+                  {selectedTemplate?.variables?.filter(v => !['workspaceName', 'appUrl', 'loginUrl', 'currentDate'].includes(v.name)).map((v) => {
                     const isSystemVar = ['fullName', 'email', 'candidateName', 'recipientEmail'].includes(v.name);
                     const isOverridden = emailRecipients[activeRecipientIndex]?.variables[v.name] && 
                                        emailRecipients[activeRecipientIndex]?.variables[v.name] !== getAutoVariables(emailRecipients[activeRecipientIndex], selectedTemplate)[v.name];
@@ -928,7 +958,7 @@ export default function EmailCenter() {
                     );
                   })}
 
-                  {selectedTemplate?.variables?.filter(v => !['workspaceName', 'appUrl', 'currentDate'].includes(v.name)).length === 0 && (
+                  {selectedTemplate?.variables?.filter(v => !['workspaceName', 'appUrl', 'loginUrl', 'currentDate'].includes(v.name)).length === 0 && (
                     <div className="py-10 text-center">
                       <AlertCircle className="w-8 h-8 text-gray-300 mx-auto mb-3" />
                       <p className="text-[10px] text-gray-400 font-bold uppercase px-4">No variables to map for this template</p>

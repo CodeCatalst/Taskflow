@@ -17,6 +17,32 @@ import {
   ExternalLink, Settings as SettingsIcon, Layout, ChevronDown
 } from 'lucide-react';
 
+const DEFAULT_PUBLIC_APP_URL = 'https://taskflow-nine-phi.vercel.app';
+
+const isLocalhostUrl = (urlString) => {
+  if (!urlString) return false;
+
+  try {
+    const parsedUrl = new URL(urlString);
+    return ['localhost', '127.0.0.1', '::1'].includes(parsedUrl.hostname);
+  } catch (error) {
+    return false;
+  }
+};
+
+const getPublicAppUrl = (pathSuffix = '') => {
+  const candidateUrls = [
+    import.meta.env.VITE_PUBLIC_APP_URL,
+    import.meta.env.VITE_FRONTEND_URL
+  ].filter(Boolean);
+
+  const baseUrl = candidateUrls.find((url) => !isLocalhostUrl(url)) || DEFAULT_PUBLIC_APP_URL;
+  const normalizedBaseUrl = baseUrl.replace(/\/$/, '');
+  const normalizedPath = pathSuffix ? `/${pathSuffix.replace(/^\/+/, '')}` : '';
+
+  return `${normalizedBaseUrl}${normalizedPath}`;
+};
+
 export default function HRDashboard() {
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
@@ -438,7 +464,10 @@ export default function HRDashboard() {
             systemVariables[variable.name] = 'TaskFlow'; // You can get this from context
             break;
           case 'appUrl':
-            systemVariables[variable.name] = window.location.origin;
+            systemVariables[variable.name] = getPublicAppUrl();
+            break;
+          case 'loginUrl':
+            systemVariables[variable.name] = getPublicAppUrl('/login');
             break;
           case 'currentDate':
             systemVariables[variable.name] = new Date().toLocaleDateString();
@@ -596,7 +625,7 @@ export default function HRDashboard() {
   const renderTemplateVariables = () => {
     if (!selectedTemplate?.variables?.length) return null;
 
-    const autoPopulatedVars = ['workspaceName', 'appUrl', 'currentDate'];
+    const autoPopulatedVars = ['workspaceName', 'appUrl', 'loginUrl', 'currentDate'];
 
     return (
       <div className="mb-4">

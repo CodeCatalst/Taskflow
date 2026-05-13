@@ -308,6 +308,11 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
 
     await user.save();
 
+    const workspace = workspaceId
+      ? await Workspace.findById(workspaceId).select('name')
+      : null;
+    const workspaceName = workspace?.name || 'TaskFlow';
+
     // Update workspace user count only when the new user belongs to a workspace.
     if (workspaceId) {
       await Workspace.findByIdAndUpdate(
@@ -319,7 +324,7 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
     // Send credential email with timeout (non-blocking)
     // Don't wait more than 10 seconds for email
     const emailPromise = Promise.race([
-      sendCredentialEmail(full_name, email, password),
+      sendCredentialEmail(full_name, email, password, workspaceName),
       new Promise((resolve) => 
         setTimeout(() => resolve({ 
           success: false, 
@@ -886,6 +891,11 @@ async function processBulkUsers(usersData, currentUser, workspaceId) {
     teamsCreated: []
   };
 
+  const workspace = workspaceId
+    ? await Workspace.findById(workspaceId).select('name')
+    : null;
+  const workspaceName = workspace?.name || 'TaskFlow';
+
   for (let i = 0; i < usersData.length; i++) {
     const userData = usersData[i];
     const rowNumber = i + 1;
@@ -1055,7 +1065,7 @@ async function processBulkUsers(usersData, currentUser, workspaceId) {
 
       // Try to send credential email (don't fail import if email fails)
       try {
-        await sendCredentialEmail(normalizedFullName, normalizedEmail, normalizedPassword);
+        await sendCredentialEmail(normalizedFullName, normalizedEmail, normalizedPassword, workspaceName);
       } catch (emailError) {
       }
 
