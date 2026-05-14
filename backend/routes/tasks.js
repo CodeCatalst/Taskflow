@@ -17,15 +17,19 @@ const getEffectiveRole = (req) => req.context?.isSystemAdmin ? 'admin' : (req.co
 const sanitizeAssignedTo = (assignedTo) => {
   if (!assignedTo) return [];
   const assignees = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
-  return assignees.filter(Boolean);
+  return assignees.filter(v => v !== null && v !== undefined);
 };
 
 const sanitizeTask = (task) => {
   if (!task) return task;
   const plainTask = typeof task.toObject === 'function' ? task.toObject() : task;
+  // Filter out null values from populated assigned_to array
+  const assignedTo = Array.isArray(plainTask.assigned_to) 
+    ? plainTask.assigned_to.filter(user => user !== null && user !== undefined)
+    : plainTask.assigned_to;
   return {
     ...plainTask,
-    assigned_to: sanitizeAssignedTo(plainTask.assigned_to),
+    assigned_to: assignedTo,
   };
 };
 

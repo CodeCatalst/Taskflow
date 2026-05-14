@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowRight, CheckCircle2, Users, Zap, Shield, 
+import {
+  ArrowRight, CheckCircle2, Users, Zap, Shield,
   Layout, Calendar, Bell, BarChart3, Lock, Globe,
-  TrendingUp, Award, Star, ChevronDown 
+  TrendingUp, Award, Star, ChevronDown
 } from 'lucide-react';
 
 const Landing = () => {
@@ -63,7 +63,7 @@ const Landing = () => {
               <Zap className="w-4 h-4 mr-2" />
               Invitation-Only Access
             </div>
-            
+
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
               Professional Task Management
               <br />
@@ -71,9 +71,9 @@ const Landing = () => {
                 For Your Organization
               </span>
             </h1>
-            
+
             <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-12">
-              A powerful, enterprise-grade task management platform. 
+              A powerful, enterprise-grade task management platform.
               Streamline workflows, enhance collaboration, and boost productivity across your teams.
             </p>
 
@@ -146,7 +146,7 @@ const Landing = () => {
               {
                 icon: Bell,
                 title: 'Real-time Notifications',
-                description: 'Stay updated with instant notifications and alerts',
+                description으로: 'Stay updated with instant notifications and alerts',
                 color: 'from-teal-500 to-emerald-500'
               },
               {
@@ -187,7 +187,7 @@ const Landing = () => {
       <section className="relative py-24 bg-gradient-to-b from-slate-900 to-slate-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
+            <div >
               <h2 className="text-4xl lg:text-5xl font-bold mb-6">
                 Built for <span className="text-cyan-400">Organizations</span>
               </h2>
@@ -211,9 +211,9 @@ const Landing = () => {
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-3xl blur-3xl" />
               <div className="relative bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-3xl p-8">
-                <img 
-                  src="/logo.png" 
-                  alt="Dashboard Preview" 
+                <img
+                  src="/logo.png"
+                  alt="Dashboard Preview"
                   className="w-full rounded-xl shadow-2xl"
                 />
               </div>
@@ -263,30 +263,6 @@ const Landing = () => {
           </div>
         </div>
       </footer>
-
-      <style jsx>{`
-        @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        .animate-gradient {
-          background-size: 200% auto;
-          animation: gradient 3s ease infinite;
-        }
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out;
-        }
-      `}</style>
     </div>
   );
 };

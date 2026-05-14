@@ -241,7 +241,7 @@ const Dashboard = () => {
       // Process tasks to calculate stats and populate dashboard
       const now = new Date();
       const myTasks = tasks.filter(task =>
-        task.assigned_to?.some(assignee => assignee._id === user._id)
+        task.assigned_to?.some(assignee => assignee && assignee._id === user._id)
       );
 
       const overdueTasks = tasks.filter(task => {
@@ -303,7 +303,7 @@ const Dashboard = () => {
       const assigneeMap = {};
       tasks.forEach(task => {
         if (task.assigned_to && Array.isArray(task.assigned_to)) {
-          task.assigned_to.forEach(assignee => {
+          task.assigned_to.filter(assignee => assignee !== null).forEach(assignee => {
             const name = assignee.full_name || assignee.email || 'Unknown';
             if (!assigneeMap[name]) {
               assigneeMap[name] = { total: 0, completed: 0 };

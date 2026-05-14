@@ -50,7 +50,40 @@ TaskFlow is an enterprise task management system with a decoupled MERN stack arc
 - `ChangeLog`: Audit records for administrative tracking.
 
 
+### Role Capabilities
+
+| Feature | System Admin | Workspace Admin | Community Admin | HR | Team Lead | Member |
+|---------|--------------|-----------------|-----------------|-----|-----------|--------|
+| Manage Workspaces | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| View All Workspaces | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Manage Users | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Bulk User Import | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Bulk User Delete | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Create Teams | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| View All Tasks | ✅ | ✅ | ✅ | ✅ | Team Only | Own Only |
+| Create Tasks | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Assign Tasks | ✅ | ✅ | ✅ | ✅ | Team Only | Self Only |
+| Delete Tasks | ✅ | ✅ | ✅ | ✅ | Own Tasks | ❌ |
+| Manage Teams | ✅ | ✅ | ✅ | ✅ | View Only | ❌ |
+| View Analytics | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| View Audit Logs | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Generate Reports | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Change Theme | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Configure Sessions | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+### Documentation References
+
+- **Landing Page**: `LANDING_PAGE_GUIDE.md`, `LANDING_QUICK_REF.md`
+- **Workspaces**: `WORKSPACE_QUICK_START.md`, `WORKSPACE_ACTIVATION_GUIDE.md`, `FINAL_WORKSPACE_SUMMARY.md`
+- **Administration**: `SYSTEM_ADMIN_ACCESS.md`, `BULK_USER_IMPORT_GUIDE.md`
+- **UI/UX**: `DASHBOARD_FEATURES_FIXED.md`, `ANALYTICS_DASHBOARD_IMPROVEMENTS.md`, `CALENDAR_VIEW_DOCUMENTATION.md`, `MOBILE_RESPONSIVENESS_IMPROVEMENTS.md`
+- **Synchronization**: `REALTIME_SYNC_IMPLEMENTATION.md`
+- **Notifications**: `QUICK_START_NOTIFICATIONS.md`, `NOTIFICATIONS_FIXED_README.md`, `PWA_NOTIFICATION_DOCUMENTATION.md`, `NOTIFICATION_TESTING_GUIDE.md`, `NOTIFICATION_TROUBLESHOOTING.md`
+- **HR & Email**: `UNIFIED_EMAIL_SYSTEM.md`, `API_REFERENCE_HR_MODULE.md`, `HR_EMAIL_SYSTEM_README.md`, `IMPLEMENTATION_SUMMARY.md`
+- **Auth & Infrastructure**: `AUTOMATIC_LOGOUT_TEST_GUIDE.md`, `AUTH_ERROR_FIX_GUIDE.md`, `WORKSPACE_IMPLEMENTATION_STATUS.md`
+
 ### Repo Tree
+
 
 ├── .orchids/
 │   └── orchids.json

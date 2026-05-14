@@ -396,7 +396,7 @@ const Tasks = () => {
 
   const canDeleteTask = (task) => {
     if (['admin', 'hr', 'team_lead', 'community_admin'].includes(user?.role)) return true;
-    return task.created_by._id === user?.id;
+    return task.created_by?._id === user?.id;
   };
 
   const getUserInitials = (name) => {
@@ -1089,26 +1089,27 @@ const Tasks = () => {
               </>
             )}
 
-          <div className={`flex justify-end space-x-4 pt-4 mt-6 border-t ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}>
-            <button
-              type="button"
-              onClick={() => {
-                setShowEditModal(false);
-                setEditingTask(null);
-              }}
-              className={`px-6 py-2 ${theme === 'dark' ? 'bg-[#282f39] hover:bg-[#3a4454] text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'} rounded transition-colors`}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-[#136dec] text-white rounded hover:bg-blue-600 transition-colors font-semibold"
-            >
-              Update Task
-            </button>
-          </div>
-        </form>
-      </ResponsiveModal>
+            <div className={`flex justify-end space-x-4 pt-4 mt-6 border-t ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingTask(null);
+                }}
+                className={`px-6 py-2 ${theme === 'dark' ? 'bg-[#282f39] hover:bg-[#3a4454] text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'} rounded transition-colors`}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-[#136dec] text-white rounded hover:bg-blue-600 transition-colors font-semibold"
+              >
+                Update Task
+              </button>
+            </div>
+          </form>
+          )}
+        </ResponsiveModal>
 
       {/* Task Detail Modal */}
       <ResponsiveModal

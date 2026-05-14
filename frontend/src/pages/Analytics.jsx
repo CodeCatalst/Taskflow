@@ -246,7 +246,7 @@ const Analytics = () => {
 
     const userStats = taskList.reduce((acc, task) => {
       if (task.assigned_to && task.assigned_to.length > 0) {
-        task.assigned_to.forEach(user => {
+        task.assigned_to.filter(user => user !== null).forEach(user => {
           const userId = user._id;
           const userName = user.full_name;
           if (!acc[userId]) {
@@ -342,7 +342,7 @@ const Analytics = () => {
       if (filters.user === 'unassigned') {
         filtered = filtered.filter(task => !task.assigned_to || task.assigned_to.length === 0);
       } else {
-        filtered = filtered.filter(task => task.assigned_to && task.assigned_to.some(u => u._id === filters.user));
+        filtered = filtered.filter(task => task.assigned_to && task.assigned_to.some(u => u && u._id === filters.user));
       }
     }
     if (filters.dateRange !== 'all') {
@@ -677,7 +677,7 @@ const Analytics = () => {
               {/* Status Distribution */}
               <div className={`${theme === 'dark' ? 'bg-[#1c2027]' : 'bg-white'} rounded-lg border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} p-3 sm:p-6`}>
                 <h3 className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} uppercase tracking-wider mb-3 sm:mb-4`}>Task Status Distribution</h3>
-                <div style={{ width: '100%', minWidth: '200px' }}>
+                <div style={{ width: '100%', minWidth: '200px', minHeight: '200px' }}>
                   <ResponsiveContainer width="100%" aspect={1.8} minWidth={200}>
                     <RechartsPieChart>
                       <Pie
@@ -703,7 +703,7 @@ const Analytics = () => {
               {/* Priority Distribution */}
               <div className={`${theme === 'dark' ? 'bg-[#1c2027]' : 'bg-white'} rounded-lg border ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'} p-3 sm:p-6`}>
                 <h3 className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} uppercase tracking-wider mb-3 sm:mb-4`}>Task Priority Distribution</h3>
-                <div style={{ width: '100%', minWidth: '200px' }}>
+                <div style={{ width: '100%', minWidth: '200px', minHeight: '200px' }}>
                   <ResponsiveContainer width="100%" aspect={1.8} minWidth={200}>
                     <BarChart data={analyticsData.priorityDistribution}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#282f39" />
@@ -953,7 +953,7 @@ const Analytics = () => {
                           </td>
                           <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-[#9da8b9]' : 'text-gray-600'} hidden lg:table-cell`}>
                             {task.assigned_to && task.assigned_to.length > 0
-                              ? task.assigned_to.map(u => u.full_name).join(', ')
+                              ? task.assigned_to.filter(u => u !== null).map(u => u.full_name).join(', ')
                               : 'Unassigned'}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">

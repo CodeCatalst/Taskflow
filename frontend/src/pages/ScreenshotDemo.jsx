@@ -184,7 +184,7 @@ const DashboardDemo = ({ data }) => {
                 </div>
               </div>
               <div className="flex -space-x-2">
-                {task.assigned_to.slice(0, 3).map((user, i) => (
+                {task.assigned_to?.filter(u => u !== null).slice(0, 3).map((user, i) => (
                   <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium border-2 border-slate-900">
                     {user.full_name.charAt(0)}
                   </div>
@@ -232,7 +232,7 @@ const KanbanDemo = ({ data }) => {
                       {task.priority}
                     </span>
                     <div className="flex -space-x-1">
-                      {task.assigned_to.slice(0, 2).map((user, i) => (
+                      {task.assigned_to?.filter(u => u !== null).slice(0, 2).map((user, i) => (
                         <div key={i} className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs border-2 border-slate-900">
                           {user.full_name.charAt(0)}
                         </div>
@@ -288,7 +288,7 @@ const TasksDemo = ({ data }) => (
               <td className="px-6 py-4 text-slate-300">{task.team_id.name}</td>
               <td className="px-6 py-4">
                 <div className="flex -space-x-1">
-                  {task.assigned_to.slice(0, 2).map((user, i) => (
+                  {task.assigned_to?.filter(u => u !== null).slice(0, 2).map((user, i) => (
                     <div key={i} className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs border-2 border-slate-900">
                       {user.full_name.charAt(0)}
                     </div>

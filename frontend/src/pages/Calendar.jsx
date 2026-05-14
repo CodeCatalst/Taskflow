@@ -61,8 +61,8 @@ const Calendar = () => {
       filtered = filtered.filter((t) => {
         if (!t.assigned_to) return false;
         const assignedIds = Array.isArray(t.assigned_to) 
-          ? t.assigned_to.map(u => typeof u === 'object' ? u._id : u)
-          : [typeof t.assigned_to === 'object' ? t.assigned_to._id : t.assigned_to];
+          ? t.assigned_to.filter(u => u !== null).map(u => typeof u === 'object' ? u._id : u)
+          : [typeof t.assigned_to === 'object' && t.assigned_to !== null ? t.assigned_to._id : t.assigned_to];
         return assignedIds.includes(user?.id);
       });
     }
@@ -369,7 +369,7 @@ const Calendar = () => {
                       <span className="font-medium">Assigned to:</span>
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {selectedTask.assigned_to.map((assignee) => (
+                      {selectedTask.assigned_to.filter(assignee => assignee !== null).map((assignee) => (
                         <span key={assignee._id} className="inline-block bg-blue-500/10 text-blue-400 text-xs px-2 py-1 rounded border border-blue-500/20">
                           {assignee.full_name}
                         </span>
