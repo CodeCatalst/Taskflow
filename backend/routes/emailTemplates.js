@@ -296,7 +296,17 @@ router.get('/users', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
       page = 1
     } = req.query;
 
-    let query = { workspaceId };
+    // Include users who are:
+    // - explicitly assigned to this workspace via `workspaceId`
+    // - have the workspace in their `workspaces` array
+    // - or are global admins/HR (workspaceId === null) so global admins appear in lists
+    let query = {
+      $or: [
+        { workspaceId },
+        { 'workspaces.workspaceId': workspaceId },
+        { workspaceId: null, role: { $in: ['admin', 'hr'] } }
+      ]
+    };
 
     // Add filters
     if (isActive !== undefined && isActive !== 'all') {
