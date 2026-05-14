@@ -216,8 +216,8 @@ router.post('/send', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
               _id: { $in: recipients },
               workspaceId,
               isActive: true
-            }).select('email fullName');
-            recipientEmails = users.map(user => ({ email: user.email, name: user.fullName }));
+              }).select('email full_name');
+              recipientEmails = users.map(user => ({ email: user.email, name: user.full_name }));
           }
         } else if (typeof firstRecipient === 'object' && firstRecipient.email) {
           // Recipient objects with email and name
@@ -228,8 +228,8 @@ router.post('/send', authenticate, requireCoreWorkspace, checkRole(['admin', 'hr
         }
       }
     } else if (recipients === 'all') {
-      const users = await User.find({ workspaceId, isActive: true }).select('email fullName');
-      recipientEmails = users.map(user => ({ email: user.email, name: user.fullName }));
+      const users = await User.find({ workspaceId, isActive: true }).select('email full_name');
+      recipientEmails = users.map(user => ({ email: user.email, name: user.full_name }));
     }
 
     if (recipientEmails.length === 0) {

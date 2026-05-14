@@ -149,13 +149,13 @@ router.post('/trigger-scheduled-campaigns', cronAuth, async (req, res) => {
 });
 
 // Manual trigger endpoints (for admins - requires authentication)
-router.post('/manual/daily-reports', authenticate, checkRole(['admin']), async (req, res) => {
+const runManualTrigger = (handler, successMessage) => async (req, res) => {
   try {
-    console.log('👤 Manual trigger: Daily Admin Reports by', req.user.full_name);
-    await triggerDailyAdminReports();
+    console.log(`👤 Manual trigger: ${successMessage} by`, req.user.full_name);
+    await handler();
     res.json({
       success: true,
-      message: 'Daily admin reports triggered manually',
+      message: successMessage,
       triggered_by: req.user.full_name,
       timestamp: new Date().toISOString()
     });
@@ -166,26 +166,15 @@ router.post('/manual/daily-reports', authenticate, checkRole(['admin']), async (
       timestamp: new Date().toISOString()
     });
   }
-});
+};
 
-router.post('/manual/today-notifications', authenticate, checkRole(['admin']), async (req, res) => {
-  try {
-    console.log('👤 Manual trigger: Today Due Notifications by', req.user.full_name);
-    await triggerTodayDueNotifications();
-    res.json({
-      success: true,
-      message: 'Today due notifications triggered manually',
-      triggered_by: req.user.full_name,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+router.post('/manual/daily-reports', authenticate, checkRole(['admin', 'hr']), runManualTrigger(triggerDailyAdminReports, 'Daily admin reports triggered manually'));
+router.post('/manual/today-notifications', authenticate, checkRole(['admin', 'hr']), runManualTrigger(triggerTodayDueNotifications, 'Today due notifications triggered manually'));
+router.post('/manual/tomorrow-notifications', authenticate, checkRole(['admin', 'hr']), runManualTrigger(triggerTomorrowDueNotifications, 'Tomorrow due notifications triggered manually'));
+router.post('/manual/overdue-reminders', authenticate, checkRole(['admin', 'hr']), runManualTrigger(triggerOverdueReminders, 'Overdue task reminders triggered manually'));
+router.post('/manual/escalation-reminders', authenticate, checkRole(['admin', 'hr']), runManualTrigger(triggerOverdueEscalationReminders, 'Overdue escalation reminders triggered manually'));
+router.post('/manual/weekly-reports', authenticate, checkRole(['admin', 'hr']), runManualTrigger(triggerWeeklyReports, 'Weekly admin reports triggered manually'));
+router.post('/manual/scheduled-campaigns', authenticate, checkRole(['admin', 'hr']), runManualTrigger(triggerProcessScheduledCampaigns, 'Scheduled campaigns processed manually'));
 
 // Health check endpoint for cron services
 router.get('/health', (req, res) => {
