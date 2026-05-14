@@ -954,23 +954,22 @@ const Tasks = () => {
             </>
           )}
 
+          <div className={`flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-4 pt-4 mt-4 sm:mt-6 border-t ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}>
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(false)}
+              className={`w-full sm:w-auto min-h-[44px] px-6 py-2.5 sm:py-2 ${theme === 'dark' ? 'bg-[#282f39] hover:bg-[#3a4454] text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'} text-sm font-medium rounded-lg transition-all active:scale-95`}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 sm:py-2 bg-gradient-to-r from-[#136dec] to-blue-600 hover:from-blue-600 hover:to-[#136dec] text-white text-sm rounded-lg transition-all font-semibold shadow-lg shadow-blue-900/30 active:scale-95"
+            >
+              Create Task
+            </button>
+          </div>
         </form>
-        <div className={`flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-4 pt-4 mt-4 sm:mt-6 border-t ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}>
-          <button
-            type="button"
-            onClick={() => setShowCreateModal(false)}
-            className={`w-full sm:w-auto min-h-[44px] px-6 py-2.5 sm:py-2 ${theme === 'dark' ? 'bg-[#282f39] hover:bg-[#3a4454] text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'} text-sm font-medium rounded-lg transition-all active:scale-95`}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleCreateTask}
-            className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 sm:py-2 bg-gradient-to-r from-[#136dec] to-blue-600 hover:from-blue-600 hover:to-[#136dec] text-white text-sm rounded-lg transition-all font-semibold shadow-lg shadow-blue-900/30 active:scale-95"
-          >
-            Create Task
-          </button>
-        </div>
       </ResponsiveModal>
 
       {/* Edit Task Modal */}
@@ -1090,27 +1089,25 @@ const Tasks = () => {
               </>
             )}
 
-          </form>
-        )}
-        <div className={`flex justify-end space-x-4 pt-4 mt-6 border-t ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}>
-          <button
-            type="button"
-            onClick={() => {
-              setShowEditModal(false);
-              setEditingTask(null);
-            }}
-            className={`px-6 py-2 ${theme === 'dark' ? 'bg-[#282f39] hover:bg-[#3a4454] text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'} rounded transition-colors`}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleEditTask}
-            className="px-6 py-2 bg-[#136dec] text-white rounded hover:bg-blue-600 transition-colors font-semibold"
-          >
-            Update Task
-          </button>
-        </div>
+          <div className={`flex justify-end space-x-4 pt-4 mt-6 border-t ${theme === 'dark' ? 'border-[#282f39]' : 'border-gray-200'}`}>
+            <button
+              type="button"
+              onClick={() => {
+                setShowEditModal(false);
+                setEditingTask(null);
+              }}
+              className={`px-6 py-2 ${theme === 'dark' ? 'bg-[#282f39] hover:bg-[#3a4454] text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'} rounded transition-colors`}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-[#136dec] text-white rounded hover:bg-blue-600 transition-colors font-semibold"
+            >
+              Update Task
+            </button>
+          </div>
+        </form>
       </ResponsiveModal>
 
       {/* Task Detail Modal */}

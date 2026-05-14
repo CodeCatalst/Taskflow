@@ -35,7 +35,7 @@ const sanitizeTask = (task) => {
 // Create task
 router.post('/', authenticate, checkTaskLimit, async (req, res) => {
   try {
-    const { title, description, priority, assigned_to, team_id, due_date } = req.body;
+    const { title, description, priority, status, assigned_to, team_id, due_date } = req.body;
     const cleanedAssignedTo = sanitizeAssignedTo(assigned_to);
 
     // Members can only create tasks for themselves
@@ -55,6 +55,7 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
       title,
       description,
       priority,
+      status: status || 'todo', // Use provided status or default to 'todo'
       created_by: req.user._id,
       assigned_to: cleanedAssignedTo.length > 0 ? cleanedAssignedTo : [req.user._id],
       team_id: team_id || undefined, // Fix: Use undefined instead of empty string or null if not valid
