@@ -54,7 +54,7 @@ export const requireFeature = (featureName) => {
 
     if (!req.context || !req.context.workspace) {
       return res.status(403).json({
-        message: 'Workspace context not found',
+        message: 'Workspace context not found. Please ensure you have a workspace assigned and are logged in.',
         error: 'NO_WORKSPACE_CONTEXT'
       });
     }

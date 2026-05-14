@@ -68,9 +68,8 @@ taskSchema.index({ workspaceId: 1, assigned_to: 1 });
 taskSchema.index({ workspaceId: 1, team_id: 1 });
 taskSchema.index({ workspaceId: 1, due_date: 1 });
 
-taskSchema.pre('save', function(next) {
+taskSchema.pre('save', function() {
   this.updated_at = Date.now();
-  next();
 });
 
 export default mongoose.model('Task', taskSchema);

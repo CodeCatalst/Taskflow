@@ -50,6 +50,22 @@ const Tasks = () => {
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
 
+  const isValidObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || '').trim());
+
+  const buildTaskPayload = (raw) => {
+    const assigned = Array.isArray(raw.assigned_to) ? raw.assigned_to : [];
+
+    return {
+      title: String(raw.title || '').trim(),
+      description: String(raw.description || '').trim(),
+      priority: raw.priority,
+      status: raw.status,
+      due_date: raw.due_date || undefined,
+      team_id: isValidObjectId(raw.team_id) ? raw.team_id : undefined,
+      assigned_to: assigned.filter((id) => isValidObjectId(id)),
+    };
+  };
+
   useEffect(() => {
     fetchTasks();
     if (['admin', 'hr', 'team_lead'].includes(user?.role)) {
@@ -167,7 +183,13 @@ const Tasks = () => {
   const handleCreateTask = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/tasks', formData);
+      const payload = buildTaskPayload(formData);
+      if (!payload.due_date) {
+        alert('Due date is required');
+        return;
+      }
+
+      await api.post('/tasks', payload);
       setShowCreateModal(false);
       setFormData({
         title: '',
@@ -180,7 +202,7 @@ const Tasks = () => {
       });
       fetchTasks();
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to create task');
+      alert(error.response?.data?.message || error.response?.data?.error || 'Failed to create task');
     }
   };
 

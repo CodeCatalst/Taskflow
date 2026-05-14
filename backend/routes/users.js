@@ -58,6 +58,12 @@ const validateUserCreation = [
   body('role').isIn(['admin', 'hr', 'team_lead', 'member', 'community_admin']).withMessage('Invalid role')
 ];
 
+const getDefaultCoreWorkspace = async () => {
+  return Workspace.findOne({ type: 'CORE', isActive: true })
+    .select('_id name')
+    .lean();
+};
+
 // Get current user
 router.get('/me', authenticate, async (req, res) => {
   try {
@@ -275,7 +281,18 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
     }
 
     const { full_name, email, password, role, team_id } = req.body;
-    const workspaceId = req.context?.workspaceId || null;
+    let workspaceId = req.context?.workspaceId || null;
+    let defaultCoreWorkspace = null;
+
+    if (!workspaceId) {
+      defaultCoreWorkspace = await getDefaultCoreWorkspace();
+      if (!defaultCoreWorkspace) {
+        return res.status(400).json({
+          message: 'No active workspace available. Please create a Core workspace first.'
+        });
+      }
+      workspaceId = defaultCoreWorkspace._id;
+    }
 
     // WORKSPACE SUPPORT: Check for duplicates in the active workspace when available,
     // otherwise fall back to a global lookup for system-wide admin flows.
@@ -308,9 +325,7 @@ router.post('/', authenticate, checkRole(['admin', 'hr', 'community_admin']), ch
 
     await user.save();
 
-    const workspace = workspaceId
-      ? await Workspace.findById(workspaceId).select('name')
-      : null;
+    const workspace = defaultCoreWorkspace || await Workspace.findById(workspaceId).select('name');
     const workspaceName = workspace?.name || 'TaskFlow';
 
     // Update workspace user count only when the new user belongs to a workspace.
@@ -838,7 +853,16 @@ router.post('/bulk-import/json', authenticate, checkRole(['admin', 'hr']), ...re
       return res.status(400).json({ message: 'JSON file must contain an array of users' });
     }
 
-    const results = await processBulkUsers(usersData, req.user, req.context.workspaceId);
+    const defaultCoreWorkspace = await getDefaultCoreWorkspace();
+    const effectiveWorkspaceId = req.context?.workspaceId || defaultCoreWorkspace?._id || null;
+
+    if (!effectiveWorkspaceId) {
+      return res.status(400).json({
+        message: 'No active workspace available. Please create a Core workspace first.'
+      });
+    }
+
+    const results = await processBulkUsers(usersData, req.user, effectiveWorkspaceId);
     
     res.json({
       message: 'Bulk import completed',
@@ -871,7 +895,16 @@ router.post('/bulk-import/excel', authenticate, checkRole(['admin', 'hr']), ...r
       return res.status(400).json({ message: 'Excel file is empty' });
     }
 
-    const results = await processBulkUsers(usersData, req.user, req.context.workspaceId);
+    const defaultCoreWorkspace = await getDefaultCoreWorkspace();
+    const effectiveWorkspaceId = req.context?.workspaceId || defaultCoreWorkspace?._id || null;
+
+    if (!effectiveWorkspaceId) {
+      return res.status(400).json({
+        message: 'No active workspace available. Please create a Core workspace first.'
+      });
+    }
+
+    const results = await processBulkUsers(usersData, req.user, effectiveWorkspaceId);
     
     res.json({
       message: 'Bulk import completed',
@@ -884,6 +917,10 @@ router.post('/bulk-import/excel', authenticate, checkRole(['admin', 'hr']), ...r
 
 // Helper function to process bulk users
 async function processBulkUsers(usersData, currentUser, workspaceId) {
+  if (!workspaceId) {
+    throw new Error('Workspace is required for bulk import');
+  }
+
   const results = {
     total: usersData.length,
     successful: [],

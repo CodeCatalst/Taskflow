@@ -48,7 +48,7 @@ const getPublicAppUrl = (pathSuffix = '') => {
 export default function EmailCenter() {
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
-  const { currentWorkspace } = useWorkspace();
+  const { workspace } = useWorkspace();
   const { currentTheme, currentColorScheme } = useTheme();
   const confirmModal = useConfirmModal();
 
@@ -108,7 +108,7 @@ export default function EmailCenter() {
   // Load initial data
   useEffect(() => {
     fetchInitialData();
-  }, [currentWorkspace]);
+  }, [workspace]);
 
   const fetchInitialData = async () => {
     setLoading(true);
@@ -166,7 +166,7 @@ export default function EmailCenter() {
       role: recipient.role || '',
       jobTitle: recipient.role || '',
       currentDate: new Date().toLocaleDateString(),
-      workspaceName: currentWorkspace?.name || 'TaskFlow',
+      workspaceName: workspace?.name || 'TaskFlow',
       appUrl: getPublicAppUrl(),
       loginUrl: getPublicAppUrl('/login')
     };
@@ -198,7 +198,7 @@ export default function EmailCenter() {
       template.variables.forEach(variable => {
         switch (variable.name) {
           case 'workspaceName':
-            systemVariables[variable.name] = currentWorkspace?.name || 'TaskFlow';
+            systemVariables[variable.name] = workspace?.name || 'TaskFlow';
             break;
           case 'appUrl':
             systemVariables[variable.name] = getPublicAppUrl();

@@ -37,7 +37,7 @@ const sanitizeTask = (task) => {
 // workspaceContext middleware is applied in server.js
 
 // Create task
-router.post('/', authenticate, checkTaskLimit, async (req, res) => {
+router.post('/', checkTaskLimit, async (req, res) => {
   try {
     const { title, description, priority, status, assigned_to, team_id, due_date } = req.body;
     const cleanedAssignedTo = sanitizeAssignedTo(assigned_to);
@@ -64,88 +64,112 @@ router.post('/', authenticate, checkTaskLimit, async (req, res) => {
       assigned_to: cleanedAssignedTo.length > 0 ? cleanedAssignedTo : [req.user._id],
       team_id: team_id || undefined, // Fix: Use undefined instead of empty string or null if not valid
       due_date,
-      workspaceId: req.context?.workspaceId || req.user.workspaceId || null  // WORKSPACE SUPPORT (fallback to user's workspace, null for system admins)
+      workspaceId: req.context?.workspaceId || null  // WORKSPACE SUPPORT
     });
 
     await task.save();
 
-    // Update workspace task count (skip for system admins)
-    const targetWorkspaceId = req.context?.workspaceId || req.user.workspaceId;
+    const targetWorkspaceId = req.context?.workspaceId || null;
+
+    // Post-create side effects should never fail the main task creation request.
     if (targetWorkspaceId) {
-      await Workspace.findByIdAndUpdate(
-        targetWorkspaceId,
-        { $inc: { 'usage.taskCount': 1 } }
-      );
-    }
-
-    // Create notifications if assigned to users
-    if (cleanedAssignedTo.length > 0) {
-      const notifications = cleanedAssignedTo
-        .filter(userId => userId.toString() !== req.user._id.toString())
-        .map(userId => ({
-          user_id: userId,
-          type: 'task_assigned',
-          message: `${req.user.full_name} assigned you a new task: "${task.title}"`,
-          task_id: task._id,
-          workspaceId: targetWorkspaceId,
-          payload: {
-            task_id: task._id,
-            task_title: task.title,
-            assigned_by: req.user.full_name
-          }
-        }));
-
-      if (notifications.length > 0) {
-        await Notification.insertMany(notifications);
-
-        cleanedAssignedTo
-          .filter(userId => userId.toString() !== req.user._id.toString())
-          .forEach(userId => {
-            emitUserEvent(req, userId, 'notification:new', {
-              type: 'task_assigned',
-              message: `New task assigned: ${task.title}`,
-              task: task
-            });
-          });
+      try {
+        await Workspace.findByIdAndUpdate(
+          targetWorkspaceId,
+          { $inc: { 'usage.taskCount': 1 } }
+        );
+      } catch (sideEffectError) {
+        console.error('Failed to update workspace task count:', sideEffectError.message);
       }
     }
 
-    const populatedTask = await Task.findById(task._id)
-      .populate('created_by', 'full_name email')
-      .populate('assigned_to', 'full_name email')
-      .populate('team_id', 'name');
-
-    // Log task creation
-    const user_ip = getClientIP(req);
-    await logChange({
-      event_type: 'task_created',
-      user: req.user,
-      user_ip,
-      target_type: 'task',
-      target_id: task._id.toString(),
-      target_name: task.title,
-      action: 'Created task',
-      description: `${req.user.full_name} created task "${task.title}"`,
-      metadata: {
-        priority: task.priority,
-        status: task.status,
-        due_date: task.due_date,
-        assigned_to: cleanedAssignedTo
-      },
-      workspaceId: req.context?.workspaceId || req.user.workspaceId
-    });
-
-    emitWorkspaceEvent(req, 'task:created', sanitizeTask(populatedTask));
-
     if (cleanedAssignedTo.length > 0) {
-      cleanedAssignedTo
-        .filter(userId => userId.toString() !== req.user._id.toString())
-        .forEach(userId => {
-          emitUserEvent(req, userId, 'task:assigned', {
-            task: sanitizeTask(populatedTask),
-            assigned_by: req.user.full_name
+      try {
+        const notifications = cleanedAssignedTo
+          .filter(userId => userId.toString() !== req.user._id.toString())
+          .map(userId => ({
+            user_id: userId,
+            type: 'task_assigned',
+            message: `${req.user.full_name} assigned you a new task: "${task.title}"`,
+            task_id: task._id,
+            workspaceId: targetWorkspaceId,
+            payload: {
+              task_id: task._id,
+              task_title: task.title,
+              assigned_by: req.user.full_name
+            }
+          }));
+
+        if (notifications.length > 0) {
+          await Notification.insertMany(notifications);
+
+          cleanedAssignedTo
+            .filter(userId => userId.toString() !== req.user._id.toString())
+            .forEach(userId => {
+              emitUserEvent(req, userId, 'notification:new', {
+                type: 'task_assigned',
+                message: `New task assigned: ${task.title}`,
+                task: task
+              });
+            });
+        }
+      } catch (sideEffectError) {
+        console.error('Failed to create task notifications:', sideEffectError.message);
+      }
+    }
+
+    let populatedTask = task;
+    try {
+      const hydratedTask = await Task.findById(task._id)
+        .populate('created_by', 'full_name email')
+        .populate('assigned_to', 'full_name email')
+        .populate('team_id', 'name');
+
+      if (hydratedTask) {
+        populatedTask = hydratedTask;
+      }
+    } catch (sideEffectError) {
+      console.error('Failed to populate task after creation:', sideEffectError.message);
+    }
+
+    try {
+      const user_ip = getClientIP(req);
+      await logChange({
+        event_type: 'task_created',
+        user: req.user,
+        user_ip,
+        target_type: 'task',
+        target_id: task._id.toString(),
+        target_name: task.title,
+        action: 'Created task',
+        description: `${req.user.full_name} created task "${task.title}"`,
+        metadata: {
+          priority: task.priority,
+          status: task.status,
+          due_date: task.due_date,
+          assigned_to: cleanedAssignedTo
+        },
+        workspaceId: req.context?.workspaceId || null
+      });
+    } catch (sideEffectError) {
+      console.error('Failed to write task creation changelog:', sideEffectError.message);
+    }
+
+    try {
+      emitWorkspaceEvent(req, 'task:created', sanitizeTask(populatedTask));
+
+      if (cleanedAssignedTo.length > 0) {
+        cleanedAssignedTo
+          .filter(userId => userId.toString() !== req.user._id.toString())
+          .forEach(userId => {
+            emitUserEvent(req, userId, 'task:assigned', {
+              task: sanitizeTask(populatedTask),
+              assigned_by: req.user.full_name
+            });
           });
-        });
+      }
+    } catch (sideEffectError) {
+      console.error('Failed to emit task creation socket events:', sideEffectError.message);
     }
 
     res.status(201).json({ message: 'Task created', task: sanitizeTask(populatedTask) });

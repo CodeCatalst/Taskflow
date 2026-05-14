@@ -49,6 +49,22 @@ const Kanban = () => {
   const [selectedTeamMembers, setSelectedTeamMembers] = useState([]);
   const [dragOverColumn, setDragOverColumn] = useState(null);
 
+  const isValidObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || '').trim());
+
+  const buildTaskPayload = (raw) => {
+    const assigned = Array.isArray(raw.assigned_to) ? raw.assigned_to : [];
+
+    return {
+      title: String(raw.title || '').trim(),
+      description: String(raw.description || '').trim(),
+      priority: raw.priority,
+      status: raw.status,
+      due_date: raw.due_date || undefined,
+      team_id: isValidObjectId(raw.team_id) ? raw.team_id : undefined,
+      assigned_to: assigned.filter((id) => isValidObjectId(id)),
+    };
+  };
+
   const columns = [
     { id: 'todo', title: 'Todo', dotColor: 'bg-slate-500', count: 0 },
     { id: 'in_progress', title: 'In Progress', dotColor: 'bg-[#136dec] animate-pulse', count: 0, hasTopBorder: true },
@@ -127,7 +143,13 @@ const Kanban = () => {
   const handleCreateTask = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/tasks', formData);
+      const payload = buildTaskPayload(formData);
+      if (!payload.due_date) {
+        alert('Due date is required');
+        return;
+      }
+
+      await api.post('/tasks', payload);
       setShowCreateModal(false);
       setFormData({
         title: '',
@@ -141,7 +163,7 @@ const Kanban = () => {
       setSelectedTeamMembers([]);
       fetchTasks();
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to create task');
+      alert(error.response?.data?.message || error.response?.data?.error || 'Failed to create task');
     }
   };
 

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notification Test - TaskFlow</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #667eea;
+      margin: 0 0 10px 0;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 6px;
+      margin: 10px 0;
+      font-weight: 500;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .status.warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+    }
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+      font-weight: 500;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    .log {
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .emoji {
+      font-size: 20px;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔔 TaskFlow Notification Test</h1>
+    <p>Use this page to test if notifications are working properly</p>
+  </div>
+
+  <div class="card">
+    <h2>📊 Status Check</h2>
+    <div id="status"></div>
+  </div>
+
+  <div class="card">
+    <h2>🧪 Tests</h2>
+    <button onclick="requestPermission()">1. Request Permission</button>
+    <button onclick="testBasicNotification()">2. Test Basic Notification</button>
+    <button onclick="testServiceWorkerNotification()">3. Test SW Notification</button>
+    <button onclick="runFullDiagnostic()">4. Run Full Diagnostic</button>
+    <button onclick="clearLogs()">Clear Logs</button>
+  </div>
+
+  <div class="card">
+    <h2>📝 Console Output</h2>
+    <div id="logs" class="log"></div>
+  </div>
+
+  <script>
+    const logsDiv = document.getElementById('logs');
+    const statusDiv = document.getElementById('status');
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.innerHTML = `<span style="color: #888">[${timestamp}]</span> ${message}`;
+      logsDiv.appendChild(div);
+      logsDiv.scrollTop = logsDiv.scrollHeight;
+      console.log(message);
+    }
+
+    function clearLogs() {
+      logsDiv.innerHTML = '';
+    }
+
+    function updateStatus() {
+      let html = '';
+      
+      // Check Notification API
+      if ('Notification' in window) {
+        html += `<div class="status success">✅ Notification API: Supported</div>`;
+        html += `<div class="status ${Notification.permission === 'granted' ? 'success' : Notification.permission === 'denied' ? 'error' : 'warning'}">
+          ${Notification.permission === 'granted' ? '✅' : Notification.permission === 'denied' ? '❌' : '⚠️'} 
+          Permission: ${Notification.permission}
+        </div>`;
+      } else {
+        html += `<div class="status error">❌ Notification API: Not Supported</div>`;
+      }
+
+      // Check Service Worker
+      if ('serviceWorker' in navigator) {
+        html += `<div class="status success">✅ Service Worker API: Supported</div>`;
+        navigator.serviceWorker.getRegistration().then(reg => {
+          if (reg) {
+            html += `<div class="status success">✅ Service Worker: Registered</div>`;
+            html += `<div class="status info">ℹ️ SW State: ${reg.active?.state || 'installing'}</div>`;
+            statusDiv.innerHTML = html;
+          } else {
+            html += `<div class="status warning">⚠️ Service Worker: Not Registered</div>`;
+            statusDiv.innerHTML = html;
+          }
+        });
+      } else {
+        html += `<div class="status error">❌ Service Worker API: Not Supported</div>`;
+      }
+
+      // Check PWA
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+      html += `<div class="status ${isPWA ? 'success' : 'info'}">
+        ${isPWA ? '✅' : 'ℹ️'} PWA Mode: ${isPWA ? 'Running as PWA' : 'Running in browser'}
+      </div>`;
+
+      statusDiv.innerHTML = html;
+    }
+
+    async function requestPermission() {
+      log('🔔 Requesting notification permission...');
+      
+      if (!('Notification' in window)) {
+        log('❌ Notification API not supported!', 'error');
+        return;
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+        log(`✅ Permission result: ${permission}`);
+        updateStatus();
+        
+        if (permission === 'granted') {
+          log('🎉 Success! You can now receive notifications.');
+        } else if (permission === 'denied') {
+          log('⚠️ Permission denied. Check browser settings to reset.', 'warning');
+        }
+      } catch (error) {
+        log(`❌ Error requesting permission: ${error.message}`, 'error');
+      }
+    }
+
+    async function testBasicNotification() {
+      log('🧪 Testing basic notification...');
+      
+      if (!('Notification' in window)) {
+        log('❌ Notification API not supported!', 'error');
+        return;
+      }
+
+      if (Notification.permission !== 'granted') {
+        log('⚠️ Permission not granted. Click "Request Permission" first.', 'warning');
+        return;
+      }
+
+      try {
+        const notification = new Notification('🧪 Test Notification', {
+          body: 'This is a basic browser notification (not using service worker)',
+          icon: '/icons/pwa-192x192.png',
+          badge: '/icons/pwa-64x64.png',
+          tag: 'test-basic',
+          requireInteraction: false,
+        });
+
+        notification.onclick = () => {
+          log('✅ Notification clicked!');
+          notification.close();
+        };
+
+        log('✅ Basic notification sent!');
+      } catch (error) {
+        log(`❌ Error showing notification: ${error.message}`, 'error');
+      }
+    }
+
+    async function testServiceWorkerNotification() {
+      log('🧪 Testing service worker notification...');
+      
+      if (!('serviceWorker' in navigator)) {
+        log('❌ Service Worker not supported!', 'error');
+        return;
+      }
+
+      if (Notification.permission !== 'granted') {
+        log('⚠️ Permission not granted. Click "Request Permission" first.', 'warning');
+        return;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        
+        if (!registration) {
+          log('⚠️ No service worker registered. This is normal in dev mode.', 'warning');
+          log('ℹ️ Falling back to basic notification...');
+          testBasicNotification();
+          return;
+        }
+
+        log(`✅ Service worker found: ${registration.active?.state}`);
+        
+        await registration.showNotification('🧪 Service Worker Test', {
+          body: 'This notification is shown via the service worker',
+          icon: '/icons/pwa-192x192.png',
+          badge: '/icons/pwa-64x64.png',
+          tag: 'test-sw',
+          requireInteraction: false,
+          data: {
+            type: 'test',
+            timestamp: Date.now(),
+          },
+          actions: [
+            { action: 'view', title: 'View' },
+            { action: 'close', title: 'Close' },
+          ],
+        });
+
+        log('✅ Service worker notification sent!');
+      } catch (error) {
+        log(`❌ Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function runFullDiagnostic() {
+      clearLogs();
+      log('🔍 Running full diagnostic...');
+      log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      // 1. Browser Info
+      log('📱 Browser Information:');
+      log(`   User Agent: ${navigator.userAgent}`);
+      log(`   Platform: ${navigator.platform}`);
+      log(`   Online: ${navigator.onLine ? 'Yes' : 'No'}`);
+      log('');
+
+      // 2. Notification API
+      log('🔔 Notification API:');
+      if ('Notification' in window) {
+        log('   ✅ Supported');
+        log(`   Permission: ${Notification.permission}`);
+        log(`   Max Actions: ${Notification.maxActions || 'Unknown'}`);
+      } else {
+        log('   ❌ Not Supported');
+      }
+      log('');
+
+      // 3. Service Worker
+      log('⚙️ Service Worker:');
+      if ('serviceWorker' in navigator) {
+        log('   ✅ API Supported');
+        try {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration) {
+            log('   ✅ Registered');
+            log(`   Scope: ${registration.scope}`);
+            log(`   Active: ${registration.active ? 'Yes' : 'No'}`);
+            if (registration.active) {
+              log(`   State: ${registration.active.state}`);
+              log(`   Script URL: ${registration.active.scriptURL}`);
+            }
+            log(`   Installing: ${registration.installing ? 'Yes' : 'No'}`);
+            log(`   Waiting: ${registration.waiting ? 'Yes' : 'No'}`);
+          } else {
+            log('   ⚠️ Not Registered (normal in dev mode)');
+          }
+        } catch (error) {
+          log(`   ❌ Error: ${error.message}`);
+        }
+      } else {
+        log('   ❌ Not Supported');
+      }
+      log('');
+
+      // 4. PWA
+      log('📱 PWA Status:');
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+      log(`   Running as PWA: ${isPWA ? 'Yes' : 'No'}`);
+      log(`   Display Mode: ${isPWA ? 'standalone' : 'browser'}`);
+      log('');
+
+      // 5. Permissions
+      log('🔐 Permissions:');
+      if (navigator.permissions) {
+        try {
+          const result = await navigator.permissions.query({ name: 'notifications' });
+          log(`   Notification Permission: ${result.state}`);
+        } catch (error) {
+          log(`   Cannot query: ${error.message}`);
+        }
+      } else {
+        log('   Permissions API not available');
+      }
+      log('');
+
+      // 6. Recommendations
+      log('💡 Recommendations:');
+      if (!('Notification' in window)) {
+        log('   ⚠️ Use a modern browser (Chrome, Firefox, Edge, Safari)');
+      }
+      if (Notification.permission === 'denied') {
+        log('   ⚠️ Reset notification permissions in browser settings');
+        log('   📍 Chrome: Settings → Privacy → Site Settings → Notifications');
+        log('   📍 Firefox: Settings → Privacy → Permissions → Notifications');
+      }
+      if (Notification.permission === 'default') {
+        log('   ℹ️ Click "Request Permission" to enable notifications');
+      }
+      if (!navigator.serviceWorker) {
+        log('   ⚠️ Service Workers require HTTPS or localhost');
+      }
+      
+      log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      log('✅ Diagnostic complete!');
+      
+      updateStatus();
+    }
+
+    // Initialize on load
+    window.addEventListener('load', () => {
+      updateStatus();
+      log('✅ Page loaded. Ready to test notifications!');
+      log('ℹ️ Click the buttons above to start testing.');
+    });
+
+    // Listen for service worker messages
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        log(`📨 Message from service worker: ${JSON.stringify(event.data)}`);
+      });
+    }
+  </script>
+</body>
+</html>

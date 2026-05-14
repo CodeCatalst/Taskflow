@@ -64,6 +64,22 @@ const TasksResponsive = () => {
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
 
+  const isValidObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || '').trim());
+
+  const buildTaskPayload = (raw) => {
+    const assigned = Array.isArray(raw.assigned_to) ? raw.assigned_to : [];
+
+    return {
+      title: String(raw.title || '').trim(),
+      description: String(raw.description || '').trim(),
+      priority: raw.priority,
+      status: raw.status,
+      due_date: raw.due_date || undefined,
+      team_id: isValidObjectId(raw.team_id) ? raw.team_id : undefined,
+      assigned_to: assigned.filter((id) => isValidObjectId(id)),
+    };
+  };
+
   // Enable real-time sync
   useRealtimeSync(setTasks);
 
@@ -163,7 +179,13 @@ const TasksResponsive = () => {
   const handleCreateTask = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/tasks', formData);
+      const payload = buildTaskPayload(formData);
+      if (!payload.due_date) {
+        alert('Due date is required');
+        return;
+      }
+
+      await api.post('/tasks', payload);
       setShowCreateModal(false);
       setFormData({
         title: '',
@@ -176,7 +198,7 @@ const TasksResponsive = () => {
       });
       fetchTasks();
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to create task');
+      alert(error.response?.data?.message || error.response?.data?.error || 'Failed to create task');
     }
   };
 
@@ -502,13 +524,14 @@ const TasksResponsive = () => {
 
           <div>
             <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              Due Date
+              Due Date *
             </label>
             <input
               type="date"
               value={formData.due_date}
               onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
               className={`w-full h-11 px-4 rounded-lg border ${theme === 'dark' ? 'bg-[#111418] border-[#282f39] text-white' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-[#136dec] focus:border-transparent`}
+              required
             />
           </div>
 
