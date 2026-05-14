@@ -159,10 +159,20 @@ app.use(cors({
       'https://taskflow-nine-phi.vercel.app'
     ];
 
-    // Add frontend URL from environment variable if set
-    const frontendUrl = process.env.FRONTEND_URL;
-    if (frontendUrl && !allowedOrigins.includes(frontendUrl)) {
-      allowedOrigins.push(frontendUrl);
+    // Add frontend URL from environment variables if set.
+    // Keep this aligned with the rest of the app, which already accepts
+    // PUBLIC_FRONTEND_URL, FRONTEND_URL, and CLIENT_URL as valid public origins.
+    const frontendUrls = [
+      process.env.PUBLIC_FRONTEND_URL,
+      process.env.FRONTEND_URL,
+      process.env.CLIENT_URL
+    ].filter(Boolean);
+
+    for (const frontendUrl of frontendUrls) {
+      const normalizedFrontendUrl = frontendUrl.replace(/\/$/, '');
+      if (!allowedOrigins.includes(normalizedFrontendUrl)) {
+        allowedOrigins.push(normalizedFrontendUrl);
+      }
     }
 
     // Add Vercel deployment URL if available
