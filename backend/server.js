@@ -20,6 +20,11 @@ import changelogRoutes from './routes/changelog.js';
 // Import scheduler
 import { initializeScheduler } from './utils/scheduler.js';
 
+const noop = () => {};
+for (const method of ['log', 'debug', 'info', 'warn', 'error', 'trace']) {
+  console[method] = noop;
+}
+
 // Load environment variables (ensure we read backend/.env even if CWD is project root)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

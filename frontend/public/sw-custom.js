@@ -1,6 +1,12 @@
 // Custom Service Worker for TaskFlow PWA
 // This extends the Workbox service worker with notification handling
 
+const noop = () => {};
+for (const method of ['log', 'debug', 'info', 'warn', 'error', 'trace']) {
+  console[method] = noop;
+}
+self.__WB_DISABLE_DEV_LOGS = true;
+
 // Import Workbox libraries
 importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-sw.js');
 
@@ -112,9 +118,7 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
       self.registration.showNotification(data.title || 'TaskFlow', options)
     );
-  } catch (error) {
-    console.error('Error handling push notification:', error);
-  }
+  } catch (error) {}
 });
 
 // Background sync for offline actions (future enhancement)
@@ -126,7 +130,6 @@ self.addEventListener('sync', (event) => {
 
 async function syncTasks() {
   // Placeholder for syncing tasks when back online
-  console.log('Syncing tasks...');
 }
 
 // Handle service worker updates
@@ -138,8 +141,5 @@ self.addEventListener('message', (event) => {
 
 // Log service worker activation
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activated');
   event.waitUntil(clients.claim());
 });
-
-console.log('TaskFlow Service Worker loaded');
